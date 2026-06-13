@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { parseStory } from '../parser/parseStory'
 import type { Story } from '../parser/types'
+import { useStoryStore } from '../store/useStoryStore'
+import { ViewerStage } from '../components/viewer/ViewerStage'
 import { PageView } from '../components/viewer/PageView'
+import { ImmersiveView } from '../components/viewer/ImmersiveView'
 
 interface IndexEntry {
   id: string
@@ -10,22 +13,24 @@ interface IndexEntry {
 }
 
 /**
- * Viewer (screens 3 & 4) — fetches + parses a story by :id, then renders it.
- * M3 ships Mode B (PageView) only; the Mode A toggle arrives in M4 and will
- * re-lay-out around the SAME persistent canvas without reloading the model.
+ * Viewer (screens 3 & 4) — fetches + parses a story by :id, then renders it in
+ * the current mode. ViewerStage stays mounted across the Mode A ⇄ Mode B toggle,
+ * so the 3D model is never reloaded; only its child view swaps.
  */
 export function ViewerRoute() {
   const { id } = useParams<{ id: string }>()
   const [story, setStory] = useState<Story | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const mode = useStoryStore((s) => s.mode)
+  const reset = useStoryStore((s) => s.reset)
 
   useEffect(() => {
     let cancelled = false
     setStory(null)
     setError(null)
+    reset() // fresh mode/activeIndex/auto-tour per story
 
     async function load() {
-      // Resolve the story's path + base directory from the static registry.
       const idxRes = await fetch('/stories/index.json')
       if (!idxRes.ok) throw new Error(`Failed to load story index (HTTP ${idxRes.status})`)
       const idx = (await idxRes.json()).stories as IndexEntry[]
@@ -44,21 +49,26 @@ export function ViewerRoute() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, reset])
+
+  if (error) {
+    return (
+      <div className="page">
+        <div className="page-topbar">
+          <Link to="/" className="back">
+            ← All stories
+          </Link>
+        </div>
+        <p className="state">{error}</p>
+      </div>
+    )
+  }
+
+  if (!story) return <p className="state">Loading story…</p>
 
   return (
-    <div className="page">
-      <div className="page-topbar">
-        <Link to="/" className="back">
-          ← All stories
-        </Link>
-        <p className="eyebrow">Page view</p>
-      </div>
-
-      {error && <p className="state">{error}</p>}
-      {!error && !story && <p className="state">Loading story…</p>}
-
-      {story && story.warnings.length > 0 && (
+    <ViewerStage story={story}>
+      {story.warnings.length > 0 && mode === 'page' && (
         <div className="warnings">
           <strong>Parser notes</strong>
           <ul>
@@ -68,8 +78,7 @@ export function ViewerRoute() {
           </ul>
         </div>
       )}
-
-      {story && <PageView story={story} />}
-    </div>
+      {mode === 'page' ? <PageView story={story} /> : <ImmersiveView story={story} />}
+    </ViewerStage>
   )
 }

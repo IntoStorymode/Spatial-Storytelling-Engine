@@ -123,6 +123,16 @@ export class ThreeViewer {
     ) as unknown as Promise<void>
   }
 
+  /**
+   * Enable/disable wheel-to-dolly. Mode A turns this OFF so the scroll wheel
+   * can drive item navigation instead of zooming the camera.
+   */
+  setWheelDolly(enabled: boolean): void {
+    this.controls.mouseButtons.wheel = enabled
+      ? CameraControls.ACTION.DOLLY
+      : CameraControls.ACTION.NONE
+  }
+
   resize(): void {
     const w = this.container.clientWidth
     const h = this.container.clientHeight
