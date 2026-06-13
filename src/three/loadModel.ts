@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { buildPrimitive } from './primitives'
+import { loadSplat } from './loadSplat'
 
 const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
 
@@ -8,7 +9,7 @@ const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
  * Load a story's 3D model into a Three.js Object3D, dispatching by source:
  *  - `builtin:<kind>` → generated placeholder geometry (no asset needed)
  *  - `.glb` / `.gltf` → GLTFLoader
- *  - splat formats     → deferred to M5 (throws a clear message for now)
+ *  - splat formats     → Gaussian-splat DropInViewer (lazy-loaded)
  */
 export async function loadModel(url: string, basePath = ''): Promise<THREE.Object3D> {
   if (url.startsWith('builtin:')) {
@@ -25,10 +26,7 @@ export async function loadModel(url: string, basePath = ''): Promise<THREE.Objec
   }
 
   if (SPLAT_EXTS.has(ext)) {
-    throw new Error(
-      `Gaussian-splat format ".${ext}" is not wired up until M5. ` +
-        `Use a .glb model or "builtin:room" for now.`,
-    )
+    return loadSplat(resolved)
   }
 
   throw new Error(`Unsupported model format: "${url}"`)

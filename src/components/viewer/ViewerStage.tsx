@@ -48,9 +48,16 @@ export function ViewerStage({ story, children }: { story: Story; children: React
     return () => v.dispose()
   }, [])
 
+  const [loadError, setLoadError] = useState<string | null>(null)
+
   // Load (or swap) the model.
   useEffect(() => {
-    viewer?.setModel(frontmatter.model, basePath).catch((e) => console.error(e))
+    if (!viewer) return
+    setLoadError(null)
+    viewer.setModel(frontmatter.model, basePath).catch((e) => {
+      console.error('Model load failed:', e)
+      setLoadError(e instanceof Error ? e.message : String(e))
+    })
   }, [viewer, frontmatter.model, basePath])
 
   // Keep the store's item count in sync for navigation bounds.
@@ -81,6 +88,12 @@ export function ViewerStage({ story, children }: { story: Story; children: React
 
   return (
     <StageContext.Provider value={{ hostEl: hostRef.current, viewer }}>
+      {loadError && (
+        <div className="model-error" role="alert">
+          <strong>3D model failed to load.</strong>
+          <span>{loadError}</span>
+        </div>
+      )}
       {children}
     </StageContext.Provider>
   )

@@ -11,6 +11,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ASSETS = join(__dirname, '..', 'public', 'stories', 'demo', 'assets')
 mkdirSync(ASSETS, { recursive: true })
 
+const SPLAT_ASSETS = join(__dirname, '..', 'public', 'stories', 'splat-example', 'assets')
+mkdirSync(SPLAT_ASSETS, { recursive: true })
+
 // ── 1. Silent WAV ──────────────────────────────────────────────────────────
 function silentWav(seconds = 1, sampleRate = 8000) {
   const numSamples = seconds * sampleRate
@@ -103,5 +106,58 @@ if (existsSync(gltfPath)) {
       'gen-assets: could not generate cube.gltf (non-fatal — demo uses builtin:room).\n  ' +
         String(err),
     )
+  }
+}
+
+// ── 3. Sample Gaussian splat (proves the DropInViewer path) ──────────────────
+// Hand-writes a tiny scene in the antimatter15 `.splat` format (32 bytes/splat):
+//   [0..11]  center  x,y,z   float32
+//   [12..23] scale   x,y,z   float32 (linear std-dev)
+//   [24..27] color   r,g,b,a uint8
+//   [28..31] rotation w,x,y,z uint8, decoded as (b-128)/128 then normalized
+// The shape is a colour sphere (normal-mapped) centred where splat-example's
+// hotspots look — a clearly-3D, license-clean asset with zero downloads. A real
+// scan (.ksplat from SuperSplat) drops in the same way; see the folder README.
+const splatPath = join(SPLAT_ASSETS, 'scene.splat')
+if (existsSync(splatPath)) {
+  console.log('gen-assets: scene.splat exists, skipping')
+} else {
+  try {
+    const N = 20000
+    const radius = 0.8
+    const cx = 0, cy = 0.8, cz = 0 // matches splat-example hotspot targets
+    const splatScale = 0.06 // large enough that the splats overlap into a solid surface
+    const buf = Buffer.alloc(N * 32)
+    const golden = Math.PI * (1 + Math.sqrt(5))
+    for (let i = 0; i < N; i++) {
+      const k = i + 0.5
+      const phi = Math.acos(1 - (2 * k) / N) // 0..π
+      const theta = golden * k
+      const nx = Math.sin(phi) * Math.cos(theta)
+      const ny = Math.sin(phi) * Math.sin(theta)
+      const nz = Math.cos(phi)
+
+      const o = i * 32
+      buf.writeFloatLE(cx + radius * nx, o)
+      buf.writeFloatLE(cy + radius * ny, o + 4)
+      buf.writeFloatLE(cz + radius * nz, o + 8)
+      buf.writeFloatLE(splatScale, o + 12)
+      buf.writeFloatLE(splatScale, o + 16)
+      buf.writeFloatLE(splatScale, o + 20)
+      // Normal-mapped colour, warmed slightly toward the app's copper accent.
+      buf.writeUInt8(Math.min(255, Math.round((nx * 0.5 + 0.5) * 255 * 1.0)), o + 24)
+      buf.writeUInt8(Math.round((ny * 0.5 + 0.5) * 255 * 0.85), o + 25)
+      buf.writeUInt8(Math.round((nz * 0.5 + 0.5) * 255 * 0.8), o + 26)
+      buf.writeUInt8(255, o + 27) // opaque
+      // Identity rotation: w=+1 → 255, x=y=z=0 → 128.
+      buf.writeUInt8(255, o + 28)
+      buf.writeUInt8(128, o + 29)
+      buf.writeUInt8(128, o + 30)
+      buf.writeUInt8(128, o + 31)
+    }
+    writeFileSync(splatPath, buf)
+    console.log(`gen-assets: wrote scene.splat (${N} splats, ${(buf.length / 1024) | 0} KB)`)
+  } catch (err) {
+    console.warn('gen-assets: could not generate scene.splat (non-fatal).\n  ' + String(err))
   }
 }

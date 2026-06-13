@@ -1,0 +1,3 @@
+The splat model (scene.splat) is generated here by scripts/gen-assets.mjs
+on npm run dev / build, and is gitignored. Replace it with your own .ksplat/
+.splat/.ply to use your own scan — see this folder's README.md.
