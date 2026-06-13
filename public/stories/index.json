@@ -1,0 +1,12 @@
+{
+  "stories": [
+    {
+      "id": "demo",
+      "title": "The Old Print Works",
+      "author": "Demo Author",
+      "location": "Cradley Heath, England",
+      "date": "2026-06-01",
+      "path": "/stories/demo/story.md"
+    }
+  ]
+}
