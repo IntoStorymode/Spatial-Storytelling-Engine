@@ -276,7 +276,10 @@ animation) and defers the riskiest feature (editor splat raycast) until the view
 - **M2 — ThreeViewer (GLB + builtin):** engine + `camera-controls` + `loadModel` + `gen-assets`; prove `setLookAt` tween on a button.
 - **M3 — Mode B + Home + routing:** shared `ItemContent` renderers, inline canvas, `index.json`.
 - **M4 — Mode A:** `activeIndex` store, Next/Prev/wheel/keys, per-hotspot `setLookAt`,
-  `OverlayPanel`, `ProgressIndicator`, toggle preserving position.
+  `OverlayPanel`, `ProgressIndicator`, toggle preserving position. **Auto-tour:** a
+  user-toggleable on/off control that auto-advances `activeIndex` through every hotspot on
+  a timer (reusing the same `flyTo` + in-flight transition lock); any manual nav (Next/Prev/
+  wheel/key) or mode toggle turns it off. Respects `prefers-reduced-motion`.
 - **M5 — Splat support:** `DropInViewer` path + COOP/COEP; document dropping in a real
   `.ksplat`/`.splat` (and SuperSplat for converting).
 - **M6 — Editor:** meta form, item CRUD/reorder, model upload, `HotspotPlacer` (raycast +
