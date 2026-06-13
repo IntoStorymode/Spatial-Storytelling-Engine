@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-label="The composing room, 1987">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#252220"/>
+      <stop offset="1" stop-color="#171614"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <!-- simple "window light" panels -->
+  <g fill="#2e2b27" stroke="#3a352f" stroke-width="2">
+    <rect x="120" y="120" width="180" height="260"/>
+    <rect x="340" y="120" width="180" height="260"/>
+  </g>
+  <g stroke="#c17a3a" stroke-opacity="0.5" stroke-width="3" fill="none">
+    <line x1="120" y1="250" x2="520" y2="250"/>
+    <line x1="210" y1="120" x2="210" y2="380"/>
+    <line x1="430" y1="120" x2="430" y2="380"/>
+  </g>
+  <!-- floor line -->
+  <line x1="0" y1="620" x2="1200" y2="620" stroke="#3a352f" stroke-width="2"/>
+  <text x="600" y="700" fill="#9a9289" font-family="Georgia, serif" font-size="34" text-anchor="middle" font-style="italic">
+    The composing room, 1987 — placeholder image
+  </text>
+</svg>

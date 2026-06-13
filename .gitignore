@@ -20,6 +20,10 @@ dist-ssr/
 *:Zone.Identifier
 *.Zone.Identifier
 
+# Generated demo assets (rebuilt by scripts/gen-assets.mjs on predev/prebuild)
+public/stories/demo/assets/narration.wav
+public/stories/demo/assets/cube.gltf
+
 # Logs
 logs/
 *.log
