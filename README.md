@@ -15,16 +15,24 @@ Both modes read the **same** parsed story file. A toggle switches between them l
 
 ## Status
 
-🚧 **Pre-build.** This repo currently contains the implementation plan
-([`PLAN.md`](./PLAN.md)) and the background [`References/`](./References). Code lands next.
+**Building, milestone by milestone** (see [`PLAN.md`](./PLAN.md)).
+Done: M1 data core · M2 3D engine · M3 page view + home + routing · M4 immersive
+view + auto-tour · **M5 Gaussian-splat support**. Next: M6 editor · M7 polish.
 
-## Planned stack
+```bash
+npm install
+npm run dev      # → http://localhost:5173
+```
+
+## Stack
 
 - **React + Vite + TypeScript**
 - **One unified Three.js viewer** for both GLB meshes and Gaussian splats
-  (`.ply` / `.splat` / `.ksplat`), using [`camera-controls`](https://github.com/yomotsu/camera-controls)
-  for hotspot-to-hotspot camera animation and
-  [`@mkkellogg/gaussian-splats-3d`](https://github.com/mkkellogg/GaussianSplats3D) for splat rendering.
+  (`.ply` / `.splat` / `.ksplat` / `.spz`), using
+  [`camera-controls`](https://github.com/yomotsu/camera-controls) for
+  hotspot-to-hotspot camera animation and
+  [`@mkkellogg/gaussian-splats-3d`](https://github.com/mkkellogg/GaussianSplats3D)
+  for splat rendering (lazy-loaded, so it only ships to splat-backed stories).
 - No backend — all story data and assets are local files under `/public/stories`.
 
 ## Story format
@@ -45,6 +53,24 @@ Once built, a person with a [Scaniverse](https://scaniverse.com/) export (`.glb`
 
 > **Tip:** to clean, crop, and web-optimize a raw `.ply` splat (e.g. `.ply` → `.ksplat`),
 > use [SuperSplat](https://superspl.at/editor) (open source, free) before dropping it in.
+
+## Gaussian splats
+
+A splat-backed story is identical to a GLB one — only the `model:` line differs
+(`model: assets/scene.ksplat`). The loader auto-detects `.ply` / `.splat` /
+`.ksplat` / `.spz`, and the same hotspots drive the same camera animation in both
+modes.
+
+A ready-to-use template lives in
+[`public/stories/splat-example/`](./public/stories/splat-example/) — drop your
+file into its `assets/`, add the story to `public/stories/index.json`, and open
+it. Full steps are in that folder's README.
+
+**Cross-origin isolation:** splat GPU-sorting uses `SharedArrayBuffer`, which
+needs `Cross-Origin-Opener-Policy: same-origin` and
+`Cross-Origin-Embedder-Policy: require-corp`. The Vite dev **and** preview servers
+already send these (`vite.config.ts`); replicate them wherever you host, or the
+viewer falls back to a slower CPU sort.
 
 ## License
 

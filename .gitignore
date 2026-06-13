@@ -23,6 +23,14 @@ dist-ssr/
 # Generated demo assets (rebuilt by scripts/gen-assets.mjs on predev/prebuild)
 public/stories/demo/assets/narration.wav
 public/stories/demo/assets/cube.gltf
+public/stories/splat-example/assets/scene.splat
+
+# Author-supplied 3D scans — keep large binaries out of git (drop them in locally)
+*.ksplat
+*.splat
+*.ply
+*.spz
+*.glb
 
 # Logs
 logs/

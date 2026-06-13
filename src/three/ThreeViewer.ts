@@ -155,6 +155,17 @@ export class ThreeViewer {
 
 /** Recursively dispose geometries and materials to avoid GPU memory leaks. */
 function disposeObject(obj: THREE.Object3D): void {
+  // Splat viewers own web workers + GPU buffers — let them tear themselves down
+  // via their own dispose() rather than walking geometries/materials.
+  const disposable = obj as THREE.Object3D & { dispose?: () => unknown }
+  if (obj.userData?.isSplat && typeof disposable.dispose === 'function') {
+    try {
+      void disposable.dispose()
+    } catch (e) {
+      console.error('splat dispose failed', e)
+    }
+    return
+  }
   obj.traverse((child) => {
     const mesh = child as THREE.Mesh
     if (mesh.geometry) mesh.geometry.dispose()
