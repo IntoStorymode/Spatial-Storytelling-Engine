@@ -30,6 +30,7 @@ export class ThreeViewer {
   private readonly resizeObserver: ResizeObserver
   private rafId = 0
   private currentModel: THREE.Object3D | null = null
+  private marker: THREE.Sprite | null = null
   private disposed = false
 
   constructor(container: HTMLElement, opts: ThreeViewerOptions = {}) {
@@ -72,13 +73,13 @@ export class ThreeViewer {
   }
 
   /** Replace the current model. Frames the camera to fit it. */
-  async setModel(url: string, basePath = ''): Promise<THREE.Object3D> {
+  async setModel(url: string, basePath = '', formatHint?: string): Promise<THREE.Object3D> {
     if (this.currentModel) {
       this.scene.remove(this.currentModel)
       disposeObject(this.currentModel)
       this.currentModel = null
     }
-    const obj = await loadModel(url, basePath)
+    const obj = await loadModel(url, basePath, formatHint)
     if (this.disposed) {
       disposeObject(obj)
       return obj
@@ -133,6 +134,64 @@ export class ThreeViewer {
       : CameraControls.ACTION.NONE
   }
 
+  // ── Editor support (M6) ─────────────────────────────────────────────────
+
+  /** Current camera position + look-at target — used to capture a hotspot. */
+  getView(): { position: [number, number, number]; target: [number, number, number] } {
+    const t = this.controls.getTarget(new THREE.Vector3())
+    const p = this.camera.position
+    return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z] }
+  }
+
+  /**
+   * Convert a normalized device coordinate (−1..1) into a world point for
+   * click-to-place. Hits the loaded mesh first; for splats (or a miss) falls
+   * back to a horizontal plane through the look target, then a fixed distance.
+   */
+  raycastToWorld(ndcX: number, ndcY: number): [number, number, number] {
+    const ray = new THREE.Raycaster()
+    ray.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera)
+
+    if (this.currentModel && !this.currentModel.userData?.isSplat) {
+      const hits = ray.intersectObject(this.currentModel, true)
+      if (hits.length) {
+        const p = hits[0].point
+        return [p.x, p.y, p.z]
+      }
+    }
+
+    const target = this.controls.getTarget(new THREE.Vector3())
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -target.y)
+    const hit = new THREE.Vector3()
+    if (ray.ray.intersectPlane(plane, hit)) return [hit.x, hit.y, hit.z]
+
+    const fallback = ray.ray.at(5, new THREE.Vector3())
+    return [fallback.x, fallback.y, fallback.z]
+  }
+
+  /** Show (or clear with null) a marker sprite at a world position. */
+  setMarker(pos: [number, number, number] | null): void {
+    if (this.marker) {
+      this.scene.remove(this.marker)
+      this.marker.material.dispose()
+      this.marker = null
+    }
+    if (!pos) return
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ color: 0xc17a3a, depthTest: false, depthWrite: false }),
+    )
+    sprite.position.set(pos[0], pos[1], pos[2])
+    sprite.scale.setScalar(0.18)
+    sprite.renderOrder = 999
+    this.scene.add(sprite)
+    this.marker = sprite
+  }
+
+  /** Enable/disable orbit controls (off while placing a hotspot by click). */
+  setControlsEnabled(enabled: boolean): void {
+    this.controls.enabled = enabled
+  }
+
   resize(): void {
     const w = this.container.clientWidth
     const h = this.container.clientHeight
@@ -147,6 +206,7 @@ export class ThreeViewer {
     cancelAnimationFrame(this.rafId)
     this.resizeObserver.disconnect()
     this.controls.dispose()
+    this.setMarker(null)
     if (this.currentModel) disposeObject(this.currentModel)
     this.renderer.dispose()
     this.renderer.domElement.remove()

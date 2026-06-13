@@ -3,10 +3,12 @@ import type { CSSProperties } from 'react'
 import { ThreeViewer } from '../three/ThreeViewer'
 
 interface ThreeCanvasProps {
-  /** Model source: a `.glb` path, story-relative asset, or `builtin:room`. */
+  /** Model source: a `.glb` path, story-relative asset, `builtin:room`, or a blob: URL. */
   model: string
   /** Base path for resolving story-relative model URLs. */
   basePath?: string
+  /** Format hint (extension) for blob:/data: model URLs that carry no extension. */
+  modelFormat?: string
   /** Called once with the live viewer instance after it mounts. */
   onReady?: (viewer: ThreeViewer) => void
   /** Called if a model fails to load. */
@@ -19,7 +21,14 @@ interface ThreeCanvasProps {
  * WebGL context + loaded model) survives Mode A / Mode B layout changes — only
  * the surrounding DOM re-lays-out, never this canvas.
  */
-export function ThreeCanvas({ model, basePath = '', onReady, onError, style }: ThreeCanvasProps) {
+export function ThreeCanvas({
+  model,
+  basePath = '',
+  modelFormat,
+  onReady,
+  onError,
+  style,
+}: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<ThreeViewer | null>(null)
   // Keep latest callbacks without re-running the create-once effect.
@@ -38,8 +47,8 @@ export function ThreeCanvas({ model, basePath = '', onReady, onError, style }: T
   }, [])
 
   useEffect(() => {
-    viewerRef.current?.setModel(model, basePath).catch((e) => cbRef.current.onError?.(e))
-  }, [model, basePath])
+    viewerRef.current?.setModel(model, basePath, modelFormat).catch((e) => cbRef.current.onError?.(e))
+  }, [model, basePath, modelFormat])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%', ...style }} />
 }

@@ -11,12 +11,18 @@ const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
  *  - `.glb` / `.gltf` → GLTFLoader
  *  - splat formats     → Gaussian-splat DropInViewer (lazy-loaded)
  */
-export async function loadModel(url: string, basePath = ''): Promise<THREE.Object3D> {
+export async function loadModel(
+  url: string,
+  basePath = '',
+  formatHint?: string,
+): Promise<THREE.Object3D> {
   if (url.startsWith('builtin:')) {
     return buildPrimitive(url.slice('builtin:'.length))
   }
 
-  const ext = url.split('.').pop()?.toLowerCase() ?? ''
+  // formatHint lets uploaded blob:/data: URLs (which carry no extension) still
+  // dispatch to the right loader.
+  const ext = (formatHint ?? url.split('.').pop() ?? '').toLowerCase()
   const resolved = resolveUrl(url, basePath)
 
   if (ext === 'glb' || ext === 'gltf') {
@@ -34,6 +40,6 @@ export async function loadModel(url: string, basePath = ''): Promise<THREE.Objec
 
 /** Resolve a story-relative asset path against the story's basePath. */
 export function resolveUrl(url: string, basePath: string): string {
-  if (/^https?:\/\//.test(url) || url.startsWith('/')) return url
+  if (/^(https?|blob|data):/.test(url) || url.startsWith('/')) return url
   return basePath.replace(/\/?$/, '/') + url
 }
