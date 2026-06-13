@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spatial Storytelling — A Research Presentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@300;400&family=Inter:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:        #171614;
+    --bg-2:      #1F1D1A;
+    --bg-3:      #252220;
+    --text:      #EDE8DF;
+    --text-dim:  #9A9289;
+    --accent:    #C17A3A;
+    --accent-dim:#7A4E22;
+    --rule:      #2E2B27;
+    --tag-bg:    #2A2620;
+    --yes:       #6B9E6B;
+    --no:        #8B4A4A;
+    --partial:   #9E8B4A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 17px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 40px;
+    background: rgba(23,22,20,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 80px 40px 72px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(193,122,58,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(193,122,58,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 80%, black 30%, transparent 100%);
+  }
+
+  .hero-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 700;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    max-width: 900px;
+    margin-bottom: 32px;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    max-width: 560px;
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1.75;
+    margin-bottom: 48px;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+  }
+  .hero-meta-item label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--accent-dim);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .hero-meta-item span {
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  /* ── SECTIONS ── */
+  section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 96px 40px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .section-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-eyebrow::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--accent-dim);
+    opacity: 0.3;
+    max-width: 80px;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin-bottom: 24px;
+  }
+
+  h2 em { font-style: italic; color: var(--accent); }
+
+  .section-lead {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 680px;
+    line-height: 1.75;
+    margin-bottom: 56px;
+  }
+
+  p { margin-bottom: 20px; color: var(--text-dim); max-width: 680px; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* ── SHIFT CARDS ── */
+  .shift-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2px;
+    margin-top: 48px;
+  }
+
+  .shift-card {
+    background: var(--bg-2);
+    padding: 40px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shift-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .shift-card:hover::before { opacity: 1; }
+
+  .shift-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: var(--rule);
+    line-height: 1;
+    margin-bottom: 16px;
+    letter-spacing: -0.04em;
+  }
+
+  .shift-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    line-height: 1.3;
+  }
+
+  .shift-card p {
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: none;
+  }
+
+  /* ── QUOTE BLOCK ── */
+  .pull-quote {
+    border-left: 2px solid var(--accent);
+    padding: 24px 36px;
+    margin: 56px 0;
+    background: var(--bg-2);
+  }
+  .pull-quote p {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.6;
+    max-width: 640px;
+    margin-bottom: 0;
+  }
+
+  /* ── UX SPLIT ── */
+  .ux-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 48px;
+  }
+
+  .ux-panel {
+    background: var(--bg-2);
+    padding: 48px 40px;
+  }
+
+  .ux-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .ux-panel h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.25;
+  }
+
+  .ux-panel p {
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: none;
+    margin-bottom: 24px;
+  }
+
+  .ux-panel ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ux-panel ul li {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 8px 0;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ux-panel ul li::before {
+    content: '→';
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .ux-tool {
+    margin-top: 32px;
+    padding: 16px 20px;
+    background: var(--bg-3);
+    border: 1px solid var(--rule);
+  }
+  .ux-tool-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--accent-dim);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .ux-tool-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    overflow-x: auto;
+    margin-top: 48px;
+    border: 1px solid var(--rule);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 900px;
+  }
+
+  thead {
+    background: var(--bg-3);
+    border-bottom: 1px solid var(--accent-dim);
+  }
+
+  th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    text-align: left;
+    padding: 16px 18px;
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--rule);
+    color: var(--text-dim);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .td-name {
+    font-weight: 500;
+    color: var(--text);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .td-name small {
+    display: block;
+    font-size: 11px;
+    font-weight: 300;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .badge-yes  { background: rgba(107,158,107,0.15); color: #6B9E6B; }
+  .badge-no   { background: rgba(139, 74, 74,0.15); color: #B07070; }
+  .badge-part { background: rgba(158,139,74,0.15);  color: #9E8B4A; }
+
+  .price-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .price-free { color: #6B9E6B; }
+
+  /* ── ARCH DIAGRAM ── */
+  .arch-block {
+    margin-top: 56px;
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    padding: 48px;
+  }
+
+  .arch-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+
+  .arch-flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    align-items: stretch;
+  }
+
+  .arch-step {
+    background: var(--bg-3);
+    padding: 28px 24px;
+    position: relative;
+  }
+
+  .arch-step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-dim);
+    margin-bottom: 10px;
+  }
+
+  .arch-step h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .arch-step p {
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: none;
+    margin-bottom: 0;
+  }
+
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--accent-dim);
+    padding: 0 4px;
+  }
+
+  .arch-split {
+    margin-top: 2px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+  }
+
+  .arch-mode {
+    background: var(--bg-3);
+    padding: 28px 24px;
+    border-top: 2px solid var(--accent);
+  }
+
+  .arch-mode h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .arch-mode p {
+    font-size: 13px;
+    max-width: none;
+    margin-bottom: 0;
+    line-height: 1.6;
+  }
+
+  /* ── VISION ── */
+  .vision-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2px;
+    margin-top: 48px;
+  }
+
+  .vision-item {
+    background: var(--bg-2);
+    padding: 36px 32px;
+  }
+
+  .vision-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+
+  .vision-item h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .vision-item p {
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: none;
+    margin-bottom: 0;
+  }
+
+  /* ── NEXT STEPS ── */
+  .steps-list {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .step-row {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    align-items: start;
+    gap: 24px;
+    background: var(--bg-2);
+    padding: 28px 32px;
+  }
+
+  .step-row-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--rule);
+    line-height: 1;
+    padding-top: 4px;
+  }
+
+  .step-row-body h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .step-row-body p {
+    font-size: 14px;
+    max-width: none;
+    margin-bottom: 0;
+    line-height: 1.65;
+  }
+
+  .step-row-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    background: var(--tag-bg);
+    border: 1px solid var(--accent-dim);
+    padding: 5px 10px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    align-self: start;
+    margin-top: 4px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    max-width: none;
+    margin: 0;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    section { padding: 64px 20px; }
+    .hero { padding: 80px 20px 56px; }
+    .ux-split { grid-template-columns: 1fr; }
+    .arch-flow { grid-template-columns: 1fr 1fr; }
+    .arch-split { grid-template-columns: 1fr; }
+    .step-row { grid-template-columns: 48px 1fr; }
+    .step-row-tag { display: none; }
+    footer { flex-direction: column; }
+    .hero-meta { flex-wrap: wrap; gap: 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Spatial Storytelling — Research 2026</div>
+  <ul class="nav-links">
+    <li><a href="#shift">The Shift</a></li>
+    <li><a href="#need">The Need</a></li>
+    <li><a href="#ux">UX Research</a></li>
+    <li><a href="#landscape">Landscape</a></li>
+    <li><a href="#vision">Vision</a></li>
+    <li><a href="#next">Next Steps</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-eyebrow">Research Presentation · June 2026</div>
+  <h1>When <em>place</em> becomes a medium for story</h1>
+  <p class="hero-sub">
+    3D scanning is no longer reserved for engineers and surveyors. It is now in the hands of architects, journalists, and community documentarians. This shift creates both an opportunity and an obligation — to build tools that let people record, preserve, and share the stories of places before they disappear.
+  </p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">
+      <label>Focus</label>
+      <span>Spatial Storytelling Platforms</span>
+    </div>
+    <div class="hero-meta-item">
+      <label>Domain</label>
+      <span>Heritage, Community, 3D Capture</span>
+    </div>
+    <div class="hero-meta-item">
+      <label>Stage</label>
+      <span>Research & Workflow Design</span>
+    </div>
+    <div class="hero-meta-item">
+      <label>Output</label>
+      <span>Platform Concept + Tool Recommendations</span>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 1: THE SHIFT -->
+<section id="shift">
+  <div class="section-eyebrow">01 — The Technological Shift</div>
+  <h2>3D capture has moved from lab to <em>pocket</em></h2>
+  <p class="section-lead">
+    Three technologies have matured simultaneously, making photorealistic 3D capture accessible to anyone with a modern smartphone. This convergence is not incremental — it changes who gets to document the world.
+  </p>
+
+  <div class="shift-grid">
+    <div class="shift-card">
+      <div class="shift-num">01</div>
+      <h3>Photogrammetry & Mesh</h3>
+      <p>Using overlapping photographs to reconstruct 3D geometry, photogrammetry has been used in engineering and surveying for decades. Apps like Polycam and RealityScan now run this pipeline on a phone, producing exportable mesh files (GLB, OBJ) in minutes — no specialised hardware required.</p>
+    </div>
+    <div class="shift-card">
+      <div class="shift-num">02</div>
+      <h3>Gaussian Splatting (3DGS)</h3>
+      <p>Introduced in 2023, Gaussian Splatting represents a scene as millions of 3D ellipsoids rather than a mesh. The result is photorealistic and renders in real-time at 1080p. By 2026, apps like Scaniverse generate splats on-device, and formats like .spz allow web delivery. Khronos has formalised a glTF extension, signalling mainstream adoption.</p>
+    </div>
+    <div class="shift-card">
+      <div class="shift-num">03</div>
+      <h3>Point Cloud & LiDAR</h3>
+      <p>iPhone Pro and iPad Pro carry LiDAR sensors that generate precise point clouds — the engineering-grade cousin of photogrammetry. While less visually dramatic, point clouds carry measurable geometry: the foundation for floor plans, BIM models, and spatial analysis. They also initialise 3DGS pipelines more reliably than photography alone.</p>
+    </div>
+  </div>
+
+  <div class="pull-quote">
+    <p>"The scan is no longer the deliverable. It is the raw material for a story that someone else needs to tell."</p>
+  </div>
+
+  <p>These three capture modes are not competing — they are complementary layers. Mesh provides measurable geometry. Point clouds provide engineering precision. Gaussian Splatting provides photorealistic visual presence. A storyteller today can choose the right layer for the right purpose, or combine all three from a single capture session.</p>
+  <p>The cost and friction barrier has dropped below the threshold that matters: a motivated individual with a phone can now document a building at a level of spatial fidelity that, five years ago, required a professional survey team.</p>
+</section>
+
+<!-- SECTION 2: THE NEED -->
+<section id="need">
+  <div class="section-eyebrow">02 — The Cultural Need</div>
+  <h2>Places disappear. <em>Stories disappear faster.</em></h2>
+  <p class="section-lead">
+    Urban change — demolition, redevelopment, gentrification — has always outpaced documentation. What is new is that the tools to document now exist at the community level. What is missing is a platform designed around storytellers, not surveyors.
+  </p>
+
+  <p>Architects, journalists, oral historians, and residents have always carried knowledge of places that institutional archives never capture. The texture of a building, the way light enters a particular room, the memory of who lived there and what happened — this knowledge is fragile. It exists in people, not in systems, and it disappears when people leave or when buildings are demolished.</p>
+
+  <p>The platforms that currently exist for 3D capture — Matterport, Scaniverse, Polycam — are built around the scan as a deliverable. They solve a professional documentation problem. They do not solve a storytelling problem. <strong>The story is an afterthought, if it exists at all.</strong></p>
+
+  <p>Meanwhile, community-led heritage projects operate in the opposite direction: rich in narrative, thin on spatial capture. Oral history archives, local documentation groups, and independent journalists are recording stories but not places. When the building comes down, the story loses its spatial anchor.</p>
+
+  <div class="pull-quote">
+    <p>"The gap is not in the technology. It is in the workflow — the missing bridge between spatial capture and community narrative."</p>
+  </div>
+
+  <p>A platform designed for community storytellers would treat the 3D scan as shared infrastructure — a location that anyone can use as the setting for their own account. Multiple voices, one place. The same building, documented by an architect, remembered by a resident, and reported on by a journalist, could carry all three stories simultaneously without one overwriting the other.</p>
+</section>
+
+<!-- SECTION 3: UX RESEARCH -->
+<section id="ux">
+  <div class="section-eyebrow">03 — UX Research</div>
+  <h2>Two questions that shape the <em>platform design</em></h2>
+  <p class="section-lead">
+    Before evaluating tools or writing code, two structural questions need answers. They determine not just the user interface, but the underlying data model and the kind of authorship the platform enables.
+  </p>
+
+  <h3 style="font-family:'Playfair Display',serif; font-size:24px; margin-bottom:16px; margin-top:48px;">Question 1 — What is the root browsing layer?</h3>
+  <p>Most platforms default to a map as the primary entry point. A map is intuitive for spatial data. But a map organises by location, not by intent. It answers "what is here?" — not "what is this story about?" or "who told it?".</p>
+  <p>For a community storytelling platform, story is the more meaningful primary unit. A story may span multiple locations. A location may hold multiple stories by different authors. The map becomes a discovery tool — a secondary browse mode for the question "what stories exist near here?" — rather than the primary interface.</p>
+
+  <h3 style="font-family:'Playfair Display',serif; font-size:24px; margin-bottom:16px; margin-top:40px;">Question 2 — Where does the narrative live relative to the scan?</h3>
+  <p>This question produces two distinct modes of spatial storytelling, each valid, each suited to different kinds of stories and different kinds of storytellers.</p>
+
+  <div class="ux-split">
+    <div class="ux-panel">
+      <div class="ux-label">Mode A</div>
+      <h3>Narrative inside the scan</h3>
+      <p>The story is experienced within the 3D space. The viewer flies through the scan; hotspots, audio, and text appear at specific spatial coordinates. The scan is the stage. Authorship requires placing waypoints and annotating them with media.</p>
+      <ul>
+        <li>Best for immersive, place-led storytelling</li>
+        <li>Interior spaces, rooms, architectural detail</li>
+        <li>Oral narrative tied to specific locations in the scan</li>
+        <li>Museum-style or journalistic presentation</li>
+      </ul>
+      <div class="ux-tool">
+        <div class="ux-tool-label">Current tool</div>
+        <div class="ux-tool-name">StorySplat — no-code, exports HTML</div>
+      </div>
+    </div>
+    <div class="ux-panel">
+      <div class="ux-label">Mode B</div>
+      <h3>Narrative around the scan</h3>
+      <p>The story is a page — text, images, audio, video — and the 3D scan is one rich media element embedded within it. The viewer reads and listens, and can step into the scan at relevant moments. The narrative controls the pacing.</p>
+      <ul>
+        <li>Best for long-form narrative journalism</li>
+        <li>Stories that span multiple locations</li>
+        <li>Authors who write first, scan second</li>
+        <li>Audiences who prefer reading to navigating</li>
+      </ul>
+      <div class="ux-tool">
+        <div class="ux-tool-label">Current tool combination</div>
+        <div class="ux-tool-name">Splat Labs embed + ArcGIS StoryMaps</div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top: 40px;">Both modes use the same underlying scan asset. The scan is shared infrastructure; the story is the act of authorship. A single location can have multiple stories in either mode, by different contributors — without any one story overwriting another.</p>
+</section>
+
+<!-- SECTION 4: TOOL LANDSCAPE -->
+<section id="landscape">
+  <div class="section-eyebrow">04 — Tool Landscape</div>
+  <h2>What exists today, and <em>where the gaps are</em></h2>
+  <p class="section-lead">
+    A survey of existing platforms reveals a fragmented ecosystem. Tools that handle 3DGS well rarely handle narrative. Tools that handle narrative well rarely handle spatial data. No single readymade platform covers the full workflow.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Platform</th>
+          <th>Narrative seq.</th>
+          <th>Hotspots</th>
+          <th>3DGS</th>
+          <th>Mesh</th>
+          <th>Geo / Map</th>
+          <th>Export</th>
+          <th>Open source</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-name">StorySplat</td>
+          <td><span class="badge badge-yes">✓ Waypoints</span></td>
+          <td><span class="badge badge-yes">✓</span></td>
+          <td><span class="badge badge-yes">✓ .ply/.splat</span></td>
+          <td><span class="badge badge-part">⚬ GLB secondary</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-yes">✓ HTML</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td class="price-tag"><span class="price-free">Free now</span><br>Pro/Biz TBC</td>
+        </tr>
+        <tr>
+          <td class="td-name">Spatial Studio<small>Real Horizons</small></td>
+          <td><span class="badge badge-yes">✓</span></td>
+          <td><span class="badge badge-yes">✓</span></td>
+          <td><span class="badge badge-yes">✓</span></td>
+          <td><span class="badge badge-yes">✓ 360° + tiles</span></td>
+          <td><span class="badge badge-yes">✓ Google Maps</span></td>
+          <td><span class="badge badge-part">⚬ Unknown</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td class="price-tag">Contact sales</td>
+        </tr>
+        <tr>
+          <td class="td-name">Splat Labs<small>ROCK Robotic</small></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-yes">✓ Annotations</span></td>
+          <td><span class="badge badge-yes">✓ PLY/SPLAT</span></td>
+          <td><span class="badge badge-part">⚬ Not primary</span></td>
+          <td><span class="badge badge-part">⚬ Via ArcGIS</span></td>
+          <td><span class="badge badge-no">✗ Cloud only</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td class="price-tag"><span class="price-free">Free (2 projects)</span><br>$35/project AI</td>
+        </tr>
+        <tr>
+          <td class="td-name">SuperSplat<small>PlayCanvas</small></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-yes">✓ 25 max</span></td>
+          <td><span class="badge badge-yes">✓</span></td>
+          <td><span class="badge badge-part">⚬ Viewer only</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-yes">✓ Self-host</span></td>
+          <td><span class="badge badge-yes">✓ MIT</span></td>
+          <td class="price-tag"><span class="price-free">Free, no limits</span></td>
+        </tr>
+        <tr>
+          <td class="td-name">3DVista</td>
+          <td><span class="badge badge-part">⚬ Limited</span></td>
+          <td><span class="badge badge-yes">✓</span></td>
+          <td><span class="badge badge-yes">✓ .ply</span></td>
+          <td><span class="badge badge-yes">✓ GLB/GLTF</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-yes">✓ ZIP export</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td class="price-tag">~€499 one-time</td>
+        </tr>
+        <tr>
+          <td class="td-name">Luma / Polycam<small>Capture-platform viewers</small></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-part">⚬ Hosted only</span></td>
+          <td><span class="badge badge-yes">✓ GLB export</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td><span class="badge badge-no">✗</span></td>
+          <td class="price-tag">Free capture<br>~$20/mo export</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="margin-top: 32px;"><strong>The gap is consistent across the table:</strong> no single platform combines narrative sequencing, multi-location story structure, community authorship, geolocation browse, and open data portability. The tools that come closest (StorySplat, Spatial Studio) are proprietary SaaS products aimed at commercial users, not community heritage projects.</p>
+
+  <div class="arch-block">
+    <div class="arch-title">Proposed workflow — using existing tools</div>
+    <div class="arch-flow">
+      <div class="arch-step">
+        <div class="arch-step-num">Step 01</div>
+        <h4>Capture</h4>
+        <p>Scaniverse / 3D Scanner App on iPhone. Export .ply or .splat for 3DGS work; GLB or OBJ for mesh documentation.</p>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-num">Step 02</div>
+        <h4>Asset storage</h4>
+        <p>Single source of truth. Supabase Storage or Cloudflare R2. Metadata (GPS, name, status, contributor, license) in PostGIS database.</p>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-num">Step 03</div>
+        <h4>Story authoring</h4>
+        <p>Mode A: StorySplat for narrative inside the scan. Mode B: Splat Labs embed + ArcGIS StoryMaps for narrative around the scan.</p>
+      </div>
+      <div class="arch-step">
+        <div class="arch-step-num">Step 04</div>
+        <h4>Discovery layer</h4>
+        <p>A lightweight index — initially a Notion database or Airtable — listing all stories by location, district, contributor, and mode.</p>
+      </div>
+    </div>
+    <div class="arch-split">
+      <div class="arch-mode">
+        <h4>Mode A — Inside the scan</h4>
+        <p>StorySplat: waypoints, hotspots, spatial audio. Exports as standalone HTML. Embeddable anywhere. Suited to immersive, place-led narrative.</p>
+      </div>
+      <div class="arch-mode">
+        <h4>Mode B — Around the scan</h4>
+        <p>Long-form page: text, images, audio embed. 3D scan iframed via Splat Labs. Suited to journalism, oral history, multi-location stories.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: VISION -->
+<section id="vision">
+  <div class="section-eyebrow">05 — Platform Vision</div>
+  <h2>A platform built for <em>community storytellers</em></h2>
+  <p class="section-lead">
+    The research points toward a platform that does not yet exist: one where the story is the primary unit, the scan is shared infrastructure, and communities — not institutions — hold authority over their own spatial heritage.
+  </p>
+
+  <p>AI-assisted development tools now make this buildable at a fraction of the effort that would have been required two years ago. The question is no longer "can we build it?" but "what should it do first, and for whom?" — questions that only real use can answer.</p>
+
+  <div class="vision-grid">
+    <div class="vision-item">
+      <div class="vision-icon">📍</div>
+      <h3>Story as primary unit</h3>
+      <p>Not a map of scans, but a collection of stories. Each story has one author, one intent, and one or more locations as its scenes. The map is a browse mode, not the entry point.</p>
+    </div>
+    <div class="vision-item">
+      <div class="vision-icon">🔁</div>
+      <h3>Shared scan infrastructure</h3>
+      <p>A location's 3D scan is captured once and reused freely. Multiple contributors can tell different stories about the same place without duplicating the spatial data.</p>
+    </div>
+    <div class="vision-item">
+      <div class="vision-icon">🔓</div>
+      <h3>Open formats, portable data</h3>
+      <p>No lock-in. Stories and scans export in open formats (glTF, OGG, HTML). Contributors own what they upload. The platform does not survive on vendor dependency.</p>
+    </div>
+    <div class="vision-item">
+      <div class="vision-icon">🎙</div>
+      <h3>Multiple voices, one place</h3>
+      <p>A building holds different truths for different people. The platform holds all of them simultaneously — the architect, the resident, the journalist — without one overwriting another.</p>
+    </div>
+    <div class="vision-item">
+      <div class="vision-icon">⚖️</div>
+      <h3>Community authority</h3>
+      <p>Granular access control. Right to withdraw. Sensitive content handling. Licensing per item. The CARE Principles — Collective benefit, Authority to control, Responsibility, Ethics — as a governance frame, not an afterthought.</p>
+    </div>
+    <div class="vision-item">
+      <div class="vision-icon">📱</div>
+      <h3>Browser-first, mobile-ready</h3>
+      <p>Most contributors and viewers will use a phone. No app installs, no headset required. VR and WebXR as enhancement, not prerequisite.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: NEXT STEPS -->
+<section id="next">
+  <div class="section-eyebrow">06 — Next Steps</div>
+  <h2>From research to <em>first proof of concept</em></h2>
+  <p class="section-lead">
+    The workflow is designed to validate assumptions before any custom development begins. Each step produces evidence that informs what to build, and in what order.
+  </p>
+
+  <div class="steps-list">
+    <div class="step-row">
+      <div class="step-row-num">1</div>
+      <div class="step-row-body">
+        <h3>Select one location, build one story twice</h3>
+        <p>Take a scan that already exists. Build the same story in Mode A (StorySplat) and Mode B (Splat Labs + Notion or StoryMaps). Show both versions to people outside the project and observe how they navigate — not what they say, but what they do.</p>
+      </div>
+      <div class="step-row-tag">Validate</div>
+    </div>
+    <div class="step-row">
+      <div class="step-row-num">2</div>
+      <div class="step-row-body">
+        <h3>Test the authoring experience with non-technical contributors</h3>
+        <p>The hardest single feature to build well is the hotspot authoring tool. Before specifying it, watch someone who is not a developer attempt to place hotspots and link media in StorySplat. The friction they encounter is the product brief.</p>
+      </div>
+      <div class="step-row-tag">Discover</div>
+    </div>
+    <div class="step-row">
+      <div class="step-row-num">3</div>
+      <div class="step-row-body">
+        <h3>Stress-test mobile performance</h3>
+        <p>Load a splat file on an iPhone 12 and a mid-range Android phone over a 4G connection. File size, load time, and frame rate determine what is actually deliverable to a community audience — not what is theoretically possible on a desktop.</p>
+      </div>
+      <div class="step-row-tag">Technical</div>
+    </div>
+    <div class="step-row">
+      <div class="step-row-num">4</div>
+      <div class="step-row-body">
+        <h3>Design the data model before the interface</h3>
+        <p>Story → Scene → Location → Scan is the proposed hierarchy. Before wireframing any UI, validate this model against three or four real stories that contributors want to tell. If the model breaks, the UI will too.</p>
+      </div>
+      <div class="step-row-tag">Architecture</div>
+    </div>
+    <div class="step-row">
+      <div class="step-row-num">5</div>
+      <div class="step-row-body">
+        <h3>Build the minimum platform with AI-assisted development</h3>
+        <p>Once the data model is validated and the key UX decisions are made, a first version of the platform — map browse, story pages, scan embed, contributor upload — is buildable rapidly with current AI development tools. The research phase exists precisely to make this build purposeful rather than exploratory.</p>
+      </div>
+      <div class="step-row-tag">Build</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Spatial Storytelling Research · June 2026</p>
+  <p>Research in progress — tool landscape, workflow design, platform concept</p>
+</footer>
+
+</body>
+</html>
