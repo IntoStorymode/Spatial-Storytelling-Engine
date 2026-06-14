@@ -751,6 +751,76 @@ a:hover {
   line-height: 1.7;
   color: var(--text);
 }
+.hp-lookmode {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.hp-lookmode:hover {
+  border-color: var(--accent);
+}
+.hp-nav-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  padding: 5px 9px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+.hp-nav-hint kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin: 0 1px;
+}
+.hp-scope {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--text);
+}
+.hp-scope strong {
+  color: var(--accent);
+}
+.hp-primary {
+  width: 100%;
+  margin-top: 8px;
+  justify-content: center;
+}
+.hp-finetune-label {
+  margin: 12px 0 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hp-key {
+  font-size: 10px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.hp-key-cam {
+  color: #5fb0a7;
+}
+.hp-key-look {
+  color: var(--accent);
+}
 
 /* Export bar */
 .export {

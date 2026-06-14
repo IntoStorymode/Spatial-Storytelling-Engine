@@ -33,7 +33,8 @@ export async function loadSplat(resolvedUrl: string, ext?: string): Promise<THRE
     sharedMemoryForWorkers: false,
   })
 
-  const formatKey = ext ? SCENE_FORMAT_BY_EXT[ext.toLowerCase()] : undefined
+  const normExt = ext?.toLowerCase()
+  const formatKey = normExt ? SCENE_FORMAT_BY_EXT[normExt] : undefined
   const format = formatKey ? GaussianSplats3D.SceneFormat[formatKey] : undefined
 
   await viewer.addSplatScene(resolvedUrl, {
@@ -50,5 +51,29 @@ export async function loadSplat(resolvedUrl: string, ext?: string): Promise<THRE
   obj.traverse((child) => {
     child.frustumCulled = false
   })
+
+  // INRIA-format .ply splats use a Y-down / Z-forward (COLMAP) convention, so
+  // they land upside-down in Three.js's Y-up world. Correct with a 180° rotation
+  // about X — a true rotation (det +1, no mirroring), pivoted on the model's own
+  // bounding-box centre so its world position is preserved. Other splat formats
+  // (.splat/.ksplat/.spz) are typically already Y-up from conversion, so we leave
+  // them alone. See loadModel's formatHint for how uploads carry their extension.
+  if (normExt === 'ply') {
+    orientPlyUpright(viewer)
+  }
+
   return obj
+}
+
+/** Flip an INRIA .ply splat 180° about X around its own centre (Y-up correction). */
+function orientPlyUpright(viewer: import('@mkkellogg/gaussian-splats-3d').DropInViewer): void {
+  const obj = viewer as unknown as THREE.Object3D
+  const splatMesh = viewer.splatMesh
+  if (!splatMesh) return
+
+  const center = splatMesh.computeBoundingBox(true).getCenter(new THREE.Vector3())
+  // Rotate child point p to world = C + R·(p − C), with R = 180° about X mapping
+  // (x,y,z) → (x,−y,−z). That expands to world = R·p + (0, 2·Cy, 2·Cz), so:
+  obj.rotation.x = Math.PI
+  obj.position.set(0, 2 * center.y, 2 * center.z)
 }

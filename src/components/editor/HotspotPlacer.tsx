@@ -34,17 +34,25 @@ export function HotspotPlacer({
   const containerRef = useRef<HTMLDivElement>(null)
   const [ready, setReady] = useState(false)
   const [placing, setPlacing] = useState(false)
+  const [lookMode, setLookMode] = useState<'orbit' | 'firstPerson'>('firstPerson')
   const [error, setError] = useState<string | null>(null)
 
-  const hotspot = selected?.hotspot
-  const targetKey = hotspot ? hotspot.target.join(',') : null
+  // Apply the chosen look mode (orbit vs first-person walk-through).
+  useEffect(() => {
+    const v = viewerRef.current
+    if (v && ready) v.setLookMode(lookMode)
+  }, [ready, lookMode])
 
-  // Keep the marker in sync with the selected item's hotspot target.
+  const hotspot = selected?.hotspot
+  const hotspotKey = hotspot ? [...hotspot.position, ...hotspot.target].join(',') : null
+
+  // Keep the in-scene gizmo (camera + look-point + view line) in sync with the
+  // selected item's hotspot.
   useEffect(() => {
     const v = viewerRef.current
     if (!v || !ready) return
-    v.setMarker(hotspot ? hotspot.target : null)
-  }, [ready, targetKey, selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    v.setHotspotGizmo(hotspot ?? null)
+  }, [ready, hotspotKey, selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Leaving placing mode (or unmount) must always re-enable orbit.
   useEffect(() => {
@@ -68,7 +76,7 @@ export function HotspotPlacer({
 
   function clearHotspot() {
     onHotspotChange(undefined)
-    viewerRef.current?.setMarker(null)
+    viewerRef.current?.setHotspotGizmo(null)
   }
 
   function onCanvasClick(e: MouseEvent<HTMLDivElement>) {
@@ -98,34 +106,61 @@ export function HotspotPlacer({
           basePath={basePath}
           onReady={(v) => {
             viewerRef.current = v
+            v.setFlyEnabled(true) // WASD/QE fly-cam, editor only
+            v.setLookMode(lookMode)
             setReady(true)
           }}
           onError={(err) => setError(String(err))}
         />
         {error && <div className="hp-error">{error}</div>}
+        <button
+          type="button"
+          className="hp-lookmode"
+          onClick={() => setLookMode((m) => (m === 'firstPerson' ? 'orbit' : 'firstPerson'))}
+          title="Switch between walking through the scene and orbiting it"
+        >
+          {lookMode === 'firstPerson' ? '🚶 First-person' : '🛰 Orbit'}
+        </button>
+        <p className="hp-nav-hint">
+          {lookMode === 'firstPerson' ? (
+            <>
+              Drag look · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk ·{' '}
+              <kbd>Q</kbd><kbd>E</kbd> down/up · <kbd>Shift</kbd> faster
+            </>
+          ) : (
+            <>
+              Drag orbit · scroll zoom · <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move ·{' '}
+              <kbd>Q</kbd><kbd>E</kbd> down/up · <kbd>Shift</kbd> faster
+            </>
+          )}
+        </p>
       </div>
 
       <div className="hp-tools">
         {!selected ? (
-          <p className="muted">Select an item to bind a hotspot.</p>
+          <p className="muted">Select an item on the left to give it a waypoint.</p>
         ) : (
           <>
-            <p className="ed-hint">
-              Orbit to frame this item in the scene, then capture the view — or place a
-              target by clicking a point on the model.
+            <p className="hp-scope">
+              Waypoint for <strong>{selected.title || selected.id}</strong>
             </p>
+            <p className="ed-hint">
+              Fly/orbit until the scene looks the way a reader should see it here, then:
+            </p>
+            <button className="btn btn-accent hp-primary" onClick={useCurrentView}>
+              ◎ Set waypoint to this view
+            </button>
+            <p className="hp-finetune-label">Fine-tune</p>
             <div className="ed-chips">
-              <button className="btn btn-accent ed-chip" onClick={useCurrentView}>
-                ◎ Use current view
-              </button>
-              <button className="btn ed-chip" onClick={capturePosition}>
-                🎥 Capture position
+              <button className="btn ed-chip" onClick={capturePosition} title="Move only the camera; keep the look-point">
+                🎥 Move camera here
               </button>
               <button
                 className={placing ? 'btn btn-accent ed-chip' : 'btn ed-chip'}
                 onClick={() => setPlacing((p) => !p)}
+                title="Click a spot on the model to aim the camera at it"
               >
-                {placing ? '… click the scene' : '📍 Place target'}
+                {placing ? '… click a point' : '📍 Aim look-point'}
               </button>
               <button className="btn ed-chip" onClick={clearHotspot} disabled={!hotspot}>
                 Clear
@@ -135,14 +170,14 @@ export function HotspotPlacer({
               {hotspot ? (
                 <>
                   <div>
-                    <span className="muted">position</span> [{fmt(hotspot.position)}]
+                    <span className="hp-key hp-key-cam">●</span> camera [{fmt(hotspot.position)}]
                   </div>
                   <div>
-                    <span className="muted">target</span> [{fmt(hotspot.target)}]
+                    <span className="hp-key hp-key-look">●</span> look-point [{fmt(hotspot.target)}]
                   </div>
                 </>
               ) : (
-                <span className="muted">No hotspot bound — this item uses default framing.</span>
+                <span className="muted">No waypoint yet — this item uses default framing.</span>
               )}
             </div>
           </>

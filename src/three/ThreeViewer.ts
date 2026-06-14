@@ -10,6 +10,21 @@ export interface ThreeViewerOptions {
   background?: number
 }
 
+/** Fly-cam keys: WASD pan/forward, Q/E down/up, Shift to boost. */
+const FLY_MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
+
+/** Don't hijack WASD while the author is typing in a form field. */
+function isTextEntry(el: Element | null): boolean {
+  if (!el) return false
+  const tag = el.tagName
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    (el as HTMLElement).isContentEditable === true
+  )
+}
+
 /**
  * Framework-agnostic 3D engine: one scene, one perspective camera, one
  * camera-controls instance, one RAF loop. The same instance is reused across
@@ -31,7 +46,18 @@ export class ThreeViewer {
   private rafId = 0
   private currentModel: THREE.Object3D | null = null
   private marker: THREE.Sprite | null = null
+  private posMarker: THREE.Sprite | null = null
+  private viewLine: THREE.Line | null = null
   private disposed = false
+
+  // ── Fly-cam + look mode (editor) ──────────────────────────────────────────
+  private flyEnabled = false
+  private flyBoost = false
+  private flySpeed = 2 // world units/sec; rescaled to the model in frameObject
+  private readonly heldKeys = new Set<string>()
+  private lookMode: 'orbit' | 'firstPerson' = 'orbit'
+  private fpsPivot = 0.05 // tiny orbit radius that makes left-drag a look-in-place
+  private captureDist = 2 // how far ahead a captured first-person look-point sits
 
   constructor(container: HTMLElement, opts: ThreeViewerOptions = {}) {
     this.container = container
@@ -68,8 +94,27 @@ export class ThreeViewer {
     if (this.disposed) return
     this.rafId = requestAnimationFrame(this.animate)
     const delta = this.clock.getDelta()
+    this.applyFlyMovement(delta)
     this.controls.update(delta)
     this.renderer.render(this.scene, this.camera)
+  }
+
+  /**
+   * Apply held WASD/QE movement once per frame so flight is smooth and
+   * frame-rate independent. forward/truck/elevate move the camera AND its look
+   * target together, so it reads as a true fly-through (not an orbit pivot).
+   */
+  private applyFlyMovement(delta: number): void {
+    if (!this.flyEnabled || this.heldKeys.size === 0) return
+    const k = this.heldKeys
+    const fwd = (k.has('KeyW') ? 1 : 0) - (k.has('KeyS') ? 1 : 0)
+    const right = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0)
+    const up = (k.has('KeyE') ? 1 : 0) - (k.has('KeyQ') ? 1 : 0)
+    if (!fwd && !right && !up) return
+    const step = this.flySpeed * delta * (this.flyBoost ? 3 : 1)
+    if (fwd) this.controls.forward(fwd * step, false)
+    if (right) this.controls.truck(right * step, 0, false)
+    if (up) this.controls.elevate(up * step, false)
   }
 
   /** Replace the current model. Frames the camera to fit it. */
@@ -90,13 +135,45 @@ export class ThreeViewer {
     return obj
   }
 
-  /** Default framing from a model's bounding box (fallback when no hotspot). */
-  frameObject(obj: THREE.Object3D, animate = true): void {
+  /**
+   * Centre + diameter of a loaded model, used to frame the camera. A splat's
+   * extent can't be read with Box3.setFromObject (its mesh is instanced quads,
+   * not the splat centres). And a plain AABB over splat centres is wrecked by the
+   * stray outlier splats real scans carry — the box balloons, the camera is
+   * flung far outside, and the view goes black. So for splats we sample the
+   * centres in world space and take a robust median/percentile. Returns null when
+   * there's nothing measurable (camera keeps its current framing).
+   */
+  private modelFraming(obj: THREE.Object3D): { center: THREE.Vector3; diameter: number } | null {
+    const splatMesh = obj.userData?.isSplat ? (obj as unknown as { splatMesh?: SplatMeshLike }).splatMesh : undefined
+    if (splatMesh) {
+      const robust = robustSplatFraming(splatMesh, obj)
+      if (robust) return robust
+    }
     const box = new THREE.Box3().setFromObject(obj)
-    if (box.isEmpty()) return
+    if (box.isEmpty()) return null
     const size = box.getSize(new THREE.Vector3())
-    const center = box.getCenter(new THREE.Vector3())
-    const dist = (Math.max(size.x, size.y, size.z) || 1) * 1.8
+    return { center: box.getCenter(new THREE.Vector3()), diameter: Math.max(size.x, size.y, size.z) || 1 }
+  }
+
+  /** Default framing from a model's bounds (fallback when an item has no hotspot). */
+  frameObject(obj: THREE.Object3D, animate = true): void {
+    const framing = this.modelFraming(obj)
+    if (!framing) return
+    const { center, diameter } = framing
+    this.flySpeed = diameter * 0.6 // a held key crosses the model in ~1.5s
+    this.fpsPivot = Math.min(Math.max(diameter * 0.01, 0.02), 0.5)
+    this.captureDist = Math.max(diameter * 0.5, 0.5)
+
+    if (this.lookMode === 'firstPerson') {
+      // Start as an eye near the edge of the scene, looking in toward the centre.
+      const eye = new THREE.Vector3(center.x, center.y + diameter * 0.1, center.z + diameter * 0.6)
+      this.placeFirstPerson(eye, center, animate)
+      return
+    }
+    const dist = diameter * 1.4
+    this.controls.minDistance = 0
+    this.controls.maxDistance = Infinity
     this.controls.setLookAt(
       center.x + dist,
       center.y + dist * 0.5,
@@ -106,6 +183,42 @@ export class ThreeViewer {
       center.z,
       animate,
     )
+  }
+
+  /**
+   * Switch the editor camera between orbit (circle a pivot — good for inspecting
+   * an object) and first-person (look in place + WASD walk — good for moving
+   * through a room-scale scan). First-person works by pinning the orbit pivot a
+   * hair in front of the camera so a left-drag turns the head instead of circling
+   * the model.
+   */
+  setLookMode(mode: 'orbit' | 'firstPerson'): void {
+    if (this.lookMode === mode) return
+    this.lookMode = mode
+    if (mode === 'firstPerson') {
+      const p = this.camera.position.clone()
+      const fwd = this.controls.getTarget(new THREE.Vector3()).sub(p)
+      if (fwd.lengthSq() < 1e-8) this.camera.getWorldDirection(fwd)
+      this.placeFirstPerson(p, p.clone().add(fwd), false)
+    } else {
+      this.controls.mouseButtons.wheel = CameraControls.ACTION.DOLLY
+      this.controls.minDistance = 0
+      this.controls.maxDistance = Infinity
+      if (this.currentModel) this.frameObject(this.currentModel, true)
+    }
+  }
+
+  /** Position a first-person eye at `from` looking toward `lookAt`, pivot pinned. */
+  private placeFirstPerson(from: THREE.Vector3, lookAt: THREE.Vector3, animate: boolean): void {
+    const fwd = lookAt.clone().sub(from)
+    if (fwd.lengthSq() < 1e-8) fwd.set(0, 0, -1)
+    fwd.normalize()
+    const d = this.fpsPivot
+    this.controls.minDistance = d
+    this.controls.maxDistance = d
+    this.controls.mouseButtons.wheel = CameraControls.ACTION.NONE // WASD moves instead of wheel-dolly
+    const t = from.clone().addScaledVector(fwd, d)
+    void this.controls.setLookAt(from.x, from.y, from.z, t.x, t.y, t.z, animate)
   }
 
   /**
@@ -138,8 +251,18 @@ export class ThreeViewer {
 
   /** Current camera position + look-at target — used to capture a hotspot. */
   getView(): { position: [number, number, number]; target: [number, number, number] } {
-    const t = this.controls.getTarget(new THREE.Vector3())
     const p = this.camera.position
+    const t = this.controls.getTarget(new THREE.Vector3())
+    // In first-person the orbit target sits a hair in front of the camera, which
+    // is no use as a hotspot look-point. Project it out to a sensible distance so
+    // Mode A reproduces the same eye + view direction.
+    if (this.lookMode === 'firstPerson') {
+      const fwd = t.clone().sub(p)
+      if (fwd.lengthSq() < 1e-8) this.camera.getWorldDirection(fwd)
+      fwd.normalize()
+      const far = p.clone().addScaledVector(fwd, this.captureDist)
+      return { position: [p.x, p.y, p.z], target: [far.x, far.y, far.z] }
+    }
     return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z] }
   }
 
@@ -173,12 +296,13 @@ export class ThreeViewer {
   setMarker(pos: [number, number, number] | null): void {
     if (this.marker) {
       this.scene.remove(this.marker)
+      this.marker.material.map?.dispose()
       this.marker.material.dispose()
       this.marker = null
     }
     if (!pos) return
     const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ color: 0xc17a3a, depthTest: false, depthWrite: false }),
+      new THREE.SpriteMaterial({ map: discTexture(0xc17a3a, false), depthTest: false, depthWrite: false }),
     )
     sprite.position.set(pos[0], pos[1], pos[2])
     sprite.scale.setScalar(0.18)
@@ -190,6 +314,89 @@ export class ThreeViewer {
   /** Enable/disable orbit controls (off while placing a hotspot by click). */
   setControlsEnabled(enabled: boolean): void {
     this.controls.enabled = enabled
+  }
+
+  /** Turn the WASD/QE fly-cam on (editor) or off (viewer). */
+  setFlyEnabled(enabled: boolean): void {
+    if (this.flyEnabled === enabled) return
+    this.flyEnabled = enabled
+    if (enabled) {
+      window.addEventListener('keydown', this.onKeyDown)
+      window.addEventListener('keyup', this.onKeyUp)
+      window.addEventListener('blur', this.onWindowBlur)
+    } else {
+      window.removeEventListener('keydown', this.onKeyDown)
+      window.removeEventListener('keyup', this.onKeyUp)
+      window.removeEventListener('blur', this.onWindowBlur)
+      this.heldKeys.clear()
+      this.flyBoost = false
+    }
+  }
+
+  private readonly onKeyDown = (e: KeyboardEvent): void => {
+    if (isTextEntry(document.activeElement)) return
+    this.flyBoost = e.shiftKey
+    if (FLY_MOVE_KEYS.has(e.code)) {
+      this.heldKeys.add(e.code)
+      e.preventDefault()
+    }
+  }
+
+  private readonly onKeyUp = (e: KeyboardEvent): void => {
+    this.flyBoost = e.shiftKey
+    this.heldKeys.delete(e.code)
+  }
+
+  // Losing window focus mid-press would otherwise strand a key as "held".
+  private readonly onWindowBlur = (): void => {
+    this.heldKeys.clear()
+    this.flyBoost = false
+  }
+
+  /**
+   * Draw the selected item's hotspot: a copper disc at the look target, a teal
+   * ring at the camera position, and a faint line between them so the author can
+   * see, in the scene, exactly where this waypoint's camera sits and what it
+   * frames. Pass null to clear.
+   */
+  setHotspotGizmo(
+    hotspot: { position: [number, number, number]; target: [number, number, number] } | null,
+  ): void {
+    this.setMarker(hotspot ? hotspot.target : null)
+
+    if (this.posMarker) {
+      this.scene.remove(this.posMarker)
+      this.posMarker.material.map?.dispose()
+      this.posMarker.material.dispose()
+      this.posMarker = null
+    }
+    if (this.viewLine) {
+      this.scene.remove(this.viewLine)
+      this.viewLine.geometry.dispose()
+      ;(this.viewLine.material as THREE.Material).dispose()
+      this.viewLine = null
+    }
+    if (!hotspot) return
+
+    const cam = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: discTexture(0x5fb0a7, true), depthTest: false, depthWrite: false }),
+    )
+    cam.position.set(...hotspot.position)
+    cam.scale.setScalar(0.22)
+    cam.renderOrder = 999
+    this.scene.add(cam)
+    this.posMarker = cam
+
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(...hotspot.position),
+        new THREE.Vector3(...hotspot.target),
+      ]),
+      new THREE.LineBasicMaterial({ color: 0x7a746c, transparent: true, opacity: 0.7, depthTest: false }),
+    )
+    line.renderOrder = 998
+    this.scene.add(line)
+    this.viewLine = line
   }
 
   resize(): void {
@@ -204,13 +411,94 @@ export class ThreeViewer {
   dispose(): void {
     this.disposed = true
     cancelAnimationFrame(this.rafId)
+    this.setFlyEnabled(false)
     this.resizeObserver.disconnect()
     this.controls.dispose()
-    this.setMarker(null)
+    this.setHotspotGizmo(null)
     if (this.currentModel) disposeObject(this.currentModel)
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }
+}
+
+/** The slice of the splat mesh API we read for framing. */
+interface SplatMeshLike {
+  getSplatCount(): number
+  getSplatCenter(globalIndex: number, out: THREE.Vector3, applySceneTransform?: boolean): void
+}
+
+/**
+ * Robust centre + diameter for a splat scene. Samples up to ~30k splat centres,
+ * transforms them into world space (so any model rotation/offset — e.g. the .ply
+ * upright flip — is honoured), then uses the per-axis median for the centre and
+ * the 90th-percentile distance for the radius. Median + percentile shrug off the
+ * stray far-flung splats that would otherwise blow up an axis-aligned box.
+ */
+function robustSplatFraming(
+  splatMesh: SplatMeshLike,
+  obj: THREE.Object3D,
+): { center: THREE.Vector3; diameter: number } | null {
+  const total = splatMesh.getSplatCount()
+  if (!total) return null
+  obj.updateWorldMatrix(true, false)
+  const toWorld = obj.matrixWorld
+  const stride = Math.max(1, Math.floor(total / 30000))
+
+  const xs: number[] = []
+  const ys: number[] = []
+  const zs: number[] = []
+  const c = new THREE.Vector3()
+  for (let i = 0; i < total; i += stride) {
+    splatMesh.getSplatCenter(i, c, true)
+    c.applyMatrix4(toWorld)
+    if (!Number.isFinite(c.x) || !Number.isFinite(c.y) || !Number.isFinite(c.z)) continue
+    xs.push(c.x)
+    ys.push(c.y)
+    zs.push(c.z)
+  }
+  if (!xs.length) return null
+
+  const center = new THREE.Vector3(median(xs), median(ys), median(zs))
+  const dists = xs.map((x, i) => Math.hypot(x - center.x, ys[i] - center.y, zs[i] - center.z))
+  dists.sort((a, b) => a - b)
+  const r90 = dists[Math.floor(dists.length * 0.9)] || dists[dists.length - 1] || 1
+  return { center, diameter: Math.max(r90 * 2, 1e-3) }
+}
+
+function median(values: number[]): number {
+  const a = values.slice().sort((x, y) => x - y)
+  const m = a.length >> 1
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2
+}
+
+/** A soft round marker texture: a filled disc, or a ring with a centre dot. */
+function discTexture(hex: number, ring: boolean): THREE.Texture {
+  const s = 64
+  const cvs = document.createElement('canvas')
+  cvs.width = cvs.height = s
+  const ctx = cvs.getContext('2d')!
+  const col = '#' + hex.toString(16).padStart(6, '0')
+  const c = s / 2
+  ctx.lineWidth = 7
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)' // dark halo for contrast on bright scenes
+  ctx.fillStyle = col
+  if (ring) {
+    ctx.beginPath()
+    ctx.arc(c, c, c - 9, 0, Math.PI * 2)
+    ctx.strokeStyle = col
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(c, c, 7, 0, Math.PI * 2)
+    ctx.fill()
+  } else {
+    ctx.beginPath()
+    ctx.arc(c, c, c - 8, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+  const tex = new THREE.CanvasTexture(cvs)
+  tex.needsUpdate = true
+  return tex
 }
 
 /** Recursively dispose geometries and materials to avoid GPU memory leaks. */
