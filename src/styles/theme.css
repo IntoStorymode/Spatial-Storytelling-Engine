@@ -538,6 +538,40 @@ a:hover {
 .editor-topbar .eyebrow {
   flex: 1;
 }
+.editor-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Preview bar (draft preview overlay) */
+.preview-bar {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 14px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+}
+.preview-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.preview-back {
+  font-size: 12px;
+  padding: 6px 12px;
+}
 .editor-body {
   flex: 1;
   display: flex;

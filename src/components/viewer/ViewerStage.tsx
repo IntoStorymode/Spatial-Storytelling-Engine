@@ -17,8 +17,18 @@ const AUTO_TOUR_DWELL_MS = 3800
  * Children (PageView / ImmersiveView) swap freely without tearing down the
  * viewer — they only host the canvas via <StageSlot>.
  */
-export function ViewerStage({ story, children }: { story: Story; children: ReactNode }) {
+export function ViewerStage({
+  story,
+  modelFormat,
+  children,
+}: {
+  story: Story
+  /** Format hint for a blob: model URL (preview of an uploaded file). */
+  modelFormat?: string
+  children: ReactNode
+}) {
   const { items, basePath, frontmatter } = story
+  const start = frontmatter.start
   const [viewer, setViewer] = useState<ThreeViewer | null>(null)
 
   // One stable host div; the viewer renders into it for the component's life.
@@ -50,15 +60,21 @@ export function ViewerStage({ story, children }: { story: Story; children: React
 
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Load (or swap) the model.
+  // Load (or swap) the model. After it frames, honor the story's start camera
+  // (the author-defined opening view) over the default bounding-box framing.
   useEffect(() => {
     if (!viewer) return
     setLoadError(null)
-    viewer.setModel(frontmatter.model, basePath).catch((e) => {
-      console.error('Model load failed:', e)
-      setLoadError(e instanceof Error ? e.message : String(e))
-    })
-  }, [viewer, frontmatter.model, basePath])
+    viewer
+      .setModel(frontmatter.model, basePath, modelFormat)
+      .then(() => {
+        if (start) viewer.flyTo(start.position, start.target, false)
+      })
+      .catch((e) => {
+        console.error('Model load failed:', e)
+        setLoadError(e instanceof Error ? e.message : String(e))
+      })
+  }, [viewer, frontmatter.model, basePath, modelFormat, start])
 
   // Keep the store's item count in sync for navigation bounds.
   useEffect(() => setItemCount(items.length), [items.length, setItemCount])
@@ -75,8 +91,9 @@ export function ViewerStage({ story, children }: { story: Story; children: React
     const animate = !reducedMotion
     const hotspot = items[activeIndex]?.hotspot
     if (hotspot) viewer.flyTo(hotspot.position, hotspot.target, animate)
+    else if (start) viewer.flyTo(start.position, start.target, animate)
     else viewer.frameObject(viewer.scene, animate)
-  }, [viewer, mode, activeIndex, items, reducedMotion])
+  }, [viewer, mode, activeIndex, items, reducedMotion, start])
 
   // Auto-tour: schedule the next advance after the dwell. Reschedules on each
   // activeIndex change; cleared when the tour is off or the mode leaves immersive.
