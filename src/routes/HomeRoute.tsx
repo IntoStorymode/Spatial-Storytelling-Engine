@@ -37,6 +37,9 @@ export function HomeRoute() {
           One Markdown file drives two ways to read the same place — a long-form page with
           the model inline, or an immersive scene you move through. Pick a story to begin.
         </p>
+        <Link to="/edit/new" className="btn btn-accent home-new">
+          + New story
+        </Link>
       </header>
 
       {error && <p className="state">{error}</p>}
@@ -48,7 +51,7 @@ export function HomeRoute() {
       {stories && stories.length > 0 && (
         <div className="story-grid">
           {stories.map((s) => (
-            <Link key={s.id} to={`/story/${s.id}`} className="story-card">
+            <div key={s.id} className="story-card">
               <p className="eyebrow">Story</p>
               <h2>{s.title}</h2>
               <div className="meta">
@@ -56,8 +59,15 @@ export function HomeRoute() {
                 <br />
                 {s.location} · {s.date}
               </div>
-              <span className="cta">Read →</span>
-            </Link>
+              <div className="story-card-actions">
+                <Link to={`/story/${s.id}`} className="cta">
+                  Read →
+                </Link>
+                <Link to={`/edit/${s.id}`} className="cta cta-muted">
+                  Edit
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       )}

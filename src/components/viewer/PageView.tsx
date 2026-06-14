@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import type { Story } from '../../parser/types'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageSlot } from './StageSlot'
@@ -14,6 +14,7 @@ import { ItemContent } from '../content/ItemContent'
  */
 export function PageView({ story }: { story: Story }) {
   const { frontmatter: fm, items, basePath } = story
+  const { id } = useParams<{ id: string }>()
   const setActiveIndex = useStoryStore((s) => s.setActiveIndex)
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
   const modelAfter = items.length > 1 ? 0 : items.length - 1
@@ -41,7 +42,14 @@ export function PageView({ story }: { story: Story }) {
         <Link to="/" className="back">
           ← All stories
         </Link>
-        <ModeToggle />
+        <div className="page-topbar-actions">
+          {id && (
+            <Link to={`/edit/${id}`} className="btn mode-toggle">
+              ✎ Edit
+            </Link>
+          )}
+          <ModeToggle />
+        </div>
       </div>
 
       <article className="article">
