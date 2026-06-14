@@ -13,6 +13,23 @@ export interface ThreeViewerOptions {
 /** Fly-cam keys: WASD pan/forward, Q/E down/up, Shift to boost. */
 const FLY_MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
 
+type GizmoSlot = 'item' | 'start'
+type GizmoSpot = { position: [number, number, number]; target: [number, number, number] }
+interface Gizmo {
+  cam: THREE.Sprite
+  look: THREE.Sprite
+  line: THREE.Line
+}
+
+/** A camera-facing marker sprite at a world position. */
+function makeMarker(map: THREE.Texture, pos: [number, number, number], scale: number): THREE.Sprite {
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest: false, depthWrite: false }))
+  sprite.position.set(pos[0], pos[1], pos[2])
+  sprite.scale.setScalar(scale)
+  sprite.renderOrder = 999
+  return sprite
+}
+
 /** Don't hijack WASD while the author is typing in a form field. */
 function isTextEntry(el: Element | null): boolean {
   if (!el) return false
@@ -45,9 +62,7 @@ export class ThreeViewer {
   private readonly resizeObserver: ResizeObserver
   private rafId = 0
   private currentModel: THREE.Object3D | null = null
-  private marker: THREE.Sprite | null = null
-  private posMarker: THREE.Sprite | null = null
-  private viewLine: THREE.Line | null = null
+  private readonly gizmos: Record<GizmoSlot, Gizmo | null> = { item: null, start: null }
   private disposed = false
 
   // ── Fly-cam + look mode (editor) ──────────────────────────────────────────
@@ -292,25 +307,6 @@ export class ThreeViewer {
     return [fallback.x, fallback.y, fallback.z]
   }
 
-  /** Show (or clear with null) a marker sprite at a world position. */
-  setMarker(pos: [number, number, number] | null): void {
-    if (this.marker) {
-      this.scene.remove(this.marker)
-      this.marker.material.map?.dispose()
-      this.marker.material.dispose()
-      this.marker = null
-    }
-    if (!pos) return
-    const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: discTexture(0xc17a3a, false), depthTest: false, depthWrite: false }),
-    )
-    sprite.position.set(pos[0], pos[1], pos[2])
-    sprite.scale.setScalar(0.18)
-    sprite.renderOrder = 999
-    this.scene.add(sprite)
-    this.marker = sprite
-  }
-
   /** Enable/disable orbit controls (off while placing a hotspot by click). */
   setControlsEnabled(enabled: boolean): void {
     this.controls.enabled = enabled
@@ -354,49 +350,48 @@ export class ThreeViewer {
   }
 
   /**
-   * Draw the selected item's hotspot: a copper disc at the look target, a teal
-   * ring at the camera position, and a faint line between them so the author can
-   * see, in the scene, exactly where this waypoint's camera sits and what it
-   * frames. Pass null to clear.
+   * Draw the selected item's waypoint gizmo: a teal ring at the camera position,
+   * a copper disc at the look target, and a faint line between them. Pass null to
+   * clear.
    */
-  setHotspotGizmo(
-    hotspot: { position: [number, number, number]; target: [number, number, number] } | null,
-  ): void {
-    this.setMarker(hotspot ? hotspot.target : null)
+  setHotspotGizmo(hotspot: GizmoSpot | null): void {
+    this.drawGizmo('item', hotspot, { cam: 0x5fb0a7, look: 0xc17a3a })
+  }
 
-    if (this.posMarker) {
-      this.scene.remove(this.posMarker)
-      this.posMarker.material.map?.dispose()
-      this.posMarker.material.dispose()
-      this.posMarker = null
-    }
-    if (this.viewLine) {
-      this.scene.remove(this.viewLine)
-      this.viewLine.geometry.dispose()
-      ;(this.viewLine.material as THREE.Material).dispose()
-      this.viewLine = null
+  /**
+   * Draw the story's start-camera gizmo, in green, so the author can always see
+   * where the reader begins — shown alongside the selected item's waypoint.
+   */
+  setStartGizmo(hotspot: GizmoSpot | null): void {
+    this.drawGizmo('start', hotspot, { cam: 0x6cc070, look: 0x6cc070 })
+  }
+
+  private drawGizmo(slot: GizmoSlot, hotspot: GizmoSpot | null, colors: { cam: number; look: number }): void {
+    const g = this.gizmos[slot]
+    if (g) {
+      this.scene.remove(g.cam, g.look, g.line)
+      g.cam.material.map?.dispose()
+      g.cam.material.dispose()
+      g.look.material.map?.dispose()
+      g.look.material.dispose()
+      g.line.geometry.dispose()
+      ;(g.line.material as THREE.Material).dispose()
+      this.gizmos[slot] = null
     }
     if (!hotspot) return
 
-    const cam = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: discTexture(0x5fb0a7, true), depthTest: false, depthWrite: false }),
-    )
-    cam.position.set(...hotspot.position)
-    cam.scale.setScalar(0.22)
-    cam.renderOrder = 999
-    this.scene.add(cam)
-    this.posMarker = cam
-
+    const cam = makeMarker(discTexture(colors.cam, true), hotspot.position, 0.22)
+    const look = makeMarker(discTexture(colors.look, false), hotspot.target, 0.18)
     const line = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
         new THREE.Vector3(...hotspot.position),
         new THREE.Vector3(...hotspot.target),
       ]),
-      new THREE.LineBasicMaterial({ color: 0x7a746c, transparent: true, opacity: 0.7, depthTest: false }),
+      new THREE.LineBasicMaterial({ color: colors.cam, transparent: true, opacity: 0.6, depthTest: false }),
     )
     line.renderOrder = 998
-    this.scene.add(line)
-    this.viewLine = line
+    this.scene.add(cam, look, line)
+    this.gizmos[slot] = { cam, look, line }
   }
 
   resize(): void {
@@ -415,6 +410,7 @@ export class ThreeViewer {
     this.resizeObserver.disconnect()
     this.controls.dispose()
     this.setHotspotGizmo(null)
+    this.setStartGizmo(null)
     if (this.currentModel) disposeObject(this.currentModel)
     this.renderer.dispose()
     this.renderer.domElement.remove()

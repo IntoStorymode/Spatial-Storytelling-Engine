@@ -22,6 +22,15 @@ function toTriple(v: unknown): [number, number, number] | null {
   return [nums[0], nums[1], nums[2]]
 }
 
+/** A `{ position: [...], target: [...] }` mapping → Hotspot, or null if malformed. */
+function toHotspot(v: unknown): Hotspot | null {
+  if (!v || typeof v !== 'object') return null
+  const o = v as Record<string, unknown>
+  const position = toTriple(o.position)
+  const target = toTriple(o.target)
+  return position && target ? { position, target } : null
+}
+
 /**
  * Parse a story.md (YAML frontmatter + a sequence of `## [id] title` item blocks)
  * into a Story. Resilient: malformed pieces produce `warnings` rather than throwing.
@@ -46,6 +55,11 @@ export function parseStory(raw: string, basePath = ''): Story {
         location: toStr(data.location),
         date: toStr(data.date),
         model: toStr(data.model),
+      }
+      if (data.start !== undefined) {
+        const start = toHotspot(data.start)
+        if (start) frontmatter.start = start
+        else warnings.push('Frontmatter start: position/target must each be 3 numbers')
       }
     } catch (e) {
       warnings.push(`Frontmatter parse error: ${String(e)}`)
@@ -110,10 +124,8 @@ function parseItem(chunk: string, warnings: string[]): StoryItem | null {
     // Dedent so js-yaml parses the indented sub-block as a top-level mapping.
     const dedented = hotspotLines.map((l) => l.replace(/^\s+/, '')).join('\n')
     try {
-      const h = (yaml.load(dedented) ?? {}) as Record<string, unknown>
-      const position = toTriple(h.position)
-      const target = toTriple(h.target)
-      if (position && target) hotspot = { position, target }
+      const h = toHotspot(yaml.load(dedented))
+      if (h) hotspot = h
       else warnings.push(`Item ${id}: hotspot position/target must each be 3 numbers`)
     } catch (e) {
       warnings.push(`Item ${id}: hotspot parse error: ${String(e)}`)

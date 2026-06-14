@@ -189,6 +189,8 @@ export function EditorRoute() {
             basePath={basePath}
             selected={selected}
             onHotspotChange={(h) => selected && setHotspot(selected.id, h)}
+            start={fm.start ?? null}
+            onStartChange={(start) => setFm((m) => ({ ...m, start }))}
           />
         </main>
       </div>

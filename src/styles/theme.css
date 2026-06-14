@@ -821,6 +821,14 @@ a:hover {
 .hp-key-look {
   color: var(--accent);
 }
+.hp-key-start {
+  color: #6cc070;
+}
+.hp-start {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
 
 /* Export bar */
 .export {

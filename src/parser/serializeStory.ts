@@ -15,15 +15,23 @@ function fmtTriple(t: [number, number, number]): string {
  */
 export function serializeStory(story: Story): string {
   const fm = story.frontmatter
-  const head = [
+  const headLines = [
     '---',
     `title: "${fm.title}"`,
     `author: "${fm.author}"`,
     `location: "${fm.location}"`,
     `date: "${fm.date}"`,
     `model: "${fm.model}"`,
-    '---',
-  ].join('\n')
+  ]
+  if (fm.start) {
+    headLines.push(
+      'start:',
+      `  position: ${fmtTriple(fm.start.position)}`,
+      `  target: ${fmtTriple(fm.start.target)}`,
+    )
+  }
+  headLines.push('---')
+  const head = headLines.join('\n')
 
   const body = story.items.map(serializeItem).join('\n\n---\n\n')
 
