@@ -9,9 +9,19 @@ import * as THREE from 'three'
  * The heavy splat library is dynamically imported so it only loads for users who
  * actually open a splat-backed story; it stays out of the initial bundle.
  *
- * Supported formats (auto-detected from the path): .ply / .splat / .ksplat / .spz
+ * Supported formats: .ply / .splat / .ksplat / .spz. The library normally infers
+ * the format from the URL's file extension, but an uploaded `blob:`/`data:` URL
+ * carries none — so callers pass `ext` and we map it to the explicit `format`
+ * option, which the loader honours over path-based inference.
  */
-export async function loadSplat(resolvedUrl: string): Promise<THREE.Object3D> {
+const SCENE_FORMAT_BY_EXT: Record<string, 'Ply' | 'Splat' | 'KSplat' | 'Spz'> = {
+  ply: 'Ply',
+  splat: 'Splat',
+  ksplat: 'KSplat',
+  spz: 'Spz',
+}
+
+export async function loadSplat(resolvedUrl: string, ext?: string): Promise<THREE.Object3D> {
   const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d')
 
   // Use the most compatible sort path: a plain worker sort, no GPU compute and
@@ -23,9 +33,13 @@ export async function loadSplat(resolvedUrl: string): Promise<THREE.Object3D> {
     sharedMemoryForWorkers: false,
   })
 
+  const formatKey = ext ? SCENE_FORMAT_BY_EXT[ext.toLowerCase()] : undefined
+  const format = formatKey ? GaussianSplats3D.SceneFormat[formatKey] : undefined
+
   await viewer.addSplatScene(resolvedUrl, {
     showLoadingUI: false,
     progressiveLoad: false,
+    ...(format !== undefined ? { format } : {}),
   })
 
   const obj = viewer as unknown as THREE.Object3D

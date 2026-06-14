@@ -17,6 +17,8 @@ declare module '@mkkellogg/gaussian-splats-3d' {
     showLoadingUI?: boolean
     progressiveLoad?: boolean
     splatAlphaRemovalThreshold?: number
+    /** Explicit scene format; overrides path-extension inference (SceneFormat value). */
+    format?: number
     position?: [number, number, number]
     rotation?: [number, number, number, number]
     scale?: [number, number, number]

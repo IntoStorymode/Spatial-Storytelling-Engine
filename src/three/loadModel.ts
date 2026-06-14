@@ -32,7 +32,7 @@ export async function loadModel(
   }
 
   if (SPLAT_EXTS.has(ext)) {
-    return loadSplat(resolved)
+    return loadSplat(resolved, ext)
   }
 
   throw new Error(`Unsupported model format: "${url}"`)
