@@ -17,6 +17,7 @@
     "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "camera-controls": "^2.9.0",
     "js-yaml": "^4.1.0",
+    "jszip": "^3.10.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.4",

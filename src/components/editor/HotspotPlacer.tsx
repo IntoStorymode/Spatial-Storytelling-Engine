@@ -74,6 +74,22 @@ export function HotspotPlacer({
     onStartChange(v.getView())
   }
 
+  // Fly the camera back to a saved view so the author can re-check it. Switches
+  // the toggle to orbit to match the relaxed camera state flyToView leaves behind.
+  function goToStart() {
+    const v = viewerRef.current
+    if (!v || !start) return
+    setLookMode('orbit')
+    void v.flyToView(start.position, start.target, true)
+  }
+
+  function goToHotspot() {
+    const v = viewerRef.current
+    if (!v || !hotspot) return
+    setLookMode('orbit')
+    void v.flyToView(hotspot.position, hotspot.target, true)
+  }
+
   // Leaving placing mode (or unmount) must always re-enable orbit.
   useEffect(() => {
     const v = viewerRef.current
@@ -166,6 +182,9 @@ export function HotspotPlacer({
             <button className="btn ed-chip" onClick={setStartToView} title="Capture the current view as the story's opening camera">
               🚩 Set start to this view
             </button>
+            <button className="btn ed-chip" onClick={goToStart} disabled={!start} title="Fly the camera to the saved start view">
+              ↩ Go to start
+            </button>
             <button className="btn ed-chip" onClick={() => onStartChange(undefined)} disabled={!start}>
               Clear
             </button>
@@ -205,6 +224,9 @@ export function HotspotPlacer({
                 title="Click a spot on the model to aim the camera at it"
               >
                 {placing ? '… click a point' : '📍 Aim look-point'}
+              </button>
+              <button className="btn ed-chip" onClick={goToHotspot} disabled={!hotspot} title="Fly the camera to this item's saved waypoint">
+                ↩ Go to waypoint
               </button>
               <button className="btn ed-chip" onClick={clearHotspot} disabled={!hotspot}>
                 Clear

@@ -216,10 +216,19 @@ export class ThreeViewer {
       if (fwd.lengthSq() < 1e-8) this.camera.getWorldDirection(fwd)
       this.placeFirstPerson(p, p.clone().add(fwd), false)
     } else {
+      // Switching to orbit: keep the current eye + view direction instead of
+      // re-framing the whole model, which would discard the view the author just
+      // composed. Put the orbit pivot a sensible distance ahead so a drag orbits
+      // the scene rather than spinning around a point on the lens.
       this.controls.mouseButtons.wheel = CameraControls.ACTION.DOLLY
       this.controls.minDistance = 0
       this.controls.maxDistance = Infinity
-      if (this.currentModel) this.frameObject(this.currentModel, true)
+      const p = this.camera.position.clone()
+      const fwd = this.controls.getTarget(new THREE.Vector3()).sub(p)
+      if (fwd.lengthSq() < 1e-8) this.camera.getWorldDirection(fwd)
+      fwd.normalize()
+      const pivot = p.clone().addScaledVector(fwd, this.captureDist)
+      void this.controls.setLookAt(p.x, p.y, p.z, pivot.x, pivot.y, pivot.z, false)
     }
   }
 
@@ -250,6 +259,23 @@ export class ThreeViewer {
       target[0], target[1], target[2],
       animate,
     ) as unknown as Promise<void>
+  }
+
+  /**
+   * Editor "Go to": fly the camera to a previously saved view (start or a
+   * waypoint). Drops into orbit and lifts the first-person distance clamp so the
+   * eye actually lands on the saved position instead of being pulled to the pivot.
+   */
+  flyToView(
+    position: [number, number, number],
+    target: [number, number, number],
+    animate = true,
+  ): Promise<void> {
+    this.lookMode = 'orbit'
+    this.controls.minDistance = 0
+    this.controls.maxDistance = Infinity
+    this.controls.mouseButtons.wheel = CameraControls.ACTION.DOLLY
+    return this.flyTo(position, target, animate)
   }
 
   /**

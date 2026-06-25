@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import JSZip from 'jszip'
 import type { Story } from '../../parser/types'
 import { serializeStory } from '../../parser/serializeStory'
 
@@ -19,23 +20,33 @@ function slugify(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'story'
 }
 
-/** Export the draft to story.md — download or copy — with validation hints. */
-export function ExportBar({ story, uploaded }: { story: Story; uploaded: boolean }) {
+function triggerDownload(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+interface Props {
+  story: Story
+  /** Uploaded files to package into the bundle, at their export paths. */
+  assets: { path: string; file: File }[]
+}
+
+/** Export the draft to story.md (download/copy) or a publish-ready bundle zip. */
+export function ExportBar({ story, assets }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [building, setBuilding] = useState(false)
   const warnings = validate(story)
+  const slug = slugify(story.frontmatter.title)
 
   function download() {
-    const md = serializeStory(story)
-    const blob = new Blob([md], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'story.md'
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    triggerDownload(new Blob([serializeStory(story)], { type: 'text/markdown' }), 'story.md')
   }
 
   async function copy() {
@@ -44,10 +55,57 @@ export function ExportBar({ story, uploaded }: { story: Story; uploaded: boolean
     setTimeout(() => setCopied(false), 1500)
   }
 
+  /** A publish-ready zip: <slug>/story.md + assets/, an index entry, and a how-to. */
+  async function downloadBundle() {
+    setBuilding(true)
+    try {
+      const zip = new JSZip()
+      const folder = zip.folder(slug)!
+      folder.file('story.md', serializeStory(story))
+      const seen = new Set<string>()
+      for (const { path, file } of assets) {
+        if (seen.has(path)) continue
+        seen.add(path)
+        folder.file(path, file) // e.g. assets/scene.glb
+      }
+      const entry = {
+        id: slug,
+        title: story.frontmatter.title,
+        author: story.frontmatter.author,
+        location: story.frontmatter.location,
+        date: story.frontmatter.date,
+        path: `/stories/${slug}/story.md`,
+      }
+      zip.file('index-entry.json', JSON.stringify(entry, null, 2))
+      zip.file(
+        'PUBLISH.txt',
+        [
+          'To publish this story so others can open it:',
+          '',
+          `1. Move the "${slug}" folder into public/stories/ in the project.`,
+          '2. Open public/stories/index.json and add the object from',
+          '   index-entry.json into the "stories" array.',
+          `3. Refresh — the story appears on Home and at /story/${slug}.`,
+          '',
+          'Uploaded files are already included under the assets/ folder.',
+          'Any media referenced by a typed path (not uploaded) must be copied',
+          `into ${slug}/assets/ yourself.`,
+        ].join('\n'),
+      )
+      const blob = await zip.generateAsync({ type: 'blob' })
+      triggerDownload(blob, `${slug}.zip`)
+    } finally {
+      setBuilding(false)
+    }
+  }
+
   return (
     <div className="export">
-      <button className="btn btn-accent" onClick={download}>
-        ⭳ Export story.md
+      <button className="btn btn-accent" onClick={downloadBundle} disabled={building} title="Zip of story.md + uploaded assets + an index entry, ready to drop into public/stories/">
+        {building ? '… zipping' : '⭳ Download bundle'}
+      </button>
+      <button className="btn" onClick={download} title="Just the story.md text file">
+        story.md
       </button>
       <button className="btn" onClick={copy}>
         {copied ? '✓ Copied' : 'Copy'}
@@ -64,7 +122,11 @@ export function ExportBar({ story, uploaded }: { story: Story; uploaded: boolean
       {open && (
         <div className="export-pop">
           {warnings.length === 0 ? (
-            <p>Looks good. Export, then drop story.md into a folder under <code>public/stories/</code> and add it to <code>index.json</code>.</p>
+            <p>
+              Looks good. <strong>Download bundle</strong> gives a <code>{slug}.zip</code> —
+              unzip the <code>{slug}/</code> folder into <code>public/stories/</code> and
+              merge <code>index-entry.json</code> into <code>index.json</code>.
+            </p>
           ) : (
             <ul>
               {warnings.map((w, i) => (
@@ -72,13 +134,11 @@ export function ExportBar({ story, uploaded }: { story: Story; uploaded: boolean
               ))}
             </ul>
           )}
-          {uploaded && (
-            <p className="muted">
-              Remember to copy your uploaded model file into the story's <code>assets/</code>
-              folder — the export references it by path, not contents.
-            </p>
-          )}
-          <p className="muted">Suggested folder: <code>stories/{slugify(story.frontmatter.title)}/</code></p>
+          <p className="muted">
+            Bundle includes {assets.length} uploaded asset{assets.length === 1 ? '' : 's'}.
+            Media referenced by a typed path (not uploaded) isn't bundled — copy it into{' '}
+            <code>{slug}/assets/</code> yourself.
+          </p>
         </div>
       )}
     </div>

@@ -59,12 +59,16 @@ export function ViewerStage({
   }, [])
 
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  // Whether Mode A has shown its opening frame yet (resets when leaving immersive).
+  const openedRef = useRef(false)
 
   // Load (or swap) the model. After it frames, honor the story's start camera
   // (the author-defined opening view) over the default bounding-box framing.
   useEffect(() => {
     if (!viewer) return
     setLoadError(null)
+    setLoading(true)
     viewer
       .setModel(frontmatter.model, basePath, modelFormat)
       .then(() => {
@@ -74,7 +78,14 @@ export function ViewerStage({
         console.error('Model load failed:', e)
         setLoadError(e instanceof Error ? e.message : String(e))
       })
+      .finally(() => setLoading(false))
   }, [viewer, frontmatter.model, basePath, modelFormat, start])
+
+  // A fresh entry into Mode A should open on the story start view, not jump
+  // straight to item 1's waypoint — so reset the "opened" latch in Mode B.
+  useEffect(() => {
+    if (mode !== 'immersive') openedRef.current = false
+  }, [mode])
 
   // Keep the store's item count in sync for navigation bounds.
   useEffect(() => setItemCount(items.length), [items.length, setItemCount])
@@ -89,6 +100,15 @@ export function ViewerStage({
   useEffect(() => {
     if (!viewer || mode !== 'immersive') return
     const animate = !reducedMotion
+    // First entry into Mode A honors the story start view as the opening frame;
+    // an item's own waypoint takes over only once the reader navigates.
+    if (!openedRef.current) {
+      openedRef.current = true
+      if (start) {
+        viewer.flyTo(start.position, start.target, animate)
+        return
+      }
+    }
     const hotspot = items[activeIndex]?.hotspot
     if (hotspot) viewer.flyTo(hotspot.position, hotspot.target, animate)
     else if (start) viewer.flyTo(start.position, start.target, animate)
@@ -109,6 +129,12 @@ export function ViewerStage({
         <div className="model-error" role="alert">
           <strong>3D model failed to load.</strong>
           <span>{loadError}</span>
+        </div>
+      )}
+      {loading && !loadError && (
+        <div className="model-loading" role="status">
+          <span className="spinner" aria-hidden="true" />
+          Loading model…
         </div>
       )}
       {children}

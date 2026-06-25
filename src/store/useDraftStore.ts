@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import type { Frontmatter, Story, StoryItem } from '../parser/types'
 
+/** An uploaded asset held in memory: its blob URL plus the File for bundling. */
+export interface Upload {
+  url: string
+  file: File
+}
+
 /** The editor's working state, kept so it survives a trip to /preview and back. */
 export interface EditSnapshot {
   /** Route identity: the story id, or 'new'. */
@@ -8,7 +14,9 @@ export interface EditSnapshot {
   fm: Frontmatter
   items: StoryItem[]
   basePath: string
-  uploaded: { url: string; format: string } | null
+  uploaded: (Upload & { format: string }) | null
+  /** Uploaded media, keyed by the asset path it will export to. */
+  mediaUploads: Record<string, Upload>
 }
 
 /** What /preview needs to render the draft in the real viewer. */

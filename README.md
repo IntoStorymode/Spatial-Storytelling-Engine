@@ -22,10 +22,28 @@ view + auto-tour · M5 Gaussian-splat support · M6 story editor · M7 editor po
 (start camera, in-editor A/B preview). Next steps are tracked in the
 [backlog](./docs/BACKLOG.md).
 
+## Getting started
+
+**Prerequisites**
+
+- **Node.js 18 or newer** (Vite 5 and Vitest require it; the app will not start on Node 16
+  or earlier). Check with `node -v`. If you use `nvm`, run `nvm use 20` (or any ≥18) first.
+- **npm** (ships with Node).
+
+**Run it**
+
 ```bash
+git clone https://github.com/WWStoryMode/Spatial-Storytelling-Platform
+cd Spatial-Storytelling-Platform
 npm install
 npm run dev      # → http://localhost:5173
 ```
+
+Then open http://localhost:5173/ — the Home page lists the bundled demo stories. Click
+**+ New story** to open the editor.
+
+Other scripts: `npm run build` (type-check + production bundle), `npm run preview` (serve
+the built bundle), `npm run test` (Vitest).
 
 ## Stack
 
@@ -46,13 +64,20 @@ each with a `type` (text / image / audio / video), optional `src`/`caption`, bod
 
 ## Bring your own scan
 
-Once built, a person with a [Scaniverse](https://scaniverse.com/) export (`.glb` or
-`.splat`/`.ply`) and a few media files will be able to:
+The quickest path is the **in-app editor** (`+ New story` on the Home page):
 
-1. Drop their files into `/public/stories/my-story/assets/`
-2. Write a `story.md` following the format
-3. `npm run dev`
-4. Switch between Mode B and Mode A — both work from the same file
+1. Fill in the metadata and **Upload file…** your [Scaniverse](https://scaniverse.com/)
+   export (`.glb` or `.splat`/`.ply`).
+2. Add items (text / image / audio / video); **Upload file…** any media inline.
+3. Set the **story start** view and each item's **waypoint** in the 3D scene, and use
+   **▶ Preview** to check Mode A / B live.
+4. Click **⭳ Download bundle** — you get a `<slug>.zip` containing `story.md`, your uploaded
+   assets, an `index-entry.json`, and a `PUBLISH.txt`. Unzip the `<slug>/` folder into
+   `public/stories/` and merge `index-entry.json` into `public/stories/index.json`. The
+   story then appears on Home at `/story/<slug>`.
+
+Prefer to author by hand? You can also drop files into `/public/stories/my-story/assets/`,
+write a `story.md` by the format below, add an `index.json` entry, and `npm run dev`.
 
 > **Tip:** to clean, crop, and web-optimize a raw `.ply` splat (e.g. `.ply` → `.ksplat`),
 > use [SuperSplat](https://superspl.at/editor) (open source, free) before dropping it in.
