@@ -26,6 +26,10 @@ export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove 
           + Add
         </button>
       </div>
+      <p className="ed-hint">
+        Each item is a section of your story. Select one, then give it a waypoint in the 3D
+        scene so Mode A flies the camera there.
+      </p>
 
       <ul className="ed-items">
         {items.map((item, i) => (
@@ -39,7 +43,7 @@ export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove 
             </span>
             <span className="ed-item-title">
               {item.title || <em className="muted">Untitled</em>}
-              {item.hotspot && <span className="ed-item-pin" title="Has hotspot">📍</span>}
+              {item.hotspot && <span className="ed-item-pin" title="Has a waypoint">📍</span>}
             </span>
             <span className="ed-item-actions">
               <button

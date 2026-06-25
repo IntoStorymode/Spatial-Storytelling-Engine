@@ -10,6 +10,9 @@ interface Props {
   basePath: string
   selected: StoryItem | null
   onHotspotChange: (hotspot: Hotspot | undefined) => void
+  /** The story's opening camera (Mode A initial view), and its setter. */
+  start: Hotspot | null
+  onStartChange: (start: Hotspot | undefined) => void
 }
 
 function fmt(t: [number, number, number]): string {
@@ -17,11 +20,12 @@ function fmt(t: [number, number, number]): string {
 }
 
 /**
- * Embeds the 3D scene for the editor and binds a hotspot to the selected item:
- *  - Use current view  → capture camera position + look target in one click
- *  - Capture position  → camera position only (keeps the target)
- *  - Place target      → next click in the scene raycasts a world point
- * A sprite marks the bound target.
+ * Embeds the 3D scene for the editor and binds a waypoint (camera view) to the
+ * selected item, plus the story's start view:
+ *  - Set waypoint to this view → capture camera position + look-point in one click
+ *  - Move camera here          → camera position only (keeps the look-point)
+ *  - Aim look-point            → next click in the scene raycasts a world point
+ * Gizmos mark the bound camera (teal), look-point (copper), and start (green).
  */
 export function HotspotPlacer({
   previewSrc,
@@ -29,6 +33,8 @@ export function HotspotPlacer({
   basePath,
   selected,
   onHotspotChange,
+  start,
+  onStartChange,
 }: Props) {
   const viewerRef = useRef<ThreeViewer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -53,6 +59,20 @@ export function HotspotPlacer({
     if (!v || !ready) return
     v.setHotspotGizmo(hotspot ?? null)
   }, [ready, hotspotKey, selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The story start gizmo (green) is shown persistently alongside the item one.
+  const startKey = start ? [...start.position, ...start.target].join(',') : null
+  useEffect(() => {
+    const v = viewerRef.current
+    if (!v || !ready) return
+    v.setStartGizmo(start ?? null)
+  }, [ready, startKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function setStartToView() {
+    const v = viewerRef.current
+    if (!v) return
+    onStartChange(v.getView())
+  }
 
   // Leaving placing mode (or unmount) must always re-enable orbit.
   useEffect(() => {
@@ -137,6 +157,30 @@ export function HotspotPlacer({
       </div>
 
       <div className="hp-tools">
+        <div className="hp-start">
+          <p className="hp-scope">
+            <span className="hp-key hp-key-start">●</span> Story start
+            <span className="muted"> — where the reader begins</span>
+          </p>
+          <div className="ed-chips">
+            <button className="btn ed-chip" onClick={setStartToView} title="Capture the current view as the story's opening camera">
+              🚩 Set start to this view
+            </button>
+            <button className="btn ed-chip" onClick={() => onStartChange(undefined)} disabled={!start}>
+              Clear
+            </button>
+          </div>
+          <div className="hp-readout">
+            {start ? (
+              <div>
+                <span className="hp-key hp-key-start">●</span> start [{fmt(start.position)}]
+              </div>
+            ) : (
+              <span className="muted">No start set — Mode A opens on default framing.</span>
+            )}
+          </div>
+        </div>
+
         {!selected ? (
           <p className="muted">Select an item on the left to give it a waypoint.</p>
         ) : (

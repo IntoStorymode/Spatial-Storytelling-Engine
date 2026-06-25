@@ -63,3 +63,33 @@ describe('story parser — resilience', () => {
     expect(story.warnings.some((w) => w.includes('position/target'))).toBe(true)
   })
 })
+
+describe('story parser — start view', () => {
+  const withStart =
+    '---\ntitle: "x"\nmodel: "builtin:room"\nstart:\n  position: [1, 2, 3]\n  target: [4, 5, 6]\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+
+  it('parses a frontmatter start camera', () => {
+    const story = parseStory(withStart, BASE)
+    expect(story.warnings).toEqual([])
+    expect(story.frontmatter.start).toEqual({ position: [1, 2, 3], target: [4, 5, 6] })
+  })
+
+  it('omits start when absent', () => {
+    const story = parseStory('---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n', BASE)
+    expect(story.frontmatter.start).toBeUndefined()
+  })
+
+  it('round-trips a story with a start camera', () => {
+    const s1 = parseStory(withStart, BASE)
+    const s2 = parseStory(serializeStory(s1), BASE)
+    expect(s2.frontmatter).toEqual(s1.frontmatter)
+    expect(s2.warnings).toEqual([])
+  })
+
+  it('warns on a malformed start camera', () => {
+    const md = '---\ntitle: "x"\nstart:\n  position: [1, 2]\n  target: [4, 5, 6]\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    const story = parseStory(md, BASE)
+    expect(story.frontmatter.start).toBeUndefined()
+    expect(story.warnings.some((w) => w.includes('start'))).toBe(true)
+  })
+})

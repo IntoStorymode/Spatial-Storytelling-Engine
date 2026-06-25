@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { parseStory } from '../parser/parseStory'
-import type { Frontmatter, Hotspot, ItemType, StoryItem } from '../parser/types'
+import type { Frontmatter, Hotspot, ItemType, Story, StoryItem } from '../parser/types'
+import { useDraftStore } from '../store/useDraftStore'
 import { StoryMetaForm } from '../components/editor/StoryMetaForm'
 import { ItemList } from '../components/editor/ItemList'
 import { ItemForm } from '../components/editor/ItemForm'
@@ -37,19 +38,43 @@ function newItem(items: StoryItem[]): StoryItem {
  */
 export function EditorRoute() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const isNew = !id
+  const routeKey = id ?? 'new'
 
-  const [fm, setFm] = useState<Frontmatter>(emptyFrontmatter)
-  const [items, setItems] = useState<StoryItem[]>(() => [newItem([])])
-  const [selectedId, setSelectedId] = useState<string | null>(items[0]?.id ?? null)
-  const [basePath, setBasePath] = useState('')
+  // Restore the in-progress draft if we're returning from /preview (else seed a
+  // fresh draft). Computed once per mount; peekResume is a pure read.
+  const initRef = useRef<{
+    fm: Frontmatter
+    items: StoryItem[]
+    basePath: string
+    uploaded: { url: string; format: string } | null
+    resumed: boolean
+  } | null>(null)
+  if (!initRef.current) {
+    const snap = useDraftStore.getState().peekResume(routeKey)
+    initRef.current = snap
+      ? { fm: snap.fm, items: snap.items, basePath: snap.basePath, uploaded: snap.uploaded, resumed: true }
+      : { fm: emptyFrontmatter(), items: [newItem([])], basePath: '', uploaded: null, resumed: false }
+  }
+  const init = initRef.current
+
+  const [fm, setFm] = useState<Frontmatter>(init.fm)
+  const [items, setItems] = useState<StoryItem[]>(init.items)
+  const [selectedId, setSelectedId] = useState<string | null>(init.items[0]?.id ?? null)
+  const [basePath, setBasePath] = useState(init.basePath)
   // An uploaded model previews from a blob URL while exporting an assets/ path.
-  const [uploaded, setUploaded] = useState<{ url: string; format: string } | null>(null)
+  const [uploaded, setUploaded] = useState<{ url: string; format: string } | null>(init.uploaded)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  // Load an existing story for editing.
+  // Consume the resume snapshot once so a later fresh open starts clean.
   useEffect(() => {
-    if (isNew) return
+    if (init.resumed) useDraftStore.getState().clearResume()
+  }, [init.resumed])
+
+  // Load an existing story for editing (skip if we restored a draft).
+  useEffect(() => {
+    if (isNew || init.resumed) return
     let cancelled = false
     async function load() {
       const idx = (await (await fetch('/stories/index.json')).json()).stories as IndexEntry[]
@@ -133,6 +158,22 @@ export function EditorRoute() {
   const previewSrc = uploaded ? uploaded.url : fm.model
   const previewFormat = uploaded ? uploaded.format : undefined
 
+  // Open the draft in the real viewer (Mode A/B) without exporting. Stashes a
+  // resume snapshot so returning restores this exact draft, blob model included.
+  function goPreview() {
+    const story: Story = {
+      frontmatter: { ...fm, model: previewSrc },
+      items,
+      basePath,
+      warnings: [],
+    }
+    useDraftStore.getState().openPreview(
+      { story, modelFormat: previewFormat, returnTo: isNew ? '/edit/new' : `/edit/${id}` },
+      { key: routeKey, fm, items, basePath, uploaded },
+    )
+    navigate('/preview')
+  }
+
   if (loadError) {
     return (
       <div className="page">
@@ -153,7 +194,12 @@ export function EditorRoute() {
           ← All stories
         </Link>
         <p className="eyebrow">{isNew ? 'New story' : `Editing ${id}`}</p>
-        <ExportBar story={{ frontmatter: fm, items, basePath, warnings: [] }} uploaded={!!uploaded} />
+        <div className="editor-topbar-actions">
+          <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
+            ▶ Preview
+          </button>
+          <ExportBar story={{ frontmatter: fm, items, basePath, warnings: [] }} uploaded={!!uploaded} />
+        </div>
       </div>
 
       <div className="editor-body">
@@ -189,6 +235,8 @@ export function EditorRoute() {
             basePath={basePath}
             selected={selected}
             onHotspotChange={(h) => selected && setHotspot(selected.id, h)}
+            start={fm.start ?? null}
+            onStartChange={(start) => setFm((m) => ({ ...m, start }))}
           />
         </main>
       </div>

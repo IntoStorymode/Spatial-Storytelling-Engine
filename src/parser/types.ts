@@ -28,6 +28,12 @@ export interface Frontmatter {
   date: string
   /** Path to the 3D model: `.glb`/`.gltf`, a splat (`.ply`/`.splat`/`.ksplat`), or `builtin:room`. */
   model: string
+  /**
+   * Optional opening camera for the story — the first view the reader sees in
+   * Mode A (and the initial framing in Mode B). Falls back to model bounding-box
+   * framing when absent.
+   */
+  start?: Hotspot
 }
 
 export interface Story {
