@@ -16,6 +16,10 @@ export function ItemForm({ item, onChange, onChangeType }: Props) {
       <h2 className="ed-h2">
         Item <span className="muted">{item.id}</span>
       </h2>
+      <p className="ed-hint">
+        The content of this story section. Set its waypoint — the camera view Mode A flies
+        to — in the 3D scene on the right.
+      </p>
 
       <label className="ed-field">
         <span>Title</span>

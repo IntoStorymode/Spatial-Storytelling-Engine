@@ -20,11 +20,12 @@ function fmt(t: [number, number, number]): string {
 }
 
 /**
- * Embeds the 3D scene for the editor and binds a hotspot to the selected item:
- *  - Use current view  → capture camera position + look target in one click
- *  - Capture position  → camera position only (keeps the target)
- *  - Place target      → next click in the scene raycasts a world point
- * A sprite marks the bound target.
+ * Embeds the 3D scene for the editor and binds a waypoint (camera view) to the
+ * selected item, plus the story's start view:
+ *  - Set waypoint to this view → capture camera position + look-point in one click
+ *  - Move camera here          → camera position only (keeps the look-point)
+ *  - Aim look-point            → next click in the scene raycasts a world point
+ * Gizmos mark the bound camera (teal), look-point (copper), and start (green).
  */
 export function HotspotPlacer({
   previewSrc,
