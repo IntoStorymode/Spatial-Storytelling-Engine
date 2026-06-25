@@ -4,9 +4,11 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-06-25):** M1–M7 complete and merged to `main`. The full authoring
+**Current state (2026-06-25):** M1–M8 complete and merged to `main`. The full authoring
 loop works end to end: create a story → import a model → set a start camera → add items
-with waypoints → preview Mode A/B → export `story.md`.
+with waypoints (with inline media upload) → preview Mode A/B → download a publish-ready
+bundle. M8 hardened the flow (after a live walk-through) so it can be shared with internal
+desktop reviewers.
 
 ---
 
@@ -34,6 +36,30 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 ---
 
 ## Milestones
+
+### M8 — Share-readiness (merged, PR #8)
+Closed the gaps surfaced by a live walk-through of the create-story flow so the prototype
+can be shared with **internal desktop reviewers**. Sharing stays local-first (no backend);
+publishing is improved with a zip bundle rather than a hosted service.
+- **Editor camera trust:** the First-person→Orbit toggle no longer re-frames the whole model
+  (it keeps the composed eye + view direction); new **Go to start** / **Go to waypoint**
+  buttons fly the camera back to a saved view (`ThreeViewer.flyToView`, which lifts the
+  first-person distance clamp so the eye lands accurately).
+- **Mode A start-view fix:** Mode A now opens on the story `start` view; an item's waypoint
+  takes over only on the first navigation. Before this, item 1's waypoint silently overrode
+  `start` on load — so the M7 start camera was effectively dead whenever item 1 had a
+  waypoint.
+- **Local-first publishing:** per-item **media upload** (image/audio/video — blob preview
+  that survives the `/preview` round-trip via the draft store) and a one-click **Download
+  bundle** — a `<slug>.zip` of `story.md` + uploaded assets in the `assets/` layout +
+  `index-entry.json` + `PUBLISH.txt`. Unzip into `public/stories/`, merge the entry, done.
+  Adds `jszip`.
+- **Robustness:** missing-media fallbacks (an "Image unavailable" placeholder for images, a
+  message for audio/video), a model loading indicator, a top-level error boundary, and Mode A
+  overlay text bounded to the panel width.
+- **README:** Node 18+ prerequisite, clone-and-run quickstart, and the bundle publish flow.
+- **Deferred:** full editor onboarding/tutorial, validation-chip styling, pre-export
+  file-existence validation, and responsive Mode A/B for mobile (still its own milestone).
 
 ### M7 — Editor polish (merged, PR #7)
 Closed the authoring loop and clarified the editor's vocabulary.
@@ -104,6 +130,10 @@ Full create/edit experience with click-to-place waypoints.
 - **Local-first / no backend:** story data and assets are runtime files under
   `public/stories/`, `fetch()`ed (not imported) so authors drop files in without touching
   code.
+- **Publishing stays browser-side (M8):** the editor can't write to `public/stories/` (the
+  browser sandbox forbids it), so instead of a server it exports a **zip bundle** the author
+  drops in. A true one-click "Publish" / hosted share service would need a backend — a
+  deliberate future departure, not part of the prototype.
 
 ## Conventions
 
