@@ -15,9 +15,12 @@ Both modes read the **same** parsed story file. A toggle switches between them l
 
 ## Status
 
-**Building, milestone by milestone** (see [`PLAN.md`](./PLAN.md)).
+**Prototype complete — M1–M7 merged** (see [`PLAN.md`](./PLAN.md) and the
+[development log](./docs/DEVLOG.md)).
 Done: M1 data core · M2 3D engine · M3 page view + home + routing · M4 immersive
-view + auto-tour · **M5 Gaussian-splat support**. Next: M6 editor · M7 polish.
+view + auto-tour · M5 Gaussian-splat support · M6 story editor · M7 editor polish
+(start camera, in-editor A/B preview). Next steps are tracked in the
+[backlog](./docs/BACKLOG.md).
 
 ```bash
 npm install
