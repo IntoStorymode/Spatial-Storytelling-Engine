@@ -15,10 +15,11 @@ nice-to-have / exploratory.
   Demo target is "desktop authoring, desktop/mobile viewing." The viewer needs a mobile
   pass: touch nav in Mode A (swipe/tap to advance `activeIndex`), responsive overlay and
   nav-control layout, correct canvas sizing. Editor stays desktop-only.
-- **[P2] Loading & error states in the viewer**
-  Model-loading progress (splats can be large), graceful fallback when a model or media file
-  is missing, and surfacing parser `warnings[]` to the reader/author instead of silently
-  dropping them.
+- **[P2] Loading & error states in the viewer** *(mostly done in M8)*
+  ✅ Model loading indicator, ✅ graceful fallback when a model or media file is missing
+  (placeholder/message), and ✅ a top-level error boundary all landed in M8. **Remaining:**
+  surface parser `warnings[]` to the reader/author (still shown only in Mode B) instead of
+  silently dropping them in Mode A.
 - **[P2] Deep-linkable item / shareable view**
   URL reflects `?mode=` and the active item so a reader can link to a specific waypoint.
 - **[P3] Transition polish**
@@ -43,10 +44,11 @@ nice-to-have / exploratory.
 - **[P2] Guided model import**
   In-app guidance (or a thin wrapper) around the SuperSplat clean/convert step, plus
   clearer messaging on splat formats and recommended `.ksplat` sizes.
-- **[P2] Asset management for uploads**
-  Today an uploaded model previews from a `blob:` URL and the author must manually place the
-  file at the exported `assets/` path. Consider a "download story bundle" (zip of `story.md`
-  + referenced assets) to remove that manual step.
+- **[P2] Asset management for uploads** *(done in M8)*
+  ✅ Per-item media upload + a **Download bundle** (zip of `story.md` + uploaded assets in the
+  `assets/` layout + an `index-entry.json` + `PUBLISH.txt`) removed the manual copy step for
+  uploaded files. **Remaining:** media referenced by a *typed* path (not uploaded) still
+  isn't bundled — the author copies it in by hand.
 - **[P3] Multiple models / model switching within one story** (exploratory).
 
 ## Robustness & quality
