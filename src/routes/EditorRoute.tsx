@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { parseStory } from '../parser/parseStory'
 import type { Frontmatter, Hotspot, ItemType, Story, StoryItem } from '../parser/types'
 import { useDraftStore } from '../store/useDraftStore'
+import type { Upload } from '../store/useDraftStore'
 import { StoryMetaForm } from '../components/editor/StoryMetaForm'
 import { ItemList } from '../components/editor/ItemList'
 import { ItemForm } from '../components/editor/ItemForm'
@@ -48,14 +49,15 @@ export function EditorRoute() {
     fm: Frontmatter
     items: StoryItem[]
     basePath: string
-    uploaded: { url: string; format: string } | null
+    uploaded: (Upload & { format: string }) | null
+    mediaUploads: Record<string, Upload>
     resumed: boolean
   } | null>(null)
   if (!initRef.current) {
     const snap = useDraftStore.getState().peekResume(routeKey)
     initRef.current = snap
-      ? { fm: snap.fm, items: snap.items, basePath: snap.basePath, uploaded: snap.uploaded, resumed: true }
-      : { fm: emptyFrontmatter(), items: [newItem([])], basePath: '', uploaded: null, resumed: false }
+      ? { fm: snap.fm, items: snap.items, basePath: snap.basePath, uploaded: snap.uploaded, mediaUploads: snap.mediaUploads, resumed: true }
+      : { fm: emptyFrontmatter(), items: [newItem([])], basePath: '', uploaded: null, mediaUploads: {}, resumed: false }
   }
   const init = initRef.current
 
@@ -64,7 +66,9 @@ export function EditorRoute() {
   const [selectedId, setSelectedId] = useState<string | null>(init.items[0]?.id ?? null)
   const [basePath, setBasePath] = useState(init.basePath)
   // An uploaded model previews from a blob URL while exporting an assets/ path.
-  const [uploaded, setUploaded] = useState<{ url: string; format: string } | null>(init.uploaded)
+  const [uploaded, setUploaded] = useState<(Upload & { format: string }) | null>(init.uploaded)
+  // Uploaded media, keyed by the assets/ path it will export to.
+  const [mediaUploads, setMediaUploads] = useState<Record<string, Upload>>(init.mediaUploads)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   // Consume the resume snapshot once so a later fresh open starts clean.
@@ -151,25 +155,65 @@ export function EditorRoute() {
     if (uploaded) URL.revokeObjectURL(uploaded.url)
     const url = URL.createObjectURL(file)
     const format = file.name.split('.').pop()?.toLowerCase() ?? ''
-    setUploaded({ url, format })
+    setUploaded({ url, file, format })
     setFm((m) => ({ ...m, model: `assets/${file.name}` }))
   }
+
+  // ── Media uploads (image/audio/video) ─────────────────────────────────────
+  // Hold the File so it can be bundled on export; preview from a blob URL by
+  // pointing the item's src at the assets/ path it will export to.
+  function onMediaUpload(itemId: string, file: File) {
+    const path = `assets/${file.name}`
+    const url = URL.createObjectURL(file)
+    setMediaUploads((prev) => {
+      const next = { ...prev }
+      const old = items.find((i) => i.id === itemId)?.src
+      if (old && next[old] && old !== path) URL.revokeObjectURL(next[old].url)
+      next[path] = { url, file }
+      return next
+    })
+    patchItem(itemId, { src: path })
+  }
+
+  // Revoke every in-memory blob URL when the editor unmounts.
+  useEffect(() => {
+    return () => {
+      if (uploaded) URL.revokeObjectURL(uploaded.url)
+      Object.values(mediaUploads).forEach((u) => URL.revokeObjectURL(u.url))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const previewSrc = uploaded ? uploaded.url : fm.model
   const previewFormat = uploaded ? uploaded.format : undefined
 
+  // Bundle-able assets actually referenced by the current draft: the uploaded
+  // model plus any uploaded media still pointed at by an item.
+  const bundleAssets: { path: string; file: File }[] = [
+    ...(uploaded ? [{ path: fm.model, file: uploaded.file }] : []),
+    ...items
+      .map((i) => i.src)
+      .filter((src): src is string => !!src && !!mediaUploads[src])
+      .map((src) => ({ path: src, file: mediaUploads[src].file })),
+  ]
+
   // Open the draft in the real viewer (Mode A/B) without exporting. Stashes a
   // resume snapshot so returning restores this exact draft, blob model included.
   function goPreview() {
+    // Point each uploaded media item at its blob URL so it renders in the real
+    // viewer; the resume snapshot keeps the original assets/ paths + uploads.
+    const previewItems = items.map((i) =>
+      i.src && mediaUploads[i.src] ? { ...i, src: mediaUploads[i.src].url } : i,
+    )
     const story: Story = {
       frontmatter: { ...fm, model: previewSrc },
-      items,
+      items: previewItems,
       basePath,
       warnings: [],
     }
     useDraftStore.getState().openPreview(
       { story, modelFormat: previewFormat, returnTo: isNew ? '/edit/new' : `/edit/${id}` },
-      { key: routeKey, fm, items, basePath, uploaded },
+      { key: routeKey, fm, items, basePath, uploaded, mediaUploads },
     )
     navigate('/preview')
   }
@@ -198,7 +242,10 @@ export function EditorRoute() {
           <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
             ▶ Preview
           </button>
-          <ExportBar story={{ frontmatter: fm, items, basePath, warnings: [] }} uploaded={!!uploaded} />
+          <ExportBar
+            story={{ frontmatter: fm, items, basePath, warnings: [] }}
+            assets={bundleAssets}
+          />
         </div>
       </div>
 
@@ -224,6 +271,8 @@ export function EditorRoute() {
               item={selected}
               onChange={(patch) => patchItem(selected.id, patch)}
               onChangeType={(t) => changeType(selected.id, t)}
+              onUpload={(file) => onMediaUpload(selected.id, file)}
+              uploaded={!!selected.src && !!mediaUploads[selected.src]}
             />
           )}
         </aside>
