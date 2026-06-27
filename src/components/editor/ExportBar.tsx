@@ -35,10 +35,12 @@ interface Props {
   story: Story
   /** Uploaded files to package into the bundle, at their export paths. */
   assets: { path: string; file: File }[]
+  /** Fired after a bundle zip is successfully downloaded (uploads now saved). */
+  onBundleDownloaded?: () => void
 }
 
 /** Export the draft to story.md (download/copy) or a publish-ready bundle zip. */
-export function ExportBar({ story, assets }: Props) {
+export function ExportBar({ story, assets, onBundleDownloaded }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [building, setBuilding] = useState(false)
@@ -94,6 +96,7 @@ export function ExportBar({ story, assets }: Props) {
       )
       const blob = await zip.generateAsync({ type: 'blob' })
       triggerDownload(blob, `${slug}.zip`)
+      onBundleDownloaded?.()
     } finally {
       setBuilding(false)
     }

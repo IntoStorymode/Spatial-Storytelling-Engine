@@ -9,6 +9,7 @@ import { ItemList } from '../components/editor/ItemList'
 import { ItemForm } from '../components/editor/ItemForm'
 import { HotspotPlacer } from '../components/editor/HotspotPlacer'
 import { ExportBar } from '../components/editor/ExportBar'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 interface IndexEntry {
   id: string
@@ -175,17 +176,47 @@ export function EditorRoute() {
     patchItem(itemId, { src: path })
   }
 
-  // Revoke every in-memory blob URL when the editor unmounts.
-  useEffect(() => {
-    return () => {
-      if (uploaded) URL.revokeObjectURL(uploaded.url)
-      Object.values(mediaUploads).forEach((u) => URL.revokeObjectURL(u.url))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Uploaded model/media blob URLs intentionally live for the whole tab session:
+  // they must survive the editor ⇄ /preview round-trip (the draft-store resume
+  // snapshot keeps referencing them) and React StrictMode's dev remount, so we do
+  // NOT revoke on unmount — doing so revoked a still-needed blob on the second
+  // preview. Replacing a model/media file revokes the old URL at the point of
+  // replacement (see onUpload / onMediaUpload / setModelPath); the browser frees
+  // any remaining blob URLs when the tab closes.
 
   const previewSrc = uploaded ? uploaded.url : fm.model
   const previewFormat = uploaded ? uploaded.format : undefined
+
+  // Uploaded model/media live only in this browser session (held as blob URLs,
+  // not on disk). Warn before they're lost — but NOT when going to /preview
+  // (a round-trip that keeps the uploads), and NOT once the bundle is downloaded.
+  const hasUploads = !!uploaded || Object.keys(mediaUploads).length > 0
+  // Set when "Download bundle" saves the uploads to disk; any later edit re-arms
+  // the warning since the exported zip no longer matches the draft.
+  const [exported, setExported] = useState(false)
+  const warnOnLeave = hasUploads && !exported
+  const [confirmLeave, setConfirmLeave] = useState(false)
+
+  useEffect(() => {
+    setExported(false)
+  }, [fm, items, uploaded, mediaUploads])
+
+  function leaveToHome() {
+    if (warnOnLeave) setConfirmLeave(true)
+    else navigate('/')
+  }
+
+  // Closing/refreshing the tab also discards the uploads — trigger the browser's
+  // native "Leave site?" guard (custom UI isn't allowed for unload) while unsaved.
+  useEffect(() => {
+    if (!warnOnLeave) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = '' // required for the prompt to show in some browsers
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [warnOnLeave])
 
   // Bundle-able assets actually referenced by the current draft: the uploaded
   // model plus any uploaded media still pointed at by an item.
@@ -234,9 +265,9 @@ export function EditorRoute() {
   return (
     <div className="editor">
       <div className="editor-topbar">
-        <Link to="/" className="back">
+        <button type="button" className="back" onClick={leaveToHome}>
           ← All stories
-        </Link>
+        </button>
         <p className="eyebrow">{isNew ? 'New story' : `Editing ${id}`}</p>
         <div className="editor-topbar-actions">
           <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
@@ -245,6 +276,7 @@ export function EditorRoute() {
           <ExportBar
             story={{ frontmatter: fm, items, basePath, warnings: [] }}
             assets={bundleAssets}
+            onBundleDownloaded={() => setExported(true)}
           />
         </div>
       </div>
@@ -289,6 +321,21 @@ export function EditorRoute() {
           />
         </main>
       </div>
+
+      {confirmLeave && (
+        <ConfirmDialog
+          title="Discard uploaded files?"
+          message={
+            'Your uploaded 3D model and media live only in this browser session — ' +
+            "they aren't saved anywhere yet. Download the bundle first if you want to keep them."
+          }
+          confirmLabel="Leave & discard"
+          cancelLabel="Keep editing"
+          danger
+          onConfirm={() => navigate('/')}
+          onCancel={() => setConfirmLeave(false)}
+        />
+      )}
     </div>
   )
 }
