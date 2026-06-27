@@ -64,10 +64,17 @@ nice-to-have / exploratory.
 
 ## Platform / distribution (post-prototype)
 
-- **[P3] Static hosting / publish flow**
-  The prototype is local-first with no backend. A future step: a deploy path so a finished
-  story can be shared as a URL (the COOP/COEP header requirement for splats needs handling).
-- **[P3] Story registry / gallery** beyond the single `index.json` demo list.
+- **[done in M9, PR #10] Deploy-anywhere static-site export**
+  ✅ `npm run publish:site -- <slug>` exports a story as a **self-contained website**
+  (`<slug>-site.zip` = a deployable folder + `DEPLOY.md`) that runs on any static host — a
+  domain root, a subfolder (e.g. `news.com/spatial/`), or `file://` — with no backend, no
+  server config, and no COOP/COEP headers. Achieved by making the app path-agnostic
+  (`HashRouter` + relative story-data paths) so the same build resolves wherever it's served.
+  Author guide: [`PUBLISHING.md`](./PUBLISHING.md). **Remaining / future:** a multi-story
+  gallery site export (this is single-story "kiosk" only — see below); optional custom-domain
+  guidance; the M8 "typed-path media not bundled" caveat still applies to the source story.
+- **[P3] Story registry / gallery** beyond the single `index.json` demo list — including a
+  *whole-gallery* static-site export (M9 ships single-story only).
 
 ---
 

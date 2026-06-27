@@ -6,6 +6,9 @@ dist/
 dist-ssr/
 *.local
 
+# Published single-story static sites (scripts/publish-site.mjs)
+*-site.zip
+
 # Editor / OS
 .DS_Store
 *.suo

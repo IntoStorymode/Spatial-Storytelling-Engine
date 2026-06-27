@@ -19,7 +19,7 @@ export function HomeRoute() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/stories/index.json')
+    fetch('stories/index.json')
       .then((r) => {
         if (!r.ok) throw new Error(`Failed to load story index (HTTP ${r.status})`)
         return r.json()

@@ -74,7 +74,7 @@ export function ExportBar({ story, assets }: Props) {
         author: story.frontmatter.author,
         location: story.frontmatter.location,
         date: story.frontmatter.date,
-        path: `/stories/${slug}/story.md`,
+        path: `stories/${slug}/story.md`,
       }
       zip.file('index-entry.json', JSON.stringify(entry, null, 2))
       zip.file(

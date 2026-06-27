@@ -9,6 +9,7 @@
     "prebuild": "node scripts/gen-assets.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "publish:site": "node scripts/publish-site.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

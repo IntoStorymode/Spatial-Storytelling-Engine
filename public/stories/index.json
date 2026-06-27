@@ -6,7 +6,7 @@
       "author": "Demo Author",
       "location": "Cradley Heath, England",
       "date": "2026-06-01",
-      "path": "/stories/demo/story.md"
+      "path": "stories/demo/story.md"
     },
     {
       "id": "splat-example",
@@ -14,7 +14,7 @@
       "author": "Generated Sample",
       "location": "Procedurally generated",
       "date": "2026-06-13",
-      "path": "/stories/splat-example/story.md"
+      "path": "stories/splat-example/story.md"
     }
   ]
 }

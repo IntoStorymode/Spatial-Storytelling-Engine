@@ -4,11 +4,13 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-06-25):** M1–M8 complete and merged to `main`. The full authoring
-loop works end to end: create a story → import a model → set a start camera → add items
-with waypoints (with inline media upload) → preview Mode A/B → download a publish-ready
-bundle. M8 hardened the flow (after a live walk-through) so it can be shared with internal
-desktop reviewers.
+**Current state (2026-06-27):** M1–M8 complete and merged to `main`; **M9
+(deploy-anywhere static-site export) in review as PR #10**. The full authoring loop works
+end to end: create a story → import a model → set a start camera → add items with waypoints
+(with inline media upload) → preview Mode A/B → download a publish-ready bundle. M8 hardened
+the flow for internal desktop reviewers; M9 adds a one-command export that turns a story
+into a self-contained website deployable to any host at any URL path. Author-facing how-to:
+[`PUBLISHING.md`](./PUBLISHING.md).
 
 ---
 
@@ -36,6 +38,30 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 ---
 
 ## Milestones
+
+### M9 — Deploy-anywhere static-site export (PR #10)
+Turned the M8 "Download bundle" (which targets *running the repo*) into a **self-contained
+website for one story** that an author can deploy to any static host — a domain root, a
+subfolder (e.g. `news.example.com/spatial/`), or even `file://` — with no backend and no
+server config. New guide: [`PUBLISHING.md`](./PUBLISHING.md).
+- **App made path-agnostic:** `BrowserRouter` → `HashRouter`, and story-data loading made
+  relative — the three `fetch('/stories/index.json')` sites and the `index.json` entry
+  `path`s (incl. the editor's exported entry) dropped their leading `/`. Combined with Vite's
+  existing `base: './'`, the same build now resolves its data and assets relative to wherever
+  the folder is served. Trade-off: URLs gain a `#`; subfolder deploys need a trailing slash.
+- **No special headers required:** confirmed the splat renderer already runs with
+  `sharedMemoryForWorkers: false` (`loadSplat.ts`), so splats work without COOP/COEP isolation
+  — no `_headers`/service-worker needed. Hash routing also removes the SPA-fallback need
+  (no `_redirects` / `404.html` / `vercel.json` rewrites).
+- **`scripts/publish-site.mjs` + `npm run publish:site -- <slug>`:** builds the app, prunes
+  `dist/stories` to the one story plus a one-entry `index.json`, injects a kiosk redirect
+  (`#/story/<slug>`) so the deployed root opens straight into the story, and zips a deployable
+  `<slug>-site/` folder beside a `DEPLOY.md`. `*-site.zip` is git-ignored so published sites
+  are never committed.
+- **Verified:** tsc + vitest (11/11) + build clean; existing demo/splat stories re-checked in
+  the browser under hash routing; published demo and splat sites served by a headerless static
+  server at both a domain root and a `/news/spatial/` subpath (kiosk entry + splat render + all
+  data paths confirmed; the old root-absolute path 404s at the subpath, proving the fix).
 
 ### M8 — Share-readiness (merged, PR #8)
 Closed the gaps surfaced by a live walk-through of the create-story flow so the prototype
@@ -134,6 +160,11 @@ Full create/edit experience with click-to-place waypoints.
   browser sandbox forbids it), so instead of a server it exports a **zip bundle** the author
   drops in. A true one-click "Publish" / hosted share service would need a backend — a
   deliberate future departure, not part of the prototype.
+- **Hash routing for portable static hosting (M9):** the published site uses `HashRouter`
+  and relative data paths so one build runs at any URL path with zero server config —
+  preferred over `BrowserRouter` + per-host SPA-fallback rules and a build-time base path,
+  which would force the deployer to know (and rebuild for) their exact subfolder. The cost is
+  cosmetic `#` URLs. This is why story-data fetches are relative app-wide, not just in export.
 
 ## Conventions
 
