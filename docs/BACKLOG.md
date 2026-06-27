@@ -64,33 +64,17 @@ nice-to-have / exploratory.
 
 ## Platform / distribution (post-prototype)
 
-- **[P1] M9 — Deploy-anywhere static-site export (planned, implementing next)**
-  Extend "Download bundle" into a **complete static site** an author can drop on
-  Netlify/Vercel — *and* that an experienced user can deploy into their own site's
-  **subfolder** (e.g. `news.com/spatial/`) without rebuilding for that path.
-  - **Key finding:** splats already render without COOP/COEP (`loadSplat.ts` uses
-    `sharedMemoryForWorkers: false`), so no isolation headers / service worker are needed.
-    The only blocker to "deploy anywhere" is that story data is fetched **root-absolute**
-    (`fetch('/stories/index.json')`, index entries `path: "/stories/<slug>/story.md"`).
-  - **Approach (Option B): hash routing + relative data paths.** With `HashRouter` the
-    document is always `index.html`, so relative paths resolve at root, any subpath, or
-    `file://` with **zero server config** (no `_redirects`/`404.html`/`vercel.json`).
-    Trade-off: URLs gain a `#`. Subpath deploys must be accessed with a trailing slash.
-  - **Part A (shared app change, reverify carefully):** `BrowserRouter`→`HashRouter`
-    (`main.tsx`); the 3 `/stories/index.json` fetches → relative (`HomeRoute`, `ViewerRoute`,
-    `EditorRoute`); committed `public/stories/index.json` entry `path`s → relative;
-    `ExportBar.tsx:77` export path → relative. `parseStory.test.ts` is routing-independent
-    and stays green. `vite.config` `base: './'` already correct — keep.
-  - **Part B:** `scripts/publish-site.mjs` + `npm run publish:site -- <slug>` — build → prune
-    `dist/stories/` to the one story + one-entry `index.json` → inject a kiosk redirect into
-    `dist/index.html` (`#/story/<slug>`) → write `DEPLOY.md` → zip `dist/` → `<slug>-site.zip`.
-    Add `/*-site.zip` to `.gitignore`.
-  - **PR shape:** Part A + B + README "Publish as a website" in `feat/m9-static-site`;
-    DEVLOG/BACKLOG in a follow-up docs PR (M8 pattern).
-  - **Verify:** test + build clean; reverify existing stories (GLB + splat, both modes,
-    editor preview) under hash routing; prove a throwaway story (uncommitted) deploys and
-    renders at both a root and a subpath served folder.
-- **[P3] Story registry / gallery** beyond the single `index.json` demo list.
+- **[done in M9, PR #10] Deploy-anywhere static-site export**
+  ✅ `npm run publish:site -- <slug>` exports a story as a **self-contained website**
+  (`<slug>-site.zip` = a deployable folder + `DEPLOY.md`) that runs on any static host — a
+  domain root, a subfolder (e.g. `news.com/spatial/`), or `file://` — with no backend, no
+  server config, and no COOP/COEP headers. Achieved by making the app path-agnostic
+  (`HashRouter` + relative story-data paths) so the same build resolves wherever it's served.
+  Author guide: [`PUBLISHING.md`](./PUBLISHING.md). **Remaining / future:** a multi-story
+  gallery site export (this is single-story "kiosk" only — see below); optional custom-domain
+  guidance; the M8 "typed-path media not bundled" caveat still applies to the source story.
+- **[P3] Story registry / gallery** beyond the single `index.json` demo list — including a
+  *whole-gallery* static-site export (M9 ships single-story only).
 
 ---
 

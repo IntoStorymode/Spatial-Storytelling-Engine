@@ -103,6 +103,9 @@ hash-based routing and relative paths. Two notes: access subfolder deploys **wit
 slash**, and the page loads web fonts from Google Fonts (graceful fallback offline). The
 generated zip is git-ignored, so published sites never get committed.
 
+📖 **Full step-by-step** — exporting and hosting on Netlify, Vercel, and other platforms,
+plus troubleshooting: see [`docs/PUBLISHING.md`](./docs/PUBLISHING.md).
+
 ## Gaussian splats
 
 A splat-backed story is identical to a GLB one — only the `model:` line differs
