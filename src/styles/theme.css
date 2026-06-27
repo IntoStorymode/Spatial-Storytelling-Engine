@@ -90,6 +90,55 @@ a:hover {
   background: var(--accent);
   color: var(--bg);
 }
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--bg);
+}
+.btn-danger:hover {
+  background: #e07a61;
+  border-color: #e07a61;
+}
+
+/* ── Modal / confirm dialog ───────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+.modal {
+  width: 100%;
+  max-width: 460px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 22px 24px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.modal-title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--text);
+}
+.modal-message {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  white-space: pre-line;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 
 /* ── Home ─────────────────────────────────────────────────────────────────── */
 .home {
@@ -612,6 +661,11 @@ a:hover {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--muted);
+  /* Works as a <button> (guarded nav) too, not just an <a>. */
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 .editor-topbar .eyebrow {
   flex: 1;
