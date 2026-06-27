@@ -43,7 +43,8 @@ Then open http://localhost:5173/ — the Home page lists the bundled demo storie
 **+ New story** to open the editor.
 
 Other scripts: `npm run build` (type-check + production bundle), `npm run preview` (serve
-the built bundle), `npm run test` (Vitest).
+the built bundle), `npm run test` (Vitest), `npm run publish:site -- <slug>` (export one
+story as a deploy-anywhere static site — see [Publish as a website](#publish-as-a-website)).
 
 ## Stack
 
@@ -81,6 +82,26 @@ write a `story.md` by the format below, add an `index.json` entry, and `npm run 
 
 > **Tip:** to clean, crop, and web-optimize a raw `.ply` splat (e.g. `.ply` → `.ksplat`),
 > use [SuperSplat](https://superspl.at/editor) (open source, free) before dropping it in.
+
+## Publish as a website
+
+Once a story lives under `public/stories/<slug>/`, you can export it as a **self-contained
+static site** that opens straight into that story — ready to drop on any host:
+
+```
+npm run publish:site -- <slug>
+```
+
+This builds the app, trims it to that one story, and writes **`<slug>-site.zip`** containing
+the deployable `<slug>-site/` folder plus a `DEPLOY.md`. Deploy it by dragging the folder
+onto [netlify.com/drop](https://app.netlify.com/drop), running `npx vercel deploy` inside it,
+or uploading it to any static host (S3, Cloudflare Pages, GitHub Pages, nginx, …).
+
+The same folder works at a **domain root or any subfolder** (e.g.
+`example.com/news/spatial/`) with no server config and no special headers — the app uses
+hash-based routing and relative paths. Two notes: access subfolder deploys **with a trailing
+slash**, and the page loads web fonts from Google Fonts (graceful fallback offline). The
+generated zip is git-ignored, so published sites never get committed.
 
 ## Gaussian splats
 

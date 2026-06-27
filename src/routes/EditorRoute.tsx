@@ -81,7 +81,7 @@ export function EditorRoute() {
     if (isNew || init.resumed) return
     let cancelled = false
     async function load() {
-      const idx = (await (await fetch('/stories/index.json')).json()).stories as IndexEntry[]
+      const idx = (await (await fetch('stories/index.json')).json()).stories as IndexEntry[]
       const entry = idx.find((s) => s.id === id)
       if (!entry) throw new Error(`Story "${id}" is not in the index.`)
       const raw = await (await fetch(entry.path)).text()

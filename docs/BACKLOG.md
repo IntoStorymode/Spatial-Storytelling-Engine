@@ -64,9 +64,32 @@ nice-to-have / exploratory.
 
 ## Platform / distribution (post-prototype)
 
-- **[P3] Static hosting / publish flow**
-  The prototype is local-first with no backend. A future step: a deploy path so a finished
-  story can be shared as a URL (the COOP/COEP header requirement for splats needs handling).
+- **[P1] M9 — Deploy-anywhere static-site export (planned, implementing next)**
+  Extend "Download bundle" into a **complete static site** an author can drop on
+  Netlify/Vercel — *and* that an experienced user can deploy into their own site's
+  **subfolder** (e.g. `news.com/spatial/`) without rebuilding for that path.
+  - **Key finding:** splats already render without COOP/COEP (`loadSplat.ts` uses
+    `sharedMemoryForWorkers: false`), so no isolation headers / service worker are needed.
+    The only blocker to "deploy anywhere" is that story data is fetched **root-absolute**
+    (`fetch('/stories/index.json')`, index entries `path: "/stories/<slug>/story.md"`).
+  - **Approach (Option B): hash routing + relative data paths.** With `HashRouter` the
+    document is always `index.html`, so relative paths resolve at root, any subpath, or
+    `file://` with **zero server config** (no `_redirects`/`404.html`/`vercel.json`).
+    Trade-off: URLs gain a `#`. Subpath deploys must be accessed with a trailing slash.
+  - **Part A (shared app change, reverify carefully):** `BrowserRouter`→`HashRouter`
+    (`main.tsx`); the 3 `/stories/index.json` fetches → relative (`HomeRoute`, `ViewerRoute`,
+    `EditorRoute`); committed `public/stories/index.json` entry `path`s → relative;
+    `ExportBar.tsx:77` export path → relative. `parseStory.test.ts` is routing-independent
+    and stays green. `vite.config` `base: './'` already correct — keep.
+  - **Part B:** `scripts/publish-site.mjs` + `npm run publish:site -- <slug>` — build → prune
+    `dist/stories/` to the one story + one-entry `index.json` → inject a kiosk redirect into
+    `dist/index.html` (`#/story/<slug>`) → write `DEPLOY.md` → zip `dist/` → `<slug>-site.zip`.
+    Add `/*-site.zip` to `.gitignore`.
+  - **PR shape:** Part A + B + README "Publish as a website" in `feat/m9-static-site`;
+    DEVLOG/BACKLOG in a follow-up docs PR (M8 pattern).
+  - **Verify:** test + build clean; reverify existing stories (GLB + splat, both modes,
+    editor preview) under hash routing; prove a throwaway story (uncommitted) deploys and
+    renders at both a root and a subpath served folder.
 - **[P3] Story registry / gallery** beyond the single `index.json` demo list.
 
 ---

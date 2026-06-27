@@ -31,7 +31,7 @@ export function ViewerRoute() {
     reset() // fresh mode/activeIndex/auto-tour per story
 
     async function load() {
-      const idxRes = await fetch('/stories/index.json')
+      const idxRes = await fetch('stories/index.json')
       if (!idxRes.ok) throw new Error(`Failed to load story index (HTTP ${idxRes.status})`)
       const idx = (await idxRes.json()).stories as IndexEntry[]
       const entry = idx.find((s) => s.id === id)
