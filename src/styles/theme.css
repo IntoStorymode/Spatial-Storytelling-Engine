@@ -482,6 +482,19 @@ a:hover {
   letter-spacing: 0.08em;
   color: var(--text);
 }
+/* The right-hand cluster of view toggles (navigation mode + page/immersive).
+   Kept on one line; the mobile rules below shrink it to fit a phone width. */
+.topbar-toggles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+.topbar-toggles .mode-toggle,
+.immersive-topbar .back {
+  white-space: nowrap;
+}
 
 /* Active item content, floated over the scene. */
 .overlay-panel {
@@ -509,10 +522,12 @@ a:hover {
   transform: translateX(calc(-100% - 40px));
   pointer-events: none;
 }
-/* Scrolls independently so the Hide button stays pinned at the top. */
+/* Scrolls independently so the Hide button stays pinned at the top. The wheel
+   scrolls this panel; `contain` stops it chaining to the scene behind. */
 .overlay-content {
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
   min-height: 0;
   animation: overlay-in 360ms ease both;
 }
@@ -585,6 +600,41 @@ a:hover {
   }
 }
 
+/* One-time first-person gesture hint (touch only), centered above the footer. */
+.touch-walk-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 140px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  animation: overlay-in 300ms ease both;
+}
+.touch-walk-hint-close {
+  flex-shrink: 0;
+  padding: 2px 4px;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.touch-walk-hint-close:hover {
+  color: var(--text);
+}
+
 /* Bottom control bar: progress + nav. */
 .immersive-footer {
   position: absolute;
@@ -644,15 +694,33 @@ a:hover {
 }
 
 @media (max-width: 640px) {
-  /* On phones, anchor the panel to the TOP with a constant gap below the header
-     (~70px tall) rather than to the bottom — a predictable, fixed header-to-panel
-     distance. Height stays capped (base dvh rule) so it clears the footer. */
+  /* On phones, anchor the panel to the TOP, just below the *measured* topbar
+     height (set by ImmersiveView) plus a constant gap — so it never overlaps the
+     bar even if a long label (e.g. First-person) grows it. Falls back to ~72px
+     before the measurement lands. Height stays capped (base dvh rule) so it
+     clears the footer. */
   .overlay-panel {
     left: 16px;
     right: 16px;
     width: auto;
-    top: 84px;
+    top: calc(var(--immersive-topbar-h, 72px) + 14px);
     bottom: auto;
+  }
+  /* Hide the back link on phones — an icon-only '←' reads ambiguously (back vs.
+     home), and the toggles need the room. Home stays reachable via Page view.
+     Toggles align right where the bar previously ended. */
+  .immersive-topbar {
+    justify-content: flex-end;
+  }
+  .immersive-topbar .back {
+    display: none;
+  }
+  .topbar-toggles {
+    gap: 8px;
+  }
+  .topbar-toggles .mode-toggle {
+    font-size: 11px;
+    padding: 7px 10px;
   }
   .immersive-footer {
     flex-direction: column;
@@ -819,7 +887,8 @@ a:hover {
   flex: 1;
 }
 .editor input,
-.editor textarea {
+.editor textarea,
+.editor select {
   width: 100%;
   padding: 8px 10px;
   background: var(--panel);
@@ -834,7 +903,8 @@ a:hover {
   line-height: 1.5;
 }
 .editor input:focus,
-.editor textarea:focus {
+.editor textarea:focus,
+.editor select:focus {
   outline: none;
   border-color: var(--accent);
 }

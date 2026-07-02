@@ -93,3 +93,33 @@ describe('story parser — start view', () => {
     expect(story.warnings.some((w) => w.includes('start'))).toBe(true)
   })
 })
+
+describe('story parser — reader navigation', () => {
+  const withNav =
+    '---\ntitle: "x"\nmodel: "builtin:room"\nnavigation: "firstPerson"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+
+  it('parses a firstPerson navigation default', () => {
+    const story = parseStory(withNav, BASE)
+    expect(story.warnings).toEqual([])
+    expect(story.frontmatter.navigation).toBe('firstPerson')
+  })
+
+  it('omits navigation when absent (defaults to orbit at read time)', () => {
+    const story = parseStory('---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n', BASE)
+    expect(story.frontmatter.navigation).toBeUndefined()
+  })
+
+  it('round-trips a story with a navigation default', () => {
+    const s1 = parseStory(withNav, BASE)
+    const s2 = parseStory(serializeStory(s1), BASE)
+    expect(s2.frontmatter).toEqual(s1.frontmatter)
+    expect(s2.warnings).toEqual([])
+  })
+
+  it('warns on an unknown navigation value', () => {
+    const md = '---\ntitle: "x"\nnavigation: "flythrough"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    const story = parseStory(md, BASE)
+    expect(story.frontmatter.navigation).toBeUndefined()
+    expect(story.warnings.some((w) => w.includes('navigation'))).toBe(true)
+  })
+})

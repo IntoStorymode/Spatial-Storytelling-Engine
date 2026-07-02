@@ -38,6 +38,35 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 
 ## Milestones
 
+### Reader navigation — first-person vs orbit A/B (in review)
+Exposed the engine's first-person camera (previously editor-only) to readers, with an
+author-set default and a live reader override.
+- **Data model:** optional `navigation: orbit | firstPerson` frontmatter field (parser +
+  serializer, round-trip-safe; absent = orbit, so existing stories are byte-identical). Set via
+  a new "Reader navigation" dropdown in the editor's Story details.
+- **Store + viewer:** `navMode` is seeded per-story from the default by `ViewerStage` (single
+  source of truth — `reset()` deliberately doesn't touch it, which fixed a preview clobber where
+  a parent route's `reset()` ran after the child seed), then toggled live via `NavModeToggle` in
+  the immersive topbar.
+- **Waypoint reconciliation:** `ThreeViewer.flyToFirstPerson` stands the eye *at* a waypoint in
+  first-person, reusing `placeFirstPerson` so the fixed distance clamp is honored (a plain
+  `flyTo` would be pulled back to the pivot).
+- **Touch movement:** first-person walk with no keyboard — one-finger drag looks, **two-finger
+  drag** strafes/rises, **pinch** walks forward/back. Deltas are accumulated and applied once per
+  RAF frame (smooth on slow gestures) with a dominant-gesture split (pinch stays pure-forward, no
+  veer). A one-time `TouchWalkHint` explains it on touch devices.
+- **Wheel unified with Mode B:** dropped the old Mode-A "wheel steps items" behavior (confusing).
+  Now, in both modes, the wheel over the model **zooms** (orbit) or **walks forward/back** like
+  W/S (first-person), and the wheel over the overlay panel **scrolls the panel** (`overscroll-behavior:
+  contain`). Item navigation is arrows + Prev/Next.
+- **Mobile topbar:** a long "First-person" label was wrapping the bar and overlapping the panel;
+  fixed by hiding the ambiguous back link on phones, keeping the toggles on one no-wrap line, and
+  offsetting the top-anchored panel by the *measured* topbar height (`--immersive-topbar-h` via
+  ResizeObserver) so it can never overlap again.
+- **Verified:** tsc + vitest (15/15, +4 parser tests) + build clean; desktop + iPhone checks for
+  the toggle, waypoint placement, touch walk feel, and the mobile layout. Known: Mode B wheel
+  scroll-trap logged to BACKLOG; touch first-person is look + gesture-move (no on-screen joystick).
+
 ### Mobile — Collapsible Mode A overlay (in review)
 First mobile fix after the first story went live on Vercel. On phones the immersive overlay
 (text + media) covered the whole scene and could ride up over the header, blocking orbit and

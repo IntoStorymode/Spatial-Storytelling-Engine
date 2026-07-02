@@ -23,6 +23,7 @@ export function serializeStory(story: Story): string {
     `date: "${fm.date}"`,
     `model: "${fm.model}"`,
   ]
+  if (fm.navigation) headLines.push(`navigation: "${fm.navigation}"`)
   if (fm.start) {
     headLines.push(
       'start:',

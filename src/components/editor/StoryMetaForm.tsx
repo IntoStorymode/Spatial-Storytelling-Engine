@@ -79,6 +79,20 @@ export function StoryMetaForm({ fm, uploadedModel, onChange, onModelPath, onUplo
           </p>
         )}
       </div>
+
+      <label className="ed-field">
+        <span>Reader navigation (Mode A)</span>
+        <select
+          value={fm.navigation ?? 'orbit'}
+          onChange={(e) =>
+            onChange({ navigation: e.target.value === 'firstPerson' ? 'firstPerson' : undefined })
+          }
+        >
+          <option value="orbit">Orbit — circle the model</option>
+          <option value="firstPerson">First-person — look around &amp; walk</option>
+        </select>
+        <p className="ed-hint">The reader can still switch live in the viewer.</p>
+      </label>
     </section>
   )
 }

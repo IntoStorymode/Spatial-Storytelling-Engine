@@ -34,6 +34,12 @@ export interface Frontmatter {
    * framing when absent.
    */
   start?: Hotspot
+  /**
+   * The reader's *default* Mode A camera navigation: `orbit` circles the model,
+   * `firstPerson` looks around in place (+ WASD walk on desktop). Absent = orbit.
+   * The reader can still switch live via the in-viewer toggle.
+   */
+  navigation?: 'orbit' | 'firstPerson'
 }
 
 export interface Story {

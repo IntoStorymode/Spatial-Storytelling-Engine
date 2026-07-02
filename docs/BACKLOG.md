@@ -17,12 +17,19 @@ nice-to-have / exploratory.
   the scene/header on phones. **Remaining:** touch nav in Mode A (swipe to advance — trial
   after feedback), thumb-target sizing, Mode B phone polish, canvas sizing on tablets. Editor
   stays desktop-only.
-- **[P1] Reader navigation A/B — first-person vs orbit** *(next up)*
-  The engine already implements first-person (`ThreeViewer.setLookMode`/`setFlyEnabled`, used
-  only by the editor today). Expose it to readers with an **author-set per-story default**
-  (new `navigation:` frontmatter field → parser + serializer + editor UI) **plus a live reader
-  override toggle**. Main risk to reconcile: waypoint `flyTo` fights first-person's fixed
-  distance clamp (`placeFirstPerson`).
+- **[P1] Reader navigation A/B — first-person vs orbit** *(done, in review)*
+  ✅ Readers can switch orbit ⇄ first-person live (in-viewer toggle), seeded from an
+  **author-set per-story default** (`navigation:` frontmatter → parser + serializer + editor
+  dropdown). Waypoint fly-to reconciled via `flyToFirstPerson` (stands the eye at the waypoint,
+  respecting the first-person clamp). First-person movement: **WASD/QE on desktop**, and on
+  **touch** a gesture scheme (one-finger look, two-finger drag = strafe/rise, pinch = walk) with
+  a one-time hint. **Remaining/future:** on-screen joystick alternative for touch; a formal
+  metric-based A/B would need analytics (not in the local-first prototype).
+- **[P2] Mode B wheel "scroll trap"** *(noted during the reader-nav review)*
+  In Mode B, scrolling the wheel over the inline 3D model zooms it (`setWheelDolly(true)`,
+  caption "scroll to zoom") instead of continuing the page scroll — the article scroll stalls
+  over the figure. Options: disable wheel-zoom in Mode B (pinch/drag only), click-to-zoom
+  opt-in, or leave as an intended feature. Deferred pending mobile feedback.
 - **[P2] Loading & error states in the viewer** *(mostly done in M8)*
   ✅ Model loading indicator, ✅ graceful fallback when a model or media file is missing
   (placeholder/message), and ✅ a top-level error boundary all landed in M8. **Remaining:**
