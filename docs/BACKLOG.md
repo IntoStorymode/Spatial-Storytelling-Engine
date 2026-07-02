@@ -65,6 +65,10 @@ nice-to-have / exploratory.
   uploaded files. **Remaining:** media referenced by a *typed* path (not uploaded) still
   isn't bundled — the author copies it in by hand.
 - **[P3] Multiple models / model switching within one story** (exploratory).
+- **[P3] Point-cloud PLY polish** *(after the point-cloud support fix)* — robust percentile framing
+  for point clouds (mirror `robustSplatFraming`) if stray outliers balloon the AABB; a soft
+  large-cloud performance/point-count warning; and a per-file orientation override for the rare
+  point cloud that isn't Z-up (the loader assumes Z-up → Y-up).
 
 ## Robustness & quality
 

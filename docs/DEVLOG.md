@@ -38,6 +38,17 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 
 ## Milestones
 
+### Point-cloud & mesh PLY support (in review)
+Fix: an uploaded Scaniverse `.ply` rendered blank/monotone and unnavigable. The app force-routed
+**every** `.ply` to the Gaussian-splat loader, but that file is a plain colored point cloud
+(`x,y,z` + `red/green/blue`, no `opacity`/`scale`/`rot`) — so the splat library culled all 677k
+points to nothing. Now `loadModel` **sniffs the PLY header** (`plyIsSplat`, a bounded/cancelled
+stream read) and routes non-splat PLYs to a new `loadPly`: three's `PLYLoader` → colored
+`THREE.Points` (or a vertex-colored `THREE.Mesh` when the PLY has faces), with sRGB→linear vertex
+color, a Z-up→Y-up rotation (scan convention), and a bounds-scaled point size. The splat path
+(`.ply` splats via `f_dc`/`scale`/`rot` markers, plus `.splat`/`.ksplat`/`.spz`) and GLB are
+unchanged; framing reuses the existing AABB path since point clouds aren't marked `isSplat`.
+
 ### Reader navigation — first-person vs orbit A/B (in review)
 Exposed the engine's first-person camera (previously editor-only) to readers, with an
 author-set default and a live reader override.

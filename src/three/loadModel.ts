@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { buildPrimitive } from './primitives'
 import { loadSplat } from './loadSplat'
+import { loadPly, plyIsSplat } from './loadPly'
 
 const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
 
@@ -32,6 +33,12 @@ export async function loadModel(
   }
 
   if (SPLAT_EXTS.has(ext)) {
+    // Two file types share `.ply` — a Gaussian-splat PLY vs an ordinary point
+    // cloud / mesh. Sniff the header so a non-splat PLY renders as coloured
+    // points instead of being culled to nothing by the splat loader.
+    if (ext === 'ply' && !(await plyIsSplat(resolved))) {
+      return loadPly(resolved)
+    }
     return loadSplat(resolved, ext)
   }
 
