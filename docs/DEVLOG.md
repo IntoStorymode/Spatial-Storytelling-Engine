@@ -38,6 +38,18 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 
 ## Milestones
 
+### On-demand rendering — idle CPU/heat fix (in review)
+Fix: readers reported published splat stories **lagging after 1–2 minutes** with the **fan spinning
+up**; GLB stories stayed cool. Task Manager ruled out a memory leak (flat, modest memory) — the
+cause was `ThreeViewer.animate()` rendering **every frame at 60fps unconditionally**, which on splat
+stories drives the `gaussian-splats-3d` **per-frame CPU depth-sort worker** even while the reader is
+stationary → sustained load → thermal throttling. Now the RAF loop renders **on demand**: it still
+calls `controls.update()` every frame (cheap; damping must keep processing) but only draws when
+`controls.update()` reports a change or an `invalidate()` fires (input, model load, gizmo/scene
+edit, resize), keeping a short `RENDER_TAIL_FRAMES` tail so a splat's async sort settles before
+rendering stops. Idle splat scenes now fall to ~zero CPU/GPU and the fan quiets; active navigation
+renders every frame as before. Contained to `ThreeViewer.ts`; no public API or component changes.
+
 ### Point-cloud & mesh PLY support (in review)
 Fix: an uploaded Scaniverse `.ply` rendered blank/monotone and unnavigable. The app force-routed
 **every** `.ply` to the Gaussian-splat loader, but that file is a plain colored point cloud
