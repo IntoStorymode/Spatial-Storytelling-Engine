@@ -23,6 +23,14 @@ dist-ssr/
 *:Zone.Identifier
 *.Zone.Identifier
 
+# Story content — whitelist: only the canonical demo stories are tracked. Any
+# other story folder (test/preview/author uploads, e.g. tokwawan-tak-shun-mall)
+# is ignored so it never gets pushed to the remote.
+/public/stories/*
+!/public/stories/index.json
+!/public/stories/demo/
+!/public/stories/splat-example/
+
 # Generated demo assets (rebuilt by scripts/gen-assets.mjs on predev/prebuild)
 public/stories/demo/assets/narration.wav
 public/stories/demo/assets/cube.gltf

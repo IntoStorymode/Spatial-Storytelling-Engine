@@ -11,10 +11,18 @@ nice-to-have / exploratory.
 
 ## Viewing experience
 
-- **[P1] Responsive Mode A/B for mobile viewing** *(deferred from M7)*
-  Demo target is "desktop authoring, desktop/mobile viewing." The viewer needs a mobile
-  pass: touch nav in Mode A (swipe/tap to advance `activeIndex`), responsive overlay and
-  nav-control layout, correct canvas sizing. Editor stays desktop-only.
+- **[P1] Responsive Mode A/B for mobile viewing** *(deferred from M7; in progress)*
+  Demo target is "desktop authoring, desktop/mobile viewing." ✅ **Collapsible Mode A overlay**
+  (tuck-to-left + top-anchor + `dvh` header clearance) landed so the overlay no longer covers
+  the scene/header on phones. **Remaining:** touch nav in Mode A (swipe to advance — trial
+  after feedback), thumb-target sizing, Mode B phone polish, canvas sizing on tablets. Editor
+  stays desktop-only.
+- **[P1] Reader navigation A/B — first-person vs orbit** *(next up)*
+  The engine already implements first-person (`ThreeViewer.setLookMode`/`setFlyEnabled`, used
+  only by the editor today). Expose it to readers with an **author-set per-story default**
+  (new `navigation:` frontmatter field → parser + serializer + editor UI) **plus a live reader
+  override toggle**. Main risk to reconcile: waypoint `flyTo` fights first-person's fixed
+  distance clamp (`placeFirstPerson`).
 - **[P2] Loading & error states in the viewer** *(mostly done in M8)*
   ✅ Model loading indicator, ✅ graceful fallback when a model or media file is missing
   (placeholder/message), and ✅ a top-level error boundary all landed in M8. **Remaining:**

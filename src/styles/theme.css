@@ -490,17 +490,70 @@ a:hover {
   bottom: 104px;
   z-index: 2;
   width: min(440px, calc(100vw - 64px));
+  /* Cap height against the *visible* viewport (dvh excludes mobile browser
+     chrome) so the panel top always stays in the reserved gap below the header
+     and never overlaps it — vh kept as a fallback for older browsers. */
   max-height: calc(100vh - 220px);
-  overflow-y: auto;
+  max-height: calc(100dvh - 220px);
+  display: flex;
+  flex-direction: column;
   padding: 24px 26px;
   background: color-mix(in srgb, var(--panel) 82%, transparent);
   backdrop-filter: blur(10px);
   border: 1px solid var(--line);
   border-radius: 12px;
+  transition: transform 260ms ease;
+}
+/* Collapsed: tuck the panel off to the left so the scene + header are clear. */
+.overlay-panel.collapsed {
+  transform: translateX(calc(-100% - 40px));
+  pointer-events: none;
+}
+/* Scrolls independently so the Hide button stays pinned at the top. */
+.overlay-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
   animation: overlay-in 360ms ease both;
 }
-.overlay-panel {
-  overflow-x: hidden;
+/* "Hide" control, top-left of the panel — kept clear of the header's
+   right-aligned page-view toggle so the two controls can never collide. */
+.overlay-collapse {
+  align-self: flex-start;
+  margin: -4px 0 8px -6px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.overlay-collapse:hover {
+  color: var(--text);
+}
+/* Reopen tab, pinned to the left edge while collapsed. */
+.overlay-reopen {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  padding: 12px 12px 12px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+  cursor: pointer;
+}
+.overlay-reopen:hover {
+  background: color-mix(in srgb, var(--panel) 96%, transparent);
 }
 .overlay-panel .item-title,
 .overlay-panel .item-body p,
@@ -591,11 +644,15 @@ a:hover {
 }
 
 @media (max-width: 640px) {
+  /* On phones, anchor the panel to the TOP with a constant gap below the header
+     (~70px tall) rather than to the bottom — a predictable, fixed header-to-panel
+     distance. Height stays capped (base dvh rule) so it clears the footer. */
   .overlay-panel {
     left: 16px;
     right: 16px;
     width: auto;
-    bottom: 120px;
+    top: 84px;
+    bottom: auto;
   }
   .immersive-footer {
     flex-direction: column;
@@ -608,7 +665,8 @@ a:hover {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-  .overlay-panel {
+  .overlay-panel,
+  .overlay-content {
     animation: none;
   }
 }

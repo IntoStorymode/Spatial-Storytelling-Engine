@@ -4,12 +4,11 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-06-27):** M1–M8 complete and merged to `main`; **M9
-(deploy-anywhere static-site export) in review as PR #10**. The full authoring loop works
-end to end: create a story → import a model → set a start camera → add items with waypoints
-(with inline media upload) → preview Mode A/B → download a publish-ready bundle. M8 hardened
-the flow for internal desktop reviewers; M9 adds a one-command export that turns a story
-into a self-contained website deployable to any host at any URL path. Author-facing how-to:
+**Current state (2026-07-02):** M1–M9 complete and merged to `main` (a story is now published
+live to Vercel); **a mobile pass (collapsible Mode A overlay) in review**. The full authoring
+loop works end to end: create a story → import a model → set a start camera → add items with
+waypoints (with inline media upload) → preview Mode A/B → download a publish-ready bundle or a
+self-contained website deployable to any host at any URL path. Author-facing how-to:
 [`PUBLISHING.md`](./PUBLISHING.md).
 
 ---
@@ -38,6 +37,25 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 ---
 
 ## Milestones
+
+### Mobile — Collapsible Mode A overlay (in review)
+First mobile fix after the first story went live on Vercel. On phones the immersive overlay
+(text + media) covered the whole scene and could ride up over the header, blocking orbit and
+the ← All stories / page-view controls. Added a **collapse/expand** control that tucks the
+panel off to the left (with a left-edge reopen tab) so the reader can orbit the 3D and reach
+the header unobstructed.
+- **`OverlayPanel` restructured:** a stable wrapper holds the `collapsed` state + a top-left
+  Hide button and a *keyed* inner content block (so the per-item fade still replays); the panel
+  is a flex column so Hide stays pinned while content scrolls. Local state only — no store,
+  routing, 3D, or story-format change, so it's fully reversible.
+- **Header/panel never overlap:** panel height capped against `100dvh` (visible viewport, with
+  a `vh` fallback) so it can't ride up into the header on iOS Safari; on phones (`≤640px`) the
+  panel anchors to the **top** with a constant gap below the header instead of the desktop
+  bottom-alignment.
+- **Repo hygiene:** `.gitignore` now whitelists story content — only `demo` + `splat-example`
+  (+ `index.json`) are tracked; any other/test story folder is ignored so it can't be pushed.
+- **Verified:** tsc + vitest (11/11) + build clean; checked on desktop and a real iPhone
+  (collapse/reopen, header reachable, no overlap). *Next: reader first-person navigation A/B.*
 
 ### M9 — Deploy-anywhere static-site export (PR #10)
 Turned the M8 "Download bundle" (which targets *running the repo*) into a **self-contained
