@@ -73,6 +73,10 @@ export class ThreeViewer {
   private lookMode: 'orbit' | 'firstPerson' = 'orbit'
   private fpsPivot = 0.05 // tiny orbit radius that makes left-drag a look-in-place
   private captureDist = 2 // how far ahead a captured first-person look-point sits
+  // Two-finger walk (touch, first-person): centroid + spread of the last frame,
+  // plus pixel deltas accumulated between frames and applied in the RAF loop.
+  private twoFingerPrev: { cx: number; cy: number; dist: number } | null = null
+  private readonly moveAccum = { truck: 0, elevate: 0, forward: 0 }
 
   constructor(container: HTMLElement, opts: ThreeViewerOptions = {}) {
     this.container = container
@@ -110,6 +114,7 @@ export class ThreeViewer {
     this.rafId = requestAnimationFrame(this.animate)
     const delta = this.clock.getDelta()
     this.applyFlyMovement(delta)
+    this.applyMoveAccum()
     this.controls.update(delta)
     this.renderer.render(this.scene, this.camera)
   }
@@ -262,6 +267,25 @@ export class ThreeViewer {
   }
 
   /**
+   * Reader first-person waypoint: stand the eye AT `position` looking toward
+   * `target`, keeping the first-person pivot clamp. `flyTo` alone can't do this —
+   * with `minDistance == maxDistance == fpsPivot` set, its raw `setLookAt` would
+   * be pulled back to the pivot. This is the counterpart to `flyTo` for Mode A
+   * when the reader is navigating in first-person.
+   */
+  flyToFirstPerson(
+    position: [number, number, number],
+    target: [number, number, number],
+    animate = true,
+  ): void {
+    this.placeFirstPerson(
+      new THREE.Vector3(position[0], position[1], position[2]),
+      new THREE.Vector3(target[0], target[1], target[2]),
+      animate,
+    )
+  }
+
+  /**
    * Editor "Go to": fly the camera to a previously saved view (start or a
    * waypoint). Drops into orbit and lifts the first-person distance clamp so the
    * eye actually lands on the saved position instead of being pulled to the pivot.
@@ -338,21 +362,108 @@ export class ThreeViewer {
     this.controls.enabled = enabled
   }
 
-  /** Turn the WASD/QE fly-cam on (editor) or off (viewer). */
+  /**
+   * Turn movement on (first-person) or off. On desktop this arms the WASD/QE
+   * fly-cam; on touch it arms two-finger walk (drag = strafe/rise, pinch =
+   * forward/back) by taking over the two-finger gesture from camera-controls.
+   * One-finger drag stays as look-around either way.
+   */
   setFlyEnabled(enabled: boolean): void {
     if (this.flyEnabled === enabled) return
     this.flyEnabled = enabled
+    const el = this.renderer.domElement
     if (enabled) {
       window.addEventListener('keydown', this.onKeyDown)
       window.addEventListener('keyup', this.onKeyUp)
       window.addEventListener('blur', this.onWindowBlur)
+      el.addEventListener('touchstart', this.onTouchStart, { passive: false })
+      el.addEventListener('touchmove', this.onTouchMove, { passive: false })
+      el.addEventListener('touchend', this.onTouchEnd)
+      el.addEventListener('touchcancel', this.onTouchEnd)
+      el.addEventListener('wheel', this.onFlyWheel, { passive: false })
+      // We drive two-finger movement ourselves; stop camera-controls dolly/truck.
+      this.controls.touches.two = CameraControls.ACTION.NONE
     } else {
       window.removeEventListener('keydown', this.onKeyDown)
       window.removeEventListener('keyup', this.onKeyUp)
       window.removeEventListener('blur', this.onWindowBlur)
+      el.removeEventListener('touchstart', this.onTouchStart)
+      el.removeEventListener('touchmove', this.onTouchMove)
+      el.removeEventListener('touchend', this.onTouchEnd)
+      el.removeEventListener('touchcancel', this.onTouchEnd)
+      el.removeEventListener('wheel', this.onFlyWheel)
+      this.controls.touches.two = CameraControls.ACTION.TOUCH_DOLLY_TRUCK // restore pinch-zoom for orbit
       this.heldKeys.clear()
       this.flyBoost = false
+      this.twoFingerPrev = null
+      this.moveAccum.truck = this.moveAccum.elevate = this.moveAccum.forward = 0
     }
+  }
+
+  /** Centroid + finger spread of a two-touch gesture, in client pixels. */
+  private static readTwoTouch(e: TouchEvent): { cx: number; cy: number; dist: number } {
+    const a = e.touches[0]
+    const b = e.touches[1]
+    return {
+      cx: (a.clientX + b.clientX) / 2,
+      cy: (a.clientY + b.clientY) / 2,
+      dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+    }
+  }
+
+  private readonly onTouchStart = (e: TouchEvent): void => {
+    if (e.touches.length === 2) this.twoFingerPrev = ThreeViewer.readTwoTouch(e)
+  }
+
+  // Two-finger walk: drag the centroid to strafe (X) / rise-fall (Y), change the
+  // finger spread (pinch) to move forward/back. We only accumulate the pixel
+  // deltas here (dominant gesture wins, so a pinch stays pure forward and a drag
+  // stays pure strafe — no veer); the RAF loop applies them once per frame.
+  private readonly onTouchMove = (e: TouchEvent): void => {
+    if (e.touches.length !== 2 || !this.twoFingerPrev) return
+    e.preventDefault() // keep the page from scrolling/zooming under the gesture
+    const now = ThreeViewer.readTwoTouch(e)
+    const prev = this.twoFingerPrev
+    const dx = now.cx - prev.cx
+    const dy = now.cy - prev.cy
+    const dSpread = now.dist - prev.dist
+    // Dominant gesture: pinch (spread) vs drag (centroid) — never both at once.
+    if (Math.abs(dSpread) > Math.hypot(dx, dy)) {
+      this.moveAccum.forward += dSpread
+    } else {
+      this.moveAccum.truck += dx
+      this.moveAccum.elevate += -dy
+    }
+    this.twoFingerPrev = now
+  }
+
+  private readonly onTouchEnd = (e: TouchEvent): void => {
+    this.twoFingerPrev = e.touches.length === 2 ? ThreeViewer.readTwoTouch(e) : null
+  }
+
+  // First-person wheel over the canvas = walk forward/back (like W/S). Dolly is
+  // clamped out in first-person, so we translate wheel delta into forward motion
+  // (scroll up = forward), accumulated and applied smoothly in the RAF loop.
+  private readonly onFlyWheel = (e: WheelEvent): void => {
+    e.preventDefault()
+    this.moveAccum.forward += -e.deltaY * 0.3 // scaled to the model in applyMoveAccum
+  }
+
+  /**
+   * Apply accumulated two-finger movement once per frame. Batching in the RAF
+   * loop (rather than per touch event) decouples motion from irregular touch
+   * event timing, so slow drags/pinches stay smooth instead of stepping.
+   * forward/truck/elevate move the camera AND its pinned target together, so the
+   * first-person distance clamp is honored.
+   */
+  private applyMoveAccum(): void {
+    const a = this.moveAccum
+    if (!a.truck && !a.elevate && !a.forward) return
+    const k = this.captureDist / 200 // pixels → world units, scaled to the model
+    if (a.truck) this.controls.truck(a.truck * k, 0, false) // drag right → strafe right
+    if (a.elevate) this.controls.elevate(a.elevate * k, false) // drag up → move up
+    if (a.forward) this.controls.forward(a.forward * k, false) // spread → forward
+    a.truck = a.elevate = a.forward = 0
   }
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {

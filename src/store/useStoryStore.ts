@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 export type ViewMode = 'page' | 'immersive'
+export type NavMode = 'orbit' | 'firstPerson'
 
 interface StoryUIState {
   /** Which presentation mode is showing. Default = page (Mode B). */
@@ -11,6 +12,11 @@ interface StoryUIState {
   autoTour: boolean
   /** Number of items in the loaded story (set by the viewer; bounds navigation). */
   itemCount: number
+  /**
+   * Reader's current Mode A camera navigation. Seeded from the story's
+   * `frontmatter.navigation` default on load, then toggleable live by the reader.
+   */
+  navMode: NavMode
 
   setMode: (mode: ViewMode) => void
   toggleMode: () => void
@@ -20,6 +26,8 @@ interface StoryUIState {
   setAutoTour: (on: boolean) => void
   toggleAutoTour: () => void
   setItemCount: (n: number) => void
+  setNavMode: (mode: NavMode) => void
+  toggleNavMode: () => void
   /** Reset UI state when a new story loads. */
   reset: () => void
 }
@@ -35,6 +43,7 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   activeIndex: 0,
   autoTour: false,
   itemCount: 0,
+  navMode: 'orbit',
 
   setMode: (mode) => set({ mode, autoTour: mode === 'page' ? false : get().autoTour }),
   toggleMode: () => get().setMode(get().mode === 'page' ? 'immersive' : 'page'),
@@ -56,5 +65,10 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   setAutoTour: (on) => set({ autoTour: on }),
   toggleAutoTour: () => set({ autoTour: !get().autoTour }),
   setItemCount: (n) => set({ itemCount: n }),
+  setNavMode: (mode) => set({ navMode: mode }),
+  toggleNavMode: () => set({ navMode: get().navMode === 'orbit' ? 'firstPerson' : 'orbit' }),
+  // NB: navMode is intentionally NOT reset here — it's seeded per-story from
+  // `frontmatter.navigation` by ViewerStage. Resetting it would clobber that seed
+  // (a parent route's reset() runs after the child ViewerStage seed effect).
   reset: () => set({ mode: 'page', activeIndex: 0, autoTour: false }),
 }))

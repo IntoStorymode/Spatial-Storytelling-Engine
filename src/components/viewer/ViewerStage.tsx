@@ -12,7 +12,7 @@ const AUTO_TOUR_DWELL_MS = 3800
  * Owns the ONE persistent ThreeViewer for a story and wires it to the store:
  *  - loads the model once (reloads only when the story's model changes)
  *  - in Mode A, flies the camera to the active item's hotspot on every change
- *  - frees the wheel for navigation in Mode A (re-enables dolly in Mode B)
+ *  - sets the per-mode control scheme (orbit vs first-person; wheel zoom/walk)
  *  - runs the auto-tour scheduler
  * Children (PageView / ImmersiveView) swap freely without tearing down the
  * viewer — they only host the canvas via <StageSlot>.
@@ -45,6 +45,16 @@ export function ViewerStage({
   const autoTour = useStoryStore((s) => s.autoTour)
   const setItemCount = useStoryStore((s) => s.setItemCount)
   const step = useStoryStore((s) => s.step)
+  const navMode = useStoryStore((s) => s.navMode)
+  const setNavMode = useStoryStore((s) => s.setNavMode)
+
+  // Seed the reader's navigation from the story's default whenever a new story
+  // (or preview draft) loads; the reader can then toggle it live without
+  // re-seeding. Keyed on the frontmatter identity so each story/preview re-seeds
+  // even if two stories share the same value.
+  useEffect(() => {
+    setNavMode(frontmatter.navigation ?? 'orbit')
+  }, [frontmatter, setNavMode])
 
   const reducedMotion = useMemo(
     () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
@@ -90,30 +100,56 @@ export function ViewerStage({
   // Keep the store's item count in sync for navigation bounds.
   useEffect(() => setItemCount(items.length), [items.length, setItemCount])
 
-  // Wheel drives navigation in Mode A, dolly in Mode B.
+  // Apply the control scheme for the current mode + reader nav mode. The wheel,
+  // over the canvas, behaves the same in both modes — zoom in orbit, walk
+  // forward/back in first-person — while wheel over the overlay panel scrolls it:
+  //  - Mode B (page): orbit, wheel dollies the inline model, no fly-cam.
+  //  - Mode A (immersive): orbit → wheel dollies; first-person → fly-cam on
+  //    (WASD/QE, two-finger touch, and wheel = forward/back).
   useEffect(() => {
-    viewer?.setWheelDolly(mode === 'page')
-  }, [viewer, mode])
+    if (!viewer) return
+    if (mode === 'page') {
+      viewer.setFlyEnabled(false)
+      viewer.setLookMode('orbit')
+      viewer.setWheelDolly(true)
+      return
+    }
+    if (navMode === 'firstPerson') {
+      viewer.setLookMode('firstPerson')
+      viewer.setFlyEnabled(true)
+      viewer.setWheelDolly(false) // wheel drives walk via the fly wheel handler, not dolly
+    } else {
+      viewer.setFlyEnabled(false)
+      viewer.setLookMode('orbit')
+      viewer.setWheelDolly(true) // wheel zooms the model
+    }
+  }, [viewer, mode, navMode])
 
-  // Camera ↔ active item. In Mode A, fly to the active hotspot on every change
-  // (and when first entering immersive). Mode B leaves the camera to free orbit.
+  // Camera ↔ active item. In Mode A, place the camera at the active hotspot on
+  // every change (and when first entering immersive), honoring the reader's nav
+  // mode: orbit frames the waypoint, first-person stands the eye at it. Mode B
+  // leaves the camera to free orbit. Re-runs on navMode so toggling re-places.
   useEffect(() => {
     if (!viewer || mode !== 'immersive') return
     const animate = !reducedMotion
+    const place = (position: [number, number, number], target: [number, number, number]) =>
+      navMode === 'firstPerson'
+        ? viewer.flyToFirstPerson(position, target, animate)
+        : viewer.flyTo(position, target, animate)
     // First entry into Mode A honors the story start view as the opening frame;
     // an item's own waypoint takes over only once the reader navigates.
     if (!openedRef.current) {
       openedRef.current = true
       if (start) {
-        viewer.flyTo(start.position, start.target, animate)
+        place(start.position, start.target)
         return
       }
     }
     const hotspot = items[activeIndex]?.hotspot
-    if (hotspot) viewer.flyTo(hotspot.position, hotspot.target, animate)
-    else if (start) viewer.flyTo(start.position, start.target, animate)
+    if (hotspot) place(hotspot.position, hotspot.target)
+    else if (start) place(start.position, start.target)
     else viewer.frameObject(viewer.scene, animate)
-  }, [viewer, mode, activeIndex, items, reducedMotion, start])
+  }, [viewer, mode, activeIndex, items, reducedMotion, start, navMode])
 
   // Auto-tour: schedule the next advance after the dwell. Reschedules on each
   // activeIndex change; cleared when the tour is off or the mode leaves immersive.

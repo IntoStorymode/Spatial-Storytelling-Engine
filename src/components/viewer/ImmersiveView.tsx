@@ -7,27 +7,40 @@ import { OverlayPanel } from './OverlayPanel'
 import { NavControls } from './NavControls'
 import { ProgressIndicator } from './ProgressIndicator'
 import { ModeToggle } from './ModeToggle'
+import { NavModeToggle } from './NavModeToggle'
+import { TouchWalkHint } from './TouchWalkHint'
 
-const WHEEL_THRESHOLD = 60 // accumulated |deltaY| for one step
-const STEP_COOLDOWN_MS = 650 // lock so one gesture/keypress = one item
+const STEP_COOLDOWN_MS = 650 // lock so one keypress = one item
 
 /**
  * Mode A — the immersive view. The persistent canvas fills the screen; the
- * active item shows as an overlay. Scroll wheel, arrow keys, and Prev/Next each
- * advance exactly one item (locked during the camera transition); the store's
- * camera effect flies to that item's hotspot. Any manual move cancels auto-tour.
+ * active item shows as an overlay. Arrow keys and Prev/Next advance one item
+ * (locked during the camera transition); the store's camera effect flies to that
+ * item's hotspot. The wheel is left to the scene — zoom in orbit, walk in
+ * first-person — and to the overlay panel (native scroll), matching Mode B.
+ * Any manual nav cancels the auto-tour.
  */
 export function ImmersiveView({ story }: { story: Story }) {
   const step = useStoryStore((s) => s.step)
   const setAutoTour = useStoryStore((s) => s.setAutoTour)
   const containerRef = useRef<HTMLDivElement>(null)
+  const topbarRef = useRef<HTMLDivElement>(null)
   const lockRef = useRef(false)
-  const accRef = useRef(0)
+
+  // Publish the topbar's real height so the (top-anchored, mobile) overlay panel
+  // always starts just below it — even if a long label wraps the bar to two rows.
+  useEffect(() => {
+    const bar = topbarRef.current
+    const host = containerRef.current
+    if (!bar || !host) return
+    const ro = new ResizeObserver(() => {
+      host.style.setProperty('--immersive-topbar-h', `${bar.offsetHeight}px`)
+    })
+    ro.observe(bar)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-
     function lockedStep(delta: number) {
       if (lockRef.current) return
       lockRef.current = true
@@ -36,20 +49,6 @@ export function ImmersiveView({ story }: { story: Story }) {
       window.setTimeout(() => {
         lockRef.current = false
       }, STEP_COOLDOWN_MS)
-    }
-
-    function onWheel(e: WheelEvent) {
-      e.preventDefault() // keep the page from scrolling behind the scene
-      if (lockRef.current) {
-        accRef.current = 0
-        return
-      }
-      accRef.current += e.deltaY
-      if (Math.abs(accRef.current) >= WHEEL_THRESHOLD) {
-        const dir = accRef.current > 0 ? 1 : -1
-        accRef.current = 0
-        lockedStep(dir)
-      }
     }
 
     function onKey(e: KeyboardEvent) {
@@ -62,26 +61,26 @@ export function ImmersiveView({ story }: { story: Story }) {
       }
     }
 
-    el.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKey)
-    return () => {
-      el.removeEventListener('wheel', onWheel)
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [step, setAutoTour])
 
   return (
     <div className="immersive" ref={containerRef}>
       <StageSlot className="immersive-canvas" />
 
-      <div className="immersive-topbar">
+      <div className="immersive-topbar" ref={topbarRef}>
         <Link to="/" className="back">
           ← All stories
         </Link>
-        <ModeToggle />
+        <div className="topbar-toggles">
+          <NavModeToggle />
+          <ModeToggle />
+        </div>
       </div>
 
       <OverlayPanel story={story} />
+      <TouchWalkHint />
 
       <div className="immersive-footer">
         <ProgressIndicator />

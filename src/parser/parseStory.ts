@@ -61,6 +61,11 @@ export function parseStory(raw: string, basePath = ''): Story {
         if (start) frontmatter.start = start
         else warnings.push('Frontmatter start: position/target must each be 3 numbers')
       }
+      if (data.navigation !== undefined) {
+        const nav = toStr(data.navigation)
+        if (nav === 'orbit' || nav === 'firstPerson') frontmatter.navigation = nav
+        else warnings.push(`Frontmatter navigation: expected "orbit" or "firstPerson", got "${nav}"`)
+      }
     } catch (e) {
       warnings.push(`Frontmatter parse error: ${String(e)}`)
     }
