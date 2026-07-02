@@ -77,6 +77,14 @@ nice-to-have / exploratory.
   item), and the editor → preview resume round trip.
 - **[P2] Performance pass on large splats**
   Profile load + sort cost; consider progressive loading UI and a splat-count budget warning.
+- **[P2] GPU-accelerated splat sort A/B** *(after the on-demand-render idle fix)* — on-demand
+  rendering quiets the *idle* splat load; this targets the *active-navigation* cost. Try
+  `gpuAcceleratedSort: true` in `loadSplat.ts` (moves the per-frame depth sort off the CPU worker)
+  and confirm it still renders on the Vercel deploy without COOP/COEP isolation headers.
+- **[P3] `renderer.forceContextLoss()` on dispose** *(hygiene)* — `ThreeViewer.dispose()` calls
+  `renderer.dispose()` but not `forceContextLoss()`, so a WebGL context lingers until GC. Low risk
+  today (single long-lived viewer), but worth adding if repeated story-to-story navigation ever
+  bumps Chrome's ~16-context cap.
 - **[P3] Accessibility audit**
   Keyboard reachability of all editor/viewer controls, focus management on mode toggle,
   reduced-motion coverage end to end.

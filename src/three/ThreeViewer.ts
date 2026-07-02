@@ -13,6 +13,15 @@ export interface ThreeViewerOptions {
 /** Fly-cam keys: WASD pan/forward, Q/E down/up, Shift to boost. */
 const FLY_MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
 
+/**
+ * On-demand rendering: how many frames to keep drawing after the last change.
+ * A short tail (rather than a single frame) matters for Gaussian splats — their
+ * depth sort runs in a worker and only shows up on the *next* render, so we must
+ * keep rendering briefly after motion stops or the settled view can show sort
+ * artifacts. ~1s at 60fps is generous; a truly idle scene still stops after it.
+ */
+const RENDER_TAIL_FRAMES = 60
+
 type GizmoSlot = 'item' | 'start'
 type GizmoSpot = { position: [number, number, number]; target: [number, number, number] }
 interface Gizmo {
@@ -61,6 +70,7 @@ export class ThreeViewer {
   private readonly clock = new THREE.Clock()
   private readonly resizeObserver: ResizeObserver
   private rafId = 0
+  private renderTail = 0 // frames left to render; 0 = idle (on-demand rendering)
   private currentModel: THREE.Object3D | null = null
   private readonly gizmos: Record<GizmoSlot, Gizmo | null> = { item: null, start: null }
   private disposed = false
@@ -106,17 +116,34 @@ export class ThreeViewer {
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(container)
 
+    this.invalidate() // draw the first frame(s)
     this.animate()
+  }
+
+  /**
+   * Mark the scene dirty so the RAF loop renders for the next tail of frames.
+   * Called on every change the loop can't otherwise detect (input, scene edits,
+   * resize, model load). On-demand rendering: between changes we stop rendering
+   * entirely — which also stops the splat sort worker — so an idle scene costs
+   * ~zero CPU/GPU instead of pinning a core at 60fps and cooking the fan.
+   */
+  private invalidate(): void {
+    this.renderTail = RENDER_TAIL_FRAMES
   }
 
   private animate = (): void => {
     if (this.disposed) return
     this.rafId = requestAnimationFrame(this.animate)
     const delta = this.clock.getDelta()
+    // These self-invalidate when they actually move the camera.
     this.applyFlyMovement(delta)
     this.applyMoveAccum()
-    this.controls.update(delta)
-    this.renderer.render(this.scene, this.camera)
+    // Damping/inertia tail and any programmatic camera change land here.
+    if (this.controls.update(delta)) this.invalidate()
+    if (this.renderTail > 0) {
+      this.renderTail--
+      this.renderer.render(this.scene, this.camera)
+    }
   }
 
   /**
@@ -131,6 +158,7 @@ export class ThreeViewer {
     const right = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0)
     const up = (k.has('KeyE') ? 1 : 0) - (k.has('KeyQ') ? 1 : 0)
     if (!fwd && !right && !up) return
+    this.invalidate()
     const step = this.flySpeed * delta * (this.flyBoost ? 3 : 1)
     if (fwd) this.controls.forward(fwd * step, false)
     if (right) this.controls.truck(right * step, 0, false)
@@ -152,6 +180,7 @@ export class ThreeViewer {
     this.scene.add(obj)
     this.currentModel = obj
     this.frameObject(obj, false)
+    this.invalidate() // ensure the loaded model (and a splat's first sort) draws
     return obj
   }
 
@@ -180,6 +209,7 @@ export class ThreeViewer {
   frameObject(obj: THREE.Object3D, animate = true): void {
     const framing = this.modelFraming(obj)
     if (!framing) return
+    this.invalidate()
     const { center, diameter } = framing
     this.flySpeed = diameter * 0.6 // a held key crosses the model in ~1.5s
     this.fpsPivot = Math.min(Math.max(diameter * 0.01, 0.02), 0.5)
@@ -214,6 +244,7 @@ export class ThreeViewer {
    */
   setLookMode(mode: 'orbit' | 'firstPerson'): void {
     if (this.lookMode === mode) return
+    this.invalidate()
     this.lookMode = mode
     if (mode === 'firstPerson') {
       const p = this.camera.position.clone()
@@ -239,6 +270,7 @@ export class ThreeViewer {
 
   /** Position a first-person eye at `from` looking toward `lookAt`, pivot pinned. */
   private placeFirstPerson(from: THREE.Vector3, lookAt: THREE.Vector3, animate: boolean): void {
+    this.invalidate()
     const fwd = lookAt.clone().sub(from)
     if (fwd.lengthSq() < 1e-8) fwd.set(0, 0, -1)
     fwd.normalize()
@@ -259,6 +291,7 @@ export class ThreeViewer {
     target: [number, number, number],
     animate = true,
   ): Promise<void> {
+    this.invalidate()
     return this.controls.setLookAt(
       position[0], position[1], position[2],
       target[0], target[1], target[2],
@@ -435,6 +468,7 @@ export class ThreeViewer {
       this.moveAccum.elevate += -dy
     }
     this.twoFingerPrev = now
+    this.invalidate()
   }
 
   private readonly onTouchEnd = (e: TouchEvent): void => {
@@ -447,6 +481,7 @@ export class ThreeViewer {
   private readonly onFlyWheel = (e: WheelEvent): void => {
     e.preventDefault()
     this.moveAccum.forward += -e.deltaY * 0.3 // scaled to the model in applyMoveAccum
+    this.invalidate()
   }
 
   /**
@@ -459,6 +494,7 @@ export class ThreeViewer {
   private applyMoveAccum(): void {
     const a = this.moveAccum
     if (!a.truck && !a.elevate && !a.forward) return
+    this.invalidate()
     const k = this.captureDist / 200 // pixels → world units, scaled to the model
     if (a.truck) this.controls.truck(a.truck * k, 0, false) // drag right → strafe right
     if (a.elevate) this.controls.elevate(a.elevate * k, false) // drag up → move up
@@ -472,6 +508,7 @@ export class ThreeViewer {
     if (FLY_MOVE_KEYS.has(e.code)) {
       this.heldKeys.add(e.code)
       e.preventDefault()
+      this.invalidate()
     }
   }
 
@@ -504,6 +541,7 @@ export class ThreeViewer {
   }
 
   private drawGizmo(slot: GizmoSlot, hotspot: GizmoSpot | null, colors: { cam: number; look: number }): void {
+    this.invalidate() // sprites added/removed → redraw
     const g = this.gizmos[slot]
     if (g) {
       this.scene.remove(g.cam, g.look, g.line)
@@ -538,6 +576,7 @@ export class ThreeViewer {
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(w, h)
+    this.invalidate()
   }
 
   dispose(): void {
