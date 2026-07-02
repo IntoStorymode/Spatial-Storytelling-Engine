@@ -90,6 +90,7 @@ nice-to-have / exploratory.
   guidance; the M8 "typed-path media not bundled" caveat still applies to the source story.
 - **[P3] Story registry / gallery** beyond the single `index.json` demo list — including a
   *whole-gallery* static-site export (M9 ships single-story only).
+- **[P2] Standalone VR viewer tool (WebXR, GLB-only)** *(plan ready)* — a separate Vite entry (`vr.html` + `src/vr/`) that opens one GLB story in VR (dolly-rig locomotion, teleport-to-waypoint, in-scene caption), fully isolated from the main platform (import-only reuse of `parseStory`/`loadModel`); splats-in-VR and full 3D UI deferred. Full plan: `~/.claude/plans/i-would-like-to-cached-hollerith.md`.
 
 ---
 
