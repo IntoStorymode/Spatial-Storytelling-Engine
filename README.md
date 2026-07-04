@@ -72,10 +72,11 @@ The quickest path is the **in-app editor** (`+ New story` on the Home page):
 2. Add items (text / image / audio / video); **Upload file…** any media inline.
 3. Set the **story start** view and each item's **waypoint** in the 3D scene, and use
    **▶ Preview** to check Mode A / B live.
-4. Click **⭳ Download bundle** — you get a `<slug>.zip` containing `story.md`, your uploaded
-   assets, an `index-entry.json`, and a `PUBLISH.txt`. Unzip the `<slug>/` folder into
-   `public/stories/` and merge `index-entry.json` into `public/stories/index.json`. The
-   story then appears on Home at `/story/<slug>`.
+4. Click **⛭ Download website** — you get a `<slug>-site.zip`: a complete, self-contained
+   static site for your story. Unzip it and drop the `<slug>-site/` folder on any static host
+   (Netlify, Vercel, S3, …) — it opens straight into the story. No repo edits, no CLI.
+   (The button assembles the site in your browser, so it works from the built or hosted
+   editor; under `npm run dev` use `npm run publish:site` — see below.)
 
 Prefer to author by hand? You can also drop files into `/public/stories/my-story/assets/`,
 write a `story.md` by the format below, add an `index.json` entry, and `npm run dev`.
@@ -85,8 +86,13 @@ write a `story.md` by the format below, add an `index.json` entry, and `npm run 
 
 ## Publish as a website
 
-Once a story lives under `public/stories/<slug>/`, you can export it as a **self-contained
-static site** that opens straight into that story — ready to drop on any host:
+A published story is a **self-contained static site** that opens straight into that story —
+ready to drop on any host. Two ways to produce the same `<slug>-site.zip`:
+
+- **⛭ Download website** in the editor — one click, no terminal. Assembled in the browser, so
+  it works from the built or hosted editor (disabled under `npm run dev`).
+- **`npm run publish:site -- <slug>`** — for stories in the repo, or when authoring under
+  `npm run dev`:
 
 ```
 npm run publish:site -- <slug>

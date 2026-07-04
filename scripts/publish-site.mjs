@@ -25,6 +25,12 @@ import { dirname, join } from 'node:path'
 import { execSync } from 'node:child_process'
 import JSZip from 'jszip'
 import yaml from 'js-yaml'
+import {
+  deployMd,
+  indexEntry,
+  injectKiosk,
+  siteDirName,
+} from '../src/publish/siteTemplate.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -44,8 +50,9 @@ const storyMd = join(storyDir, 'story.md')
 if (!existsSync(storyMd)) {
   fail(
     `no story at public/stories/${slug}/story.md.\n` +
-      `  Publish the story into public/stories/${slug}/ first (story.md + its assets/),\n` +
-      `  then re-run. Tip: the editor's "Download bundle" zip unzips into exactly that shape.`,
+      `  Put the story under public/stories/${slug}/ first (story.md + its assets/),\n` +
+      `  then re-run. Tip: authoring in the editor? Click "⛭ Download website" instead —\n` +
+      `  it produces the deployable ${slug}-site.zip directly, no repo drop needed.`,
   )
 }
 
@@ -62,14 +69,7 @@ function entryFromFrontmatter() {
   const raw = readFileSync(storyMd, 'utf8')
   const m = raw.match(/^---\n([\s\S]*?)\n---/)
   const fm = m ? yaml.load(m[1]) ?? {} : {}
-  return {
-    id: slug,
-    title: fm.title ?? slug,
-    author: fm.author ?? '',
-    location: fm.location ?? '',
-    date: fm.date ?? '',
-    path: `stories/${slug}/story.md`,
-  }
+  return indexEntry(fm, slug)
 }
 const entry = entryFromIndex() ?? entryFromFrontmatter()
 entry.path = `stories/${slug}/story.md` // ensure relative, regardless of source
@@ -93,55 +93,19 @@ writeFileSync(join(distStories, 'index.json'), JSON.stringify({ stories: [entry]
 // Inject a tiny redirect before the app bundle. It only fires when there's no
 // hash yet, so deep links (…/#/story/<slug>) and in-app nav are untouched.
 const indexPath = join(dist, 'index.html')
-let html = readFileSync(indexPath, 'utf8')
-const kiosk = `<script>if(!location.hash){history.replaceState(null,'','#/story/${slug}')}</script>`
-if (html.includes('<script type="module"')) {
-  html = html.replace('<script type="module"', `${kiosk}\n    <script type="module"`)
-} else {
-  html = html.replace('</head>', `  ${kiosk}\n  </head>`) // fallback
-}
-writeFileSync(indexPath, html)
+writeFileSync(indexPath, injectKiosk(readFileSync(indexPath, 'utf8'), slug))
 
-// ── 6. DEPLOY.md (lives next to the folder in the zip, not inside the site) ───
-const deployMd = `# Deploy "${entry.title}"
-
-This zip contains a complete, self-contained website for one story:
-
-    ${slug}-site/   ← the website (open index.html or deploy this folder)
-
-It opens straight into the story. No build step, no backend, no special server
-configuration, and no special headers are required.
-
-## Netlify (easiest — drag & drop)
-
-1. Go to https://app.netlify.com/drop
-2. Drag the **${slug}-site** folder onto the page.
-3. You get a live URL. (Optional: add a custom domain in Netlify.)
-
-## Vercel
-
-    cd ${slug}-site
-    npx vercel deploy --prod        # or drag the folder in the Vercel dashboard
-
-## Any static host (S3, Cloudflare Pages, GitHub Pages, nginx, …)
-
-Upload the **contents of ${slug}-site/** to any location — a domain root OR a
-subfolder (e.g. https://example.com/news/spatial/). The same files work at any
-path because the app uses relative URLs and hash routing.
-
-### Two things to know
-- **Use a trailing slash** when the site lives in a subfolder
-  (e.g. .../news/spatial/ , not .../news/spatial). Most hosts add it for you.
-- The page loads web fonts from Google Fonts (needs internet); if offline, it
-  falls back to system fonts gracefully.
-`
-
-// ── 7. Zip <slug>-site/ (the site) + DEPLOY.md ───────────────────────────────
+// ── 6. Zip <slug>-site/ (the site) + DEPLOY.md ───────────────────────────────
+// DEPLOY.md lives next to the folder in the zip, not inside the site.
 const zip = new JSZip()
-zip.file('DEPLOY.md', deployMd)
-const siteRoot = `${slug}-site`
+zip.file('DEPLOY.md', deployMd({ title: entry.title, slug }))
+const siteRoot = siteDirName(slug)
 function addDir(absDir, zipPrefix) {
   for (const name of readdirSync(absDir)) {
+    // The build's app-shell manifest is only consumed by the editor's in-app
+    // export; a published site doesn't need it, so keep it out (matches the
+    // client-side path, which never zips it).
+    if (absDir === dist && name === 'publish-manifest.json') continue
     const abs = join(absDir, name)
     const zpath = `${zipPrefix}/${name}`
     if (statSync(abs).isDirectory()) addDir(abs, zpath)
