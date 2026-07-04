@@ -327,7 +327,7 @@ export function EditorRoute() {
           title="Discard uploaded files?"
           message={
             'Your uploaded 3D model and media live only in this browser session — ' +
-            "they aren't saved anywhere yet. Download the bundle first if you want to keep them."
+            "they aren't saved anywhere yet. Download the website first if you want to keep them."
           }
           confirmLabel="Leave & discard"
           cancelLabel="Keep editing"
