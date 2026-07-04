@@ -59,11 +59,12 @@ nice-to-have / exploratory.
 - **[P2] Guided model import**
   In-app guidance (or a thin wrapper) around the SuperSplat clean/convert step, plus
   clearer messaging on splat formats and recommended `.ksplat` sizes.
-- **[P2] Asset management for uploads** *(done in M8)*
-  ✅ Per-item media upload + a **Download bundle** (zip of `story.md` + uploaded assets in the
-  `assets/` layout + an `index-entry.json` + `PUBLISH.txt`) removed the manual copy step for
-  uploaded files. **Remaining:** media referenced by a *typed* path (not uploaded) still
-  isn't bundled — the author copies it in by hand.
+- **[P2] Asset management for uploads** *(done in M8; export path superseded by M10)*
+  ✅ Per-item media upload lets the author attach files in the editor. The M8 source
+  "Download bundle" was **replaced in M10** by one-click **⛭ Download website**, which packages
+  uploaded assets straight into a deployable site (see Platform / distribution below).
+  **Remaining:** media referenced by a *typed* path (not uploaded) still isn't included — the
+  author copies it in by hand.
 - **[P3] Multiple models / model switching within one story** (exploratory).
 - **[P3] Point-cloud PLY polish** *(after the point-cloud support fix)* — robust percentile framing
   for point clouds (mirror `robustSplatFraming`) if stray outliers balloon the AABB; a soft
@@ -91,6 +92,16 @@ nice-to-have / exploratory.
 
 ## Platform / distribution (post-prototype)
 
+- **[done in M10, PR #16] One-click in-editor website export**
+  ✅ **⛭ Download website** in the editor produces the same deployable `<slug>-site.zip` as
+  `publish:site`, assembled **in the browser** — no repo drop, no `index.json` merge, no CLI,
+  no per-story rebuild. A build-time `dist/publish-manifest.json` lists the app shell;
+  `src/publish/buildSite.ts` re-zips it with the current story, and `src/publish/siteTemplate.mjs`
+  is shared with the CLI so the two paths can't drift. Disabled under `npm run dev` (no build →
+  no shell), where `publish:site` stays the terminal path. Author guide:
+  [`PUBLISHING.md`](./PUBLISHING.md). **Remaining / future:** same single-story "kiosk" scope and
+  typed-path-media caveat as M9 below; app-version skew between a cached shell and a newer story
+  is possible (the manifest's `appVersion` enables a future warning).
 - **[done in M9, PR #10] Deploy-anywhere static-site export**
   ✅ `npm run publish:site -- <slug>` exports a story as a **self-contained website**
   (`<slug>-site.zip` = a deployable folder + `DEPLOY.md`) that runs on any static host — a
