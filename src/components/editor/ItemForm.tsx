@@ -81,7 +81,7 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
           </div>
           {uploaded && (
             <p className="ed-hint">
-              Previewing your uploaded file. Use <strong>Download bundle</strong> on export to
+              Previewing your uploaded file. Use <strong>Download website</strong> on export to
               get it packaged at <code>{item.src}</code> automatically.
             </p>
           )}

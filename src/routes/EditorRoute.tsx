@@ -189,9 +189,9 @@ export function EditorRoute() {
 
   // Uploaded model/media live only in this browser session (held as blob URLs,
   // not on disk). Warn before they're lost — but NOT when going to /preview
-  // (a round-trip that keeps the uploads), and NOT once the bundle is downloaded.
+  // (a round-trip that keeps the uploads), and NOT once the site is downloaded.
   const hasUploads = !!uploaded || Object.keys(mediaUploads).length > 0
-  // Set when "Download bundle" saves the uploads to disk; any later edit re-arms
+  // Set when "Download website" saves the uploads to disk; any later edit re-arms
   // the warning since the exported zip no longer matches the draft.
   const [exported, setExported] = useState(false)
   const warnOnLeave = hasUploads && !exported
@@ -327,7 +327,7 @@ export function EditorRoute() {
           title="Discard uploaded files?"
           message={
             'Your uploaded 3D model and media live only in this browser session — ' +
-            "they aren't saved anywhere yet. Download the bundle first if you want to keep them."
+            "they aren't saved anywhere yet. Download the website first if you want to keep them."
           }
           confirmLabel="Leave & discard"
           cancelLabel="Keep editing"

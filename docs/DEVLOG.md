@@ -4,12 +4,12 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-07-02):** M1–M9 complete and merged to `main` (a story is now published
-live to Vercel); **a mobile pass (collapsible Mode A overlay) in review**. The full authoring
-loop works end to end: create a story → import a model → set a start camera → add items with
-waypoints (with inline media upload) → preview Mode A/B → download a publish-ready bundle or a
-self-contained website deployable to any host at any URL path. Author-facing how-to:
-[`PUBLISHING.md`](./PUBLISHING.md).
+**Current state (2026-07-04):** M1–M10 complete (M1–M9 merged to `main`, a story published live
+to Vercel); **a mobile pass (collapsible Mode A overlay) in review**. The full authoring loop
+works end to end: create a story → import a model → set a start camera → add items with
+waypoints (with inline media upload) → preview Mode A/B → **⛭ Download website** for a
+deployable, host-anywhere static site in one click (or `npm run publish:site` from a terminal).
+Author-facing how-to: [`PUBLISHING.md`](./PUBLISHING.md).
 
 ---
 
@@ -108,6 +108,27 @@ the header unobstructed.
   (+ `index.json`) are tracked; any other/test story folder is ignored so it can't be pushed.
 - **Verified:** tsc + vitest (11/11) + build clean; checked on desktop and a real iPhone
   (collapse/reopen, header reachable, no overlap). *Next: reader first-person navigation A/B.*
+
+### M10 — One-click in-editor website export
+Removed the manual publish round-trip. The M9 flow was: editor **Download bundle** (source zip)
+→ hand-copy into `public/stories/` → hand-merge `index.json` → `npm run publish:site` (rebuild)
+→ deploy. Now the editor's **⛭ Download website** button produces the deployable
+`<slug>-site.zip` **directly, in the browser** — no repo drop, no CLI, no per-story rebuild.
+- **Key insight:** a published site = a *generic app shell* (identical per app version) + one
+  story's data + a kiosk redirect. The shell already ships with any built/hosted editor, so the
+  browser can re-zip it with the current story. `npm run build` emits `publish-manifest.json`
+  (all of `dist/` except `stories/**` and itself, via an inline Vite `closeBundle` plugin);
+  `src/publish/buildSite.ts` fetches that list, injects the kiosk redirect into `index.html`,
+  adds a one-entry `stories/index.json` + `story.md` + uploaded assets, and downloads the zip.
+- **DRY:** kiosk / `DEPLOY.md` / index-entry logic moved to `src/publish/siteTemplate.mjs`,
+  shared by the browser assembler **and** `scripts/publish-site.mjs`, so the two paths can't
+  drift. The CLI now stays the terminal/`npm run dev` path (browser export needs a build).
+- **Dev fallback:** under `npm run dev` there's no build → no manifest → the button disables
+  itself with a hint pointing to `npm run preview` / the CLI. The old source-bundle download was
+  removed (its only purpose was feeding the manual round-trip).
+- **Verified:** tsc + vitest (15/15) + build clean; `publish-manifest.json` excludes
+  `stories/**`; both the CLI and a faithful replay of the browser assembly produce byte-shape-
+  equal sites that boot headless straight into `#/story/demo` and render the story.
 
 ### M9 — Deploy-anywhere static-site export (PR #10)
 Turned the M8 "Download bundle" (which targets *running the repo*) into a **self-contained

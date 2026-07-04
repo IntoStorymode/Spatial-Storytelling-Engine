@@ -82,6 +82,14 @@ a:hover {
   background: var(--panel-2);
   border-color: var(--accent-dim);
 }
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn:disabled:hover {
+  background: var(--panel);
+  border-color: var(--line);
+}
 .btn-accent {
   background: var(--accent-dim);
   border-color: var(--accent);

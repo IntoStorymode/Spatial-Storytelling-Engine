@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import JSZip from 'jszip'
+import { useEffect, useState } from 'react'
 import type { Story } from '../../parser/types'
 import { serializeStory } from '../../parser/serializeStory'
+import { buildSiteZip, fetchManifest, type Manifest } from '../../publish/buildSite'
 
 /** Soft validation — surfaced as hints, never blocks export (prototype-friendly). */
 function validate(story: Story): string[] {
@@ -33,19 +33,25 @@ function triggerDownload(blob: Blob, name: string) {
 
 interface Props {
   story: Story
-  /** Uploaded files to package into the bundle, at their export paths. */
+  /** Uploaded files to package into the site, at their export paths. */
   assets: { path: string; file: File }[]
-  /** Fired after a bundle zip is successfully downloaded (uploads now saved). */
+  /** Fired after a website zip is successfully downloaded (uploads now saved). */
   onBundleDownloaded?: () => void
 }
 
-/** Export the draft to story.md (download/copy) or a publish-ready bundle zip. */
+/** Export the draft as story.md (download/copy) or a deploy-anywhere website zip. */
 export function ExportBar({ story, assets, onBundleDownloaded }: Props) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [building, setBuilding] = useState(false)
+  // undefined = still checking; null = unavailable (npm run dev, no build); else ready.
+  const [manifest, setManifest] = useState<Manifest | null | undefined>(undefined)
   const warnings = validate(story)
   const slug = slugify(story.frontmatter.title)
+
+  useEffect(() => {
+    fetchManifest().then(setManifest)
+  }, [])
 
   function download() {
     triggerDownload(new Blob([serializeStory(story)], { type: 'text/markdown' }), 'story.md')
@@ -57,55 +63,33 @@ export function ExportBar({ story, assets, onBundleDownloaded }: Props) {
     setTimeout(() => setCopied(false), 1500)
   }
 
-  /** A publish-ready zip: <slug>/story.md + assets/, an index entry, and a how-to. */
-  async function downloadBundle() {
+  /** One click → a complete, self-contained website for this story: <slug>-site.zip. */
+  async function downloadWebsite() {
+    if (!manifest) return
     setBuilding(true)
     try {
-      const zip = new JSZip()
-      const folder = zip.folder(slug)!
-      folder.file('story.md', serializeStory(story))
-      const seen = new Set<string>()
-      for (const { path, file } of assets) {
-        if (seen.has(path)) continue
-        seen.add(path)
-        folder.file(path, file) // e.g. assets/scene.glb
-      }
-      const entry = {
-        id: slug,
-        title: story.frontmatter.title,
-        author: story.frontmatter.author,
-        location: story.frontmatter.location,
-        date: story.frontmatter.date,
-        path: `stories/${slug}/story.md`,
-      }
-      zip.file('index-entry.json', JSON.stringify(entry, null, 2))
-      zip.file(
-        'PUBLISH.txt',
-        [
-          'To publish this story so others can open it:',
-          '',
-          `1. Move the "${slug}" folder into public/stories/ in the project.`,
-          '2. Open public/stories/index.json and add the object from',
-          '   index-entry.json into the "stories" array.',
-          `3. Refresh — the story appears on Home and at /story/${slug}.`,
-          '',
-          'Uploaded files are already included under the assets/ folder.',
-          'Any media referenced by a typed path (not uploaded) must be copied',
-          `into ${slug}/assets/ yourself.`,
-        ].join('\n'),
-      )
-      const blob = await zip.generateAsync({ type: 'blob' })
-      triggerDownload(blob, `${slug}.zip`)
+      const blob = await buildSiteZip({ story, assets, slug, manifest })
+      triggerDownload(blob, `${slug}-site.zip`)
       onBundleDownloaded?.()
     } finally {
       setBuilding(false)
     }
   }
 
+  const websiteReady = !!manifest
+  const websiteTitle = websiteReady
+    ? 'Complete, self-contained website for this story — unzip and drop the folder on any static host (Netlify, Vercel, S3, …)'
+    : 'Available from the built or hosted editor. Under `npm run dev`, run `npm run preview`, or publish with `npm run publish:site -- <slug>`.'
+
   return (
     <div className="export">
-      <button className="btn btn-accent" onClick={downloadBundle} disabled={building} title="Zip of story.md + uploaded assets + an index entry, ready to drop into public/stories/">
-        {building ? '… zipping' : '⭳ Download bundle'}
+      <button
+        className="btn btn-accent"
+        onClick={downloadWebsite}
+        disabled={building || !websiteReady}
+        title={websiteTitle}
+      >
+        {building ? '… building site' : '⛭ Download website'}
       </button>
       <button className="btn" onClick={download} title="Just the story.md text file">
         story.md
@@ -126,9 +110,10 @@ export function ExportBar({ story, assets, onBundleDownloaded }: Props) {
         <div className="export-pop">
           {warnings.length === 0 ? (
             <p>
-              Looks good. <strong>Download bundle</strong> gives a <code>{slug}.zip</code> —
-              unzip the <code>{slug}/</code> folder into <code>public/stories/</code> and
-              merge <code>index-entry.json</code> into <code>index.json</code>.
+              Looks good. <strong>Download website</strong> gives a{' '}
+              <code>{slug}-site.zip</code> — a complete, self-contained site. Unzip it and
+              drop the <code>{slug}-site/</code> folder on any static host (it opens straight
+              into the story).
             </p>
           ) : (
             <ul>
@@ -138,10 +123,17 @@ export function ExportBar({ story, assets, onBundleDownloaded }: Props) {
             </ul>
           )}
           <p className="muted">
-            Bundle includes {assets.length} uploaded asset{assets.length === 1 ? '' : 's'}.
-            Media referenced by a typed path (not uploaded) isn't bundled — copy it into{' '}
-            <code>{slug}/assets/</code> yourself.
+            Site includes {assets.length} uploaded asset{assets.length === 1 ? '' : 's'}.
+            Media referenced by a typed path (not uploaded) isn't included — upload it in the
+            editor so it ships with the site.
           </p>
+          {manifest === null && (
+            <p className="muted">
+              <strong>Download website</strong> needs the built app, so it's disabled under{' '}
+              <code>npm run dev</code>. Use <code>npm run preview</code> (or the hosted editor),
+              or publish from a terminal with <code>npm run publish:site -- {slug}</code>.
+            </p>
+          )}
         </div>
       )}
     </div>
