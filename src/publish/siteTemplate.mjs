@@ -47,31 +47,35 @@ export function indexEntry(fm, slug) {
   }
 }
 
-/** The DEPLOY.md that ships next to the site folder in the zip. */
-export function deployMd({ title, slug }) {
+/**
+ * The DEPLOY.md that ships next to the site folder in the zip.
+ * `siteDir` is the site folder name (`<slug>-site` for one story, `gallery-site`
+ * for several); `title` is the story title, or e.g. "3 stories" for a gallery.
+ */
+export function deployMd({ title, siteDir }) {
   return `# Deploy "${title}"
 
-This zip contains a complete, self-contained website for one story:
+This zip contains a complete, self-contained website:
 
-    ${slug}-site/   ← the website (open index.html or deploy this folder)
+    ${siteDir}/   ← the website (open index.html or deploy this folder)
 
-It opens straight into the story. No build step, no backend, no special server
-configuration, and no special headers are required.
+No build step, no backend, no special server configuration, and no special
+headers are required.
 
 ## Netlify (easiest — drag & drop)
 
 1. Go to https://app.netlify.com/drop
-2. Drag the **${slug}-site** folder onto the page.
+2. Drag the **${siteDir}** folder onto the page.
 3. You get a live URL. (Optional: add a custom domain in Netlify.)
 
 ## Vercel
 
-    cd ${slug}-site
+    cd ${siteDir}
     npx vercel deploy --prod        # or drag the folder in the Vercel dashboard
 
 ## Any static host (S3, Cloudflare Pages, GitHub Pages, nginx, …)
 
-Upload the **contents of ${slug}-site/** to any location — a domain root OR a
+Upload the **contents of ${siteDir}/** to any location — a domain root OR a
 subfolder (e.g. https://example.com/news/spatial/). The same files work at any
 path because the app uses relative URLs and hash routing.
 

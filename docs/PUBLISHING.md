@@ -1,45 +1,62 @@
 # Publishing & sharing a story
 
 A published story is a **complete, self-contained website**: one folder you can drop on any
-static host. It opens straight into the story (a "kiosk"), needs no backend, no build step on
-the host, and no special server configuration. Everything is local-first: no account, no
-upload to us — you stay in control of the files.
+static host, with no backend, no build step on the host, and no special server configuration.
+Everything is local-first: no account, no upload to us — you stay in control of the files, which
+stay as plain `story.md` + assets you can zip and reuse anywhere.
 
 There are two ways to produce that website, for two situations:
 
 | You are… | Use | Needs a terminal? |
 | --- | --- | --- |
-| Authoring in the editor (built or hosted app) | **⛭ Download website** (one click) | No |
+| Authoring in the editor (built or hosted app) | **💾 Save to gallery → Export** | No |
 | Working in the repo / running `npm run dev` | **`npm run publish:site -- <slug>`** | Yes |
-
-Both produce the same deployable `<slug>-site.zip`. Pick whichever matches how you're working.
 
 ---
 
-## A. Download website — one click, no terminal (recommended)
+## A. Save to gallery → Export — no terminal (recommended)
 
-In the editor, build your story and click **⛭ Download website**. You get **`<slug>-site.zip`**:
+The editor doesn't publish directly; it **saves to a gallery**, and you export from there. This
+lets you build several stories and ship them together.
 
-```
-<slug>-site/     ← the website (this is what you deploy)
-DEPLOY.md        ← a short copy of the hosting steps below
-```
+1. **Author** your story in the editor, then click **💾 Save to gallery**. You land on the Home
+   **gallery**, where the story now appears under **"Your stories"**.
+2. Repeat for as many stories as you like — each **Save** adds one to the gallery. (Editing a
+   saved story and saving again updates it in place.)
+3. On the gallery, **tick the stories you want** and click **⬇ Export selected**. You get a
+   deployable zip:
+   ```
+   <site>/       ← the website (this is what you deploy)
+   DEPLOY.md     ← a short copy of the hosting steps below
+   ```
+4. Unzip it and [put it online](#putting-it-online). No copying into the repo, no editing
+   `index.json`, no separate build step.
 
-Unzip it and [put it online](#putting-it-online). That's the whole flow — no copying files
-into the repo, no editing `index.json`, no separate build step.
+**Selection decides the landing page:**
+- **One** story selected → the site opens **straight into that story** (a "kiosk"); the zip
+  folder is `<slug>-site`.
+- **Several** selected → the site opens on the **gallery view** listing them (readers pick one);
+  the zip folder is `gallery-site`.
 
-The button assembles the site **in your browser** from the running app plus your story, so it
-only needs the built app. It works from a **hosted deployment of the editor** or from a local
-production preview (`npm run build && npm run preview`). It is **disabled under `npm run dev`**
-(there's no built app to package yet) — in that case use [option B](#b-publish-from-the-repo).
+> **Session-only — export is your save.** The gallery lives in your browser tab for this session
+> only; a reload clears it. That's intentional: the **exported zip is the durable copy** (your
+> portable `story.md` + files), so nothing is trapped in a hidden browser store. Export before you
+> close the tab. (Durable, cross-session libraries come later, with accounts.)
 
-> **Tip — host the editor once.** Deploy this whole app as a static site (it's the same kind
-> of static bundle a published story is). Authors then open that live editor, write a story,
-> and click **⛭ Download website** — no repo, no Node, no CLI.
+> **Needs the built app.** Export assembles the site in your browser from the running app, so it
+> works from a **hosted deployment of the editor** or a local production preview
+> (`npm run build && npm run preview`). It is **disabled under `npm run dev`** — use
+> [option B](#b-publish-from-the-repo) there. (Saving to the gallery works in dev; only Export needs
+> the build.)
+
+> **Tip — host the editor once.** Deploy this whole app as a static site (it's the same kind of
+> static bundle a published story is). Authors then open that live editor, write stories, and
+> export — no repo, no Node, no CLI.
 
 > Uploaded media/models are packaged automatically under `assets/`. Media referenced by a
-> **typed path** (not uploaded through the editor) is *not* included — upload it in the editor
-> so it ships with the site.
+> **typed path** (not uploaded through the editor) is *not* included — upload it in the editor so
+> it ships with the site. A static host can't save files back for you, so the export always
+> downloads to *your* machine.
 
 ---
 
@@ -118,18 +135,20 @@ relative paths and hash-based routing, so it resolves wherever it lives.
   back to system fonts without a connection. Cosmetic only.
 - **URLs have a `#`** (e.g. `…/#/story/<slug>`) → expected. Hash routing is what lets the
   same files run at any path with no server config.
-- **Very large scans** → **⛭ Download website** zips in the browser, so a multi-hundred-MB
-  splat can be memory-heavy; if it struggles, use the CLI ([option B](#b-publish-from-the-repo)).
+- **Very large scans** → **Export** zips in the browser, so a multi-hundred-MB splat (more so a
+  multi-story export) can be memory-heavy; if it struggles, export fewer at once or use the CLI
+  ([option B](#b-publish-from-the-repo)).
 
 ---
 
 ## How it works (for the curious)
 
 - **One shared shape**: a published site = the generic app shell (identical for every story of
-  an app version) + one story's data + a kiosk redirect + `DEPLOY.md`. **⛭ Download website**
-  fetches the running app's shell (listed in `publish-manifest.json`, emitted at build time)
-  and re-zips it with your story — no rebuild. `publish:site` does the same assembly from a
-  fresh build. Both share `src/publish/siteTemplate.mjs`, so they can't drift.
+  an app version) + one or more stories' data + a `DEPLOY.md`, with a kiosk redirect **only** for
+  a single-story export. **Export** fetches the running app's shell (listed in
+  `publish-manifest.json`, emitted at build time) and re-zips it with the selected stories — no
+  rebuild. `publish:site` does the same assembly from a fresh build. Both share
+  `src/publish/siteTemplate.mjs`, so they can't drift.
 - **Hash routing** (`HashRouter`): the browser only ever loads `index.html`; the route lives
   after the `#`. So there's no server-side SPA-fallback to configure, and the document's base
   URL is stable wherever the folder sits.
@@ -138,7 +157,7 @@ relative paths and hash-based routing, so it resolves wherever it lives.
 - **No COOP/COEP headers**: the Gaussian-splat renderer runs without `SharedArrayBuffer`
   (`sharedMemoryForWorkers: false`), so plain static hosts work — no cross-origin isolation
   setup.
-- **Kiosk redirect**: a tiny injected script sends the deployed root straight to
-  `#/story/<slug>`.
+- **Kiosk redirect** (single-story exports only): a tiny injected script sends the deployed root
+  straight to `#/story/<slug>`. A multi-story export omits it, so the site opens on the gallery.
 
-See [`DEVLOG.md`](./DEVLOG.md) → *M9* for the full rationale.
+See [`DEVLOG.md`](./DEVLOG.md) → *M9*–*M11* for the full rationale.

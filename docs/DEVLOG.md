@@ -4,12 +4,12 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-07-04):** M1–M10 complete (M1–M9 merged to `main`, a story published live
+**Current state (2026-07-05):** M1–M11 complete (M1–M10 merged to `main`, a story published live
 to Vercel); **a mobile pass (collapsible Mode A overlay) in review**. The full authoring loop
 works end to end: create a story → import a model → set a start camera → add items with
-waypoints (with inline media upload) → preview Mode A/B → **⛭ Download website** for a
-deployable, host-anywhere static site in one click (or `npm run publish:site` from a terminal).
-Author-facing how-to: [`PUBLISHING.md`](./PUBLISHING.md).
+waypoints (with inline media upload) → preview Mode A/B → **💾 Save to gallery** → on Home,
+**select** stories and **Export** a deployable, host-anywhere static site (one → opens into the
+story, several → opens on a gallery). Author-facing how-to: [`PUBLISHING.md`](./PUBLISHING.md).
 
 ---
 
@@ -108,6 +108,27 @@ the header unobstructed.
   (+ `index.json`) are tracked; any other/test story folder is ignored so it can't be pushed.
 - **Verified:** tsc + vitest (11/11) + build clean; checked on desktop and a real iPhone
   (collapse/reopen, header reachable, no overlap). *Next: reader first-person navigation A/B.*
+
+### M11 — Save-to-gallery + multi-story website export
+Reframed M10's in-editor "Download website" (which conflated authoring with publishing and only
+made single-story sites) into a gallery workflow: the editor's finishing action is now **💾 Save
+to gallery**, and **Home is the gallery** where the author **selects** stories and **exports**.
+- **Selection drives the landing page:** export **one** story → the site kiosk-redirects straight
+  into it (folder `<slug>-site`); export **multiple** → no redirect, the site opens on the gallery
+  listing them (folder `gallery-site`). `src/publish/buildSite.ts`'s `buildSiteZip` was generalized
+  to take `stories[]` and inject the kiosk only when `length === 1`; the registry `index.json` now
+  carries one entry per exported story.
+- **Session-only, in-memory** (new `src/store/useGalleryStore.ts`, no persist). The **exported zip
+  is the durable "save"** — deliberately *no* IndexedDB/backend, keeping the founding "a story is
+  plain files you can zip" principle intact (a browser DB would trap stories in an opaque store).
+  A reload clears the gallery; durable storage + accounts are deferred to the core-engine/SaaS split.
+- **Reuse:** saved stories are stored as the editor's existing `EditSnapshot` (`useDraftStore`), so
+  **Edit** re-opens one verbatim (blob uploads intact) via a new `stashResume`; asset derivation was
+  extracted to `src/publish/collectAssets.ts`, shared by the editor and the export.
+- **Verified:** tsc + vitest (19/19, incl. new gallery-store + collectAssets tests) + build clean;
+  headless E2E (system Chrome) drove the full flow — author A & B → Save → export A-only boots into
+  `#/story/story-a`, export A+B boots on the gallery with both listed → Edit round-trip restores
+  title + uploaded model → dev-mode Export disabled. Screenshots captured.
 
 ### M10 — One-click in-editor website export
 Removed the manual publish round-trip. The M9 flow was: editor **Download bundle** (source zip)

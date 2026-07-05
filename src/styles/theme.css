@@ -771,6 +771,59 @@ a:hover {
 .cta-muted {
   color: var(--muted);
 }
+/* Actions rendered as <button> (gallery Edit/Remove) match the link ctas. */
+button.cta {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ── Home gallery: your saved (session) stories ───────────────────────────── */
+.home-h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  margin: 44px 0 4px;
+}
+.gallery-mine {
+  margin-top: 8px;
+}
+.gallery-mine-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.gallery-mine-head .home-h2 {
+  margin: 0;
+}
+.home-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 8px 0 4px;
+  max-width: 72ch;
+}
+.home-examples-h {
+  margin-top: 48px;
+}
+.gallery-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.gallery-pick input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.story-card.is-selected {
+  border-color: var(--accent);
+}
 .page-topbar-actions {
   display: flex;
   align-items: center;

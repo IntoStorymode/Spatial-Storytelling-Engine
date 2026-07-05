@@ -59,12 +59,12 @@ nice-to-have / exploratory.
 - **[P2] Guided model import**
   In-app guidance (or a thin wrapper) around the SuperSplat clean/convert step, plus
   clearer messaging on splat formats and recommended `.ksplat` sizes.
-- **[P2] Asset management for uploads** *(done in M8; export path superseded by M10)*
+- **[P2] Asset management for uploads** *(done in M8; export path superseded by M10 → M11)*
   ✅ Per-item media upload lets the author attach files in the editor. The M8 source
-  "Download bundle" was **replaced in M10** by one-click **⛭ Download website**, which packages
-  uploaded assets straight into a deployable site (see Platform / distribution below).
-  **Remaining:** media referenced by a *typed* path (not uploaded) still isn't included — the
-  author copies it in by hand.
+  "Download bundle" was replaced in M10 by an in-editor website export, then reframed in **M11**
+  to **💾 Save to gallery → ⬇ Export** (uploaded assets are packaged into the deployable site on
+  export; see Platform / distribution below). **Remaining:** media referenced by a *typed* path
+  (not uploaded) still isn't included — the author copies it in by hand.
 - **[P3] Multiple models / model switching within one story** (exploratory).
 - **[P3] Point-cloud PLY polish** *(after the point-cloud support fix)* — robust percentile framing
   for point clouds (mirror `robustSplatFraming`) if stray outliers balloon the AABB; a soft
@@ -92,7 +92,15 @@ nice-to-have / exploratory.
 
 ## Platform / distribution (post-prototype)
 
-- **[done in M10, PR #16] One-click in-editor website export**
+- **[done in M11] Save-to-gallery + multi-story website export**
+  ✅ Reframed the M10 in-editor export into a gallery flow: **💾 Save to gallery** in the editor →
+  on Home, **select** stories and **⬇ Export**. One story → kiosk site (`<slug>-site`); several →
+  gallery-first site (`gallery-site`). `buildSiteZip` generalized to `stories[]` (kiosk injected
+  only when one). Session-only, in-memory (`useGalleryStore`); the exported zip is the durable
+  save — no browser DB. **Remaining / future:** exportable set is session-saved stories only
+  (including the repo's registered stories in an export needs the fetch-+-parse-assets path);
+  durable cross-session gallery + accounts deferred to the core-engine/SaaS split.
+- **[done in M10, PR #16] One-click in-editor website export** *(superseded by M11's gallery flow)*
   ✅ **⛭ Download website** in the editor produces the same deployable `<slug>-site.zip` as
   `publish:site`, assembled **in the browser** — no repo drop, no `index.json` merge, no CLI,
   no per-story rebuild. A build-time `dist/publish-manifest.json` lists the app shell;
@@ -111,8 +119,9 @@ nice-to-have / exploratory.
   Author guide: [`PUBLISHING.md`](./PUBLISHING.md). **Remaining / future:** a multi-story
   gallery site export (this is single-story "kiosk" only — see below); optional custom-domain
   guidance; the M8 "typed-path media not bundled" caveat still applies to the source story.
-- **[P3] Story registry / gallery** beyond the single `index.json` demo list — including a
-  *whole-gallery* static-site export (M9 ships single-story only).
+- **[P3] Story registry / gallery** beyond the single `index.json` demo list. *(M11 added a
+  session gallery + multi-story "gallery-first" export.)* **Remaining:** a durable/registered
+  gallery and exporting the repo's own registered stories (not just session-saved ones).
 - **[P2] Standalone VR viewer tool (WebXR, GLB-only)** *(plan ready)* — a separate Vite entry (`vr.html` + `src/vr/`) that opens one GLB story in VR (dolly-rig locomotion, teleport-to-waypoint, in-scene caption), fully isolated from the main platform (import-only reuse of `parseStory`/`loadModel`); splats-in-VR and full 3D UI deferred. Full plan: [`vr-tool-plan.md`](./vr-tool-plan.md).
 
 ---
