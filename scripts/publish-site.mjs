@@ -29,6 +29,7 @@ import {
   deployMd,
   indexEntry,
   injectKiosk,
+  injectPublishedMarker,
   siteDirName,
 } from '../src/publish/siteTemplate.mjs'
 
@@ -89,11 +90,12 @@ for (const name of readdirSync(distStories)) {
 }
 writeFileSync(join(distStories, 'index.json'), JSON.stringify({ stories: [entry] }, null, 2))
 
-// ── 5. Kiosk entry: open the deployed root straight into the story ───────────
-// Inject a tiny redirect before the app bundle. It only fires when there's no
-// hash yet, so deep links (…/#/story/<slug>) and in-app nav are untouched.
+// ── 5. Kiosk entry + published marker ────────────────────────────────────────
+// Inject a tiny redirect before the app bundle (fires only when there's no hash
+// yet, so deep links …/#/story/<slug> and in-app nav are untouched), plus the
+// published marker so the hosted site is read-only (no editor).
 const indexPath = join(dist, 'index.html')
-writeFileSync(indexPath, injectKiosk(readFileSync(indexPath, 'utf8'), slug))
+writeFileSync(indexPath, injectPublishedMarker(injectKiosk(readFileSync(indexPath, 'utf8'), slug)))
 
 // ── 6. Zip <slug>-site/ (the site) + DEPLOY.md ───────────────────────────────
 // DEPLOY.md lives next to the folder in the zip, not inside the site.

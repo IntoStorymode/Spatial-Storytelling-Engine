@@ -33,6 +33,22 @@ export function injectKiosk(html, slug) {
 }
 
 /**
+ * Mark the built index.html as a *published* (exported/hosted) site by setting a
+ * global before the app's module loads. The app reads `window.__SSP_PUBLISHED__`
+ * to switch to read-only mode (no editor: hides Edit/Remove/New-story, guards the
+ * /edit and /preview routes). Applied to EVERY export — single and gallery — so a
+ * hosted site never exposes authoring controls, while the authoring app (dev,
+ * preview, or a plain deploy of the editor) carries no marker.
+ */
+export function injectPublishedMarker(html) {
+  const marker = `<script>window.__SSP_PUBLISHED__=true</script>`
+  if (html.includes('<script type="module"')) {
+    return html.replace('<script type="module"', `${marker}\n    <script type="module"`)
+  }
+  return html.replace('</head>', `  ${marker}\n  </head>`) // fallback
+}
+
+/**
  * The registry entry for one story, matching public/stories/index.json's shape.
  * `fm` is the story frontmatter ({ title, author, location, date, ... }).
  */

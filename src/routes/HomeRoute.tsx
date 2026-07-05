@@ -5,6 +5,7 @@ import { useDraftStore } from '../store/useDraftStore'
 import { buildSiteZip, fetchManifest, type ExportStory, type Manifest } from '../publish/buildSite'
 import { collectAssets } from '../publish/collectAssets'
 import { triggerDownload } from '../publish/download'
+import { isPublishedSite } from '../publish/published'
 
 interface StoryIndexEntry {
   id: string
@@ -24,6 +25,10 @@ export function HomeRoute() {
   const navigate = useNavigate()
   const [stories, setStories] = useState<StoryIndexEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // On a published (exported/hosted) site the app is read-only: no editor, no
+  // saving/exporting. Hide every authoring entry point below.
+  const published = isPublishedSite()
 
   const saved = useGalleryStore((s) => s.stories)
   const removeSaved = useGalleryStore((s) => s.remove)
@@ -108,12 +113,14 @@ export function HomeRoute() {
           One Markdown file drives two ways to read the same place — a long-form page with
           the model inline, or an immersive scene you move through. Pick a story to begin.
         </p>
-        <Link to="/edit/new" className="btn btn-accent home-new">
-          + New story
-        </Link>
+        {!published && (
+          <Link to="/edit/new" className="btn btn-accent home-new">
+            + New story
+          </Link>
+        )}
       </header>
 
-      {saved.length > 0 && (
+      {!published && saved.length > 0 && (
         <section className="gallery-mine">
           <div className="gallery-mine-head">
             <h2 className="home-h2">
@@ -192,9 +199,11 @@ export function HomeRoute() {
                 <Link to={`/story/${s.id}`} className="cta">
                   Read →
                 </Link>
-                <Link to={`/edit/${s.id}`} className="cta cta-muted">
-                  Edit
-                </Link>
+                {!published && (
+                  <Link to={`/edit/${s.id}`} className="cta cta-muted">
+                    Edit
+                  </Link>
+                )}
               </div>
             </div>
           ))}

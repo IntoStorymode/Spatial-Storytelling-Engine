@@ -1,7 +1,7 @@
 import JSZip from 'jszip'
 import type { Story } from '../parser/types'
 import { serializeStory } from '../parser/serializeStory'
-import { deployMd, indexEntry, injectKiosk, siteDirName } from './siteTemplate.mjs'
+import { deployMd, indexEntry, injectKiosk, injectPublishedMarker, siteDirName } from './siteTemplate.mjs'
 
 /** The app-shell file list emitted at build time (see the vite publish-manifest plugin). */
 export interface Manifest {
@@ -73,8 +73,9 @@ export async function buildSiteZip({ stories, manifest }: BuildSiteOpts): Promis
   const htmlRes = await fetch('index.html')
   if (!htmlRes.ok) throw new Error(`publish: could not fetch index.html (${htmlRes.status})`)
   const html = await htmlRes.text()
-  // Kiosk only for a single story; a gallery export should land on Home.
-  site.file('index.html', single ? injectKiosk(html, stories[0].slug) : html)
+  // Kiosk only for a single story (a gallery export should land on Home); the
+  // published marker goes on every export so the hosted site is read-only.
+  site.file('index.html', injectPublishedMarker(single ? injectKiosk(html, stories[0].slug) : html))
 
   // 2. The registry: one entry per exported story.
   site.file(
