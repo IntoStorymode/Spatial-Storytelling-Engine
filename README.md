@@ -1,138 +1,86 @@
-# Spatial Storytelling Platform — Prototype
+# Spatial Storytelling Platform
 
-A local-first web prototype that demonstrates one core concept: **a single Markdown
-`story.md` file drives two switchable presentation modes — without reloading.**
+A local-first web app for telling stories **inside** a 3D scan. One Markdown `story.md` file
+drives two switchable presentation modes — no reload, no backend.
 
 > The scan is shared infrastructure; the story is the act of authorship.
 
-- **Mode B — Page view (default):** a scrolling long-form article; the 3D model is one
-  inline element in the scroll. *Narrative around the scan.*
-- **Mode A — Immersive view:** a full-screen 3D scene where scrolling / Next-Prev animates
-  the camera to each story item's bound hotspot and shows its content as an overlay.
-  *Narrative inside the scan.*
+![Page view and immersive view of the same story](./docs/images/hero-modes.png)
+<!-- TODO: replace with a side-by-side capture from a real splat story (Mode B | Mode A) -->
 
-Both modes read the **same** parsed story file. A toggle switches between them live.
+- **Page view (Mode B):** a scrolling long-form article; the 3D model is one inline element in
+  the scroll. *Narrative around the scan.*
+- **Immersive view (Mode A):** a full-screen 3D scene where advancing the story flies the camera
+  to each item's bound waypoint and shows its content as an overlay. *Narrative inside the scan.*
 
-## Status
+Both modes read the **same** story file; a toggle switches between them live.
 
-**Prototype complete — M1–M7 merged** (see [`PLAN.md`](./PLAN.md) and the
-[development log](./docs/DEVLOG.md)).
-Done: M1 data core · M2 3D engine · M3 page view + home + routing · M4 immersive
-view + auto-tour · M5 Gaussian-splat support · M6 story editor · M7 editor polish
-(start camera, in-editor A/B preview). Next steps are tracked in the
-[backlog](./docs/BACKLOG.md).
+---
 
-## Getting started
+## Quick start
 
-**Prerequisites**
-
-- **Node.js 18 or newer** (Vite 5 and Vitest require it; the app will not start on Node 16
-  or earlier). Check with `node -v`. If you use `nvm`, run `nvm use 20` (or any ≥18) first.
-- **npm** (ships with Node).
-
-**Run it**
+**Prerequisites:** Node.js 18+ and npm. (With `nvm`: `nvm use 20`.)
 
 ```bash
 git clone https://github.com/WWStoryMode/Spatial-Storytelling-Platform
 cd Spatial-Storytelling-Platform
 npm install
-npm run dev      # → http://localhost:5173
+npm run dev        # → http://localhost:5173
 ```
 
-Then open http://localhost:5173/ — the Home page lists the bundled demo stories. Click
-**+ New story** to open the editor.
+Open **http://localhost:5173/** — Home lists the bundled demo stories. Click **+ New story** to
+open the editor.
 
-Other scripts: `npm run build` (type-check + production bundle), `npm run preview` (serve
-the built bundle), `npm run test` (Vitest), `npm run publish:site -- <slug>` (export one
-story as a deploy-anywhere static site — see [Publish as a website](#publish-as-a-website)).
+Other scripts: `npm run build` (type-check + production bundle) · `npm run preview` (serve the
+build) · `npm run test` (Vitest) · `npm run publish:site -- <slug>` (export one story as a
+deploy-anywhere site).
 
-## Stack
+## Create your first story
 
-- **React + Vite + TypeScript**
-- **One unified Three.js viewer** for both GLB meshes and Gaussian splats
-  (`.ply` / `.splat` / `.ksplat` / `.spz`), using
-  [`camera-controls`](https://github.com/yomotsu/camera-controls) for
-  hotspot-to-hotspot camera animation and
-  [`@mkkellogg/gaussian-splats-3d`](https://github.com/mkkellogg/GaussianSplats3D)
-  for splat rendering (lazy-loaded, so it only ships to splat-backed stories).
-- No backend — all story data and assets are local files under `/public/stories`.
+The fastest path is the in-app editor (**+ New story** on Home):
 
-## Story format
+![The story editor](./docs/images/editor.png)
 
-A single Markdown file with YAML frontmatter and a sequence of `## [item-id] Title` blocks,
-each with a `type` (text / image / audio / video), optional `src`/`caption`, body text, and a
-`hotspot:` block (`position` + `target` in 3D space). See `PLAN.md` for the full spec.
+1. Fill in the details and **Upload** your 3D scan — a `.glb` mesh or a `.ply`/`.splat`/
+   `.ksplat`/`.spz` Gaussian splat.
+2. **Add items** (text / image / audio / video) and upload any media inline.
+3. Set the **story start** view and each item's **waypoint** in the 3D scene; hit **▶ Preview**
+   to check both modes.
+4. Click **💾 Save to gallery**, then from Home **select** stories and **⬇ Export** a
+   self-contained website.
 
-## Bring your own scan
+📖 Full walkthrough + the `story.md` format → **[Authoring a story](./docs/AUTHORING.md)**.
+Preparing a scan or a splat that loads upside down →
+**[Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md)**. Hosting the exported site →
+**[Publishing & sharing](./docs/PUBLISHING.md)**.
 
-The quickest path is the **in-app editor** (`+ New story` on the Home page):
+## Documentation
 
-1. Fill in the metadata and **Upload file…** your [Scaniverse](https://scaniverse.com/)
-   export (`.glb` or `.splat`/`.ply`).
-2. Add items (text / image / audio / video); **Upload file…** any media inline.
-3. Set the **story start** view and each item's **waypoint** in the 3D scene, and use
-   **▶ Preview** to check Mode A / B live.
-4. Click **💾 Save to gallery** — the story is added to your **gallery** (the Home page). On the
-   gallery, tick the stories you want and click **⬇ Export selected** to get a self-contained
-   static site: pick **one** → it opens straight into that story; pick **several** → it opens on a
-   gallery listing them. Unzip and drop the folder on any static host (Netlify, Vercel, S3, …) —
-   no repo edits, no CLI. (Export assembles the site in your browser, so it works from the built or
-   hosted editor; under `npm run dev` use `npm run publish:site` — see below.)
+| Guide | What's in it |
+| --- | --- |
+| [Authoring a story](./docs/AUTHORING.md) | The editor, hand-authoring, and the full `story.md` format reference. |
+| [Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md) | Supported formats, SuperSplat prep, the orientation fix, COOP/COEP. |
+| [Publishing & sharing](./docs/PUBLISHING.md) | Export a story as a static site and host it (Netlify, Vercel, and more). |
+| [Development log](./docs/DEVLOG.md) | Architecture, key decisions, and milestone history. |
+| [Backlog](./docs/BACKLOG.md) | Roadmap and proposed features. |
+| [Implementation plan](./PLAN.md) | The original prototype plan. |
 
-Prefer to author by hand? You can also drop files into `/public/stories/my-story/assets/`,
-write a `story.md` by the format below, add an `index.json` entry, and `npm run dev`.
+## Tech stack
 
-> **Tip:** to clean, crop, and web-optimize a raw `.ply` splat (e.g. `.ply` → `.ksplat`),
-> use [SuperSplat](https://superspl.at/editor) (open source, free) before dropping it in.
+- **React + Vite + TypeScript**, hash-routed and fully static.
+- **One unified [Three.js](https://threejs.org/) viewer** for both GLB meshes and Gaussian
+  splats, with [`camera-controls`](https://github.com/yomotsu/camera-controls) for
+  hotspot-to-hotspot animation and
+  [`@mkkellogg/gaussian-splats-3d`](https://github.com/mkkellogg/GaussianSplats3D) for splats
+  (lazy-loaded — only splat stories pay for it).
+- **No backend** — story data and assets are plain files under `public/stories/`.
 
-## Publish as a website
+Architecture and rationale live in the [development log](./docs/DEVLOG.md).
 
-A published story is a **self-contained static site** ready to drop on any host. Two ways to
-produce one:
+## Status
 
-- **💾 Save to gallery → ⬇ Export** in the editor — no terminal. Save each finished story to the
-  gallery, then select which to export. One story → the site opens into it; several → it opens on
-  a gallery. Assembled in the browser, so it works from the built or hosted editor (Export is
-  disabled under `npm run dev`; saving still works). The gallery is **session-only** — the exported
-  zip is your durable copy.
-- **`npm run publish:site -- <slug>`** — single-story, for stories in the repo or when authoring
-  under `npm run dev`:
-
-```
-npm run publish:site -- <slug>
-```
-
-This builds the app, trims it to that one story, and writes **`<slug>-site.zip`** containing
-the deployable `<slug>-site/` folder plus a `DEPLOY.md`. Deploy it by dragging the folder
-onto [netlify.com/drop](https://app.netlify.com/drop), running `npx vercel deploy` inside it,
-or uploading it to any static host (S3, Cloudflare Pages, GitHub Pages, nginx, …).
-
-The same folder works at a **domain root or any subfolder** (e.g.
-`example.com/news/spatial/`) with no server config and no special headers — the app uses
-hash-based routing and relative paths. Two notes: access subfolder deploys **with a trailing
-slash**, and the page loads web fonts from Google Fonts (graceful fallback offline). The
-generated zip is git-ignored, so published sites never get committed.
-
-📖 **Full step-by-step** — exporting and hosting on Netlify, Vercel, and other platforms,
-plus troubleshooting: see [`docs/PUBLISHING.md`](./docs/PUBLISHING.md).
-
-## Gaussian splats
-
-A splat-backed story is identical to a GLB one — only the `model:` line differs
-(`model: assets/scene.ksplat`). The loader auto-detects `.ply` / `.splat` /
-`.ksplat` / `.spz`, and the same hotspots drive the same camera animation in both
-modes.
-
-A ready-to-use template lives in
-[`public/stories/splat-example/`](./public/stories/splat-example/) — drop your
-file into its `assets/`, add the story to `public/stories/index.json`, and open
-it. Full steps are in that folder's README.
-
-**Cross-origin isolation:** splat GPU-sorting uses `SharedArrayBuffer`, which
-needs `Cross-Origin-Opener-Policy: same-origin` and
-`Cross-Origin-Embedder-Policy: require-corp`. The Vite dev **and** preview servers
-already send these (`vite.config.ts`); replicate them wherever you host, or the
-viewer falls back to a slower CPU sort.
+Working prototype (milestones M1–M11 merged). Next steps are tracked in the
+[backlog](./docs/BACKLOG.md).
 
 ## License
 

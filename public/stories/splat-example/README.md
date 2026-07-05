@@ -25,8 +25,9 @@ scan.
   headers the splat sorter needs for GPU sorting + `SharedArrayBuffer`. If you
   deploy elsewhere, send the same headers or the viewer falls back to a slower
   CPU sort.
-- **Orientation:** splat scenes from training are sometimes rotated/inverted. If
-  yours loads sideways, adjust the hotspots, or we can add a model-rotation
-  option to the loader.
+- **Orientation:** splats are sometimes trained upside down. If yours loads
+  inverted, set `orientation: "flip"` in `story.md` (or **Model orientation →
+  Flip upright** in the editor). See
+  [`docs/GAUSSIAN-SPLATS.md`](../../../docs/GAUSSIAN-SPLATS.md#orientation).
 - The generated `scene.splat` is gitignored (rebuilt on demand), like the demo's
   other generated assets.

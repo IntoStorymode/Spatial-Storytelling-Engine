@@ -19,6 +19,8 @@ There are two ways to produce that website, for two situations:
 The editor doesn't publish directly; it **saves to a gallery**, and you export from there. This
 lets you build several stories and ship them together.
 
+![The Home gallery — saved stories with selection checkboxes and Export](./images/gallery.png)
+
 1. **Author** your story in the editor, then click **💾 Save to gallery**. You land on the Home
    **gallery**, where the story now appears under **"Your stories"**.
 2. Repeat for as many stories as you like — each **Save** adds one to the gallery. (Editing a
@@ -91,6 +93,20 @@ Pick any host. The same folder works on all of them.
 4. Netlify gives you a live URL immediately (e.g. `https://calm-otter-1234.netlify.app`).
    Optionally rename the site or attach a custom domain in **Site settings → Domain**.
 
+### Vercel — drag & drop (Vercel Drop)
+
+Like Netlify Drop, but on Vercel — no CLI, no Git:
+
+1. Unzip `<slug>-site.zip` (or keep the whole `<slug>-site/` folder zipped).
+2. Go to **<https://vercel.com/drop>**.
+3. Drag the **`<slug>-site`** folder (or its `.zip`) onto the page, pick a team and project
+   name, and select **Deploy**. Vercel publishes it straight to a production URL.
+4. If it asks for a **Root** page (the site already has `index.html`, so it usually won't),
+   choose `index.html`.
+
+> Each drop creates a **new** project and isn't connected to Git, so it won't auto-redeploy —
+> re-drop to update, or connect a repo afterward. Great for quick demos and one-off sites.
+
 ### Vercel — CLI
 
 1. Unzip the file, then from inside the site folder:
@@ -101,8 +117,7 @@ Pick any host. The same folder works on all of them.
 2. The first run opens a browser to log in, then asks a few setup questions (scope, project
    name) — accept the defaults; when asked for the directory to deploy, use the current one
    (`./`). It prints a production URL when done.
-3. Re-deploy later by re-running the same command (or drag the folder into the Vercel
-   dashboard via **Add New → Project**).
+3. Re-deploy later by re-running the same command.
 
 ### Cloudflare Pages / Surge / Render / any static host
 
