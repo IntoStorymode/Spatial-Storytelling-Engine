@@ -123,3 +123,38 @@ describe('story parser — reader navigation', () => {
     expect(story.warnings.some((w) => w.includes('navigation'))).toBe(true)
   })
 })
+
+describe('story parser — model orientation override', () => {
+  const withFlip =
+    '---\ntitle: "x"\nmodel: "assets/scene.splat"\norientation: "flip"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+
+  it('parses a flip orientation override', () => {
+    const story = parseStory(withFlip, BASE)
+    expect(story.warnings).toEqual([])
+    expect(story.frontmatter.orientation).toBe('flip')
+  })
+
+  it('parses a none orientation override', () => {
+    const md = '---\ntitle: "x"\norientation: "none"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    expect(parseStory(md, BASE).frontmatter.orientation).toBe('none')
+  })
+
+  it('omits orientation when absent (auto correction at load time)', () => {
+    const story = parseStory('---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n', BASE)
+    expect(story.frontmatter.orientation).toBeUndefined()
+  })
+
+  it('round-trips a story with an orientation override', () => {
+    const s1 = parseStory(withFlip, BASE)
+    const s2 = parseStory(serializeStory(s1), BASE)
+    expect(s2.frontmatter).toEqual(s1.frontmatter)
+    expect(s2.warnings).toEqual([])
+  })
+
+  it('warns on an unknown orientation value', () => {
+    const md = '---\ntitle: "x"\norientation: "sideways"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    const story = parseStory(md, BASE)
+    expect(story.frontmatter.orientation).toBeUndefined()
+    expect(story.warnings.some((w) => w.includes('orientation'))).toBe(true)
+  })
+})

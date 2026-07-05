@@ -47,6 +47,7 @@ export function ViewerStage({
   const step = useStoryStore((s) => s.step)
   const navMode = useStoryStore((s) => s.navMode)
   const setNavMode = useStoryStore((s) => s.setNavMode)
+  const videoPlaying = useStoryStore((s) => s.videoPlaying)
 
   // Seed the reader's navigation from the story's default whenever a new story
   // (or preview draft) loads; the reader can then toggle it live without
@@ -80,7 +81,7 @@ export function ViewerStage({
     setLoadError(null)
     setLoading(true)
     viewer
-      .setModel(frontmatter.model, basePath, modelFormat)
+      .setModel(frontmatter.model, basePath, modelFormat, frontmatter.orientation)
       .then(() => {
         if (start) viewer.flyTo(start.position, start.target, false)
       })
@@ -89,7 +90,7 @@ export function ViewerStage({
         setLoadError(e instanceof Error ? e.message : String(e))
       })
       .finally(() => setLoading(false))
-  }, [viewer, frontmatter.model, basePath, modelFormat, start])
+  }, [viewer, frontmatter.model, basePath, modelFormat, frontmatter.orientation, start])
 
   // A fresh entry into Mode A should open on the story start view, not jump
   // straight to item 1's waypoint — so reset the "opened" latch in Mode B.
@@ -153,11 +154,20 @@ export function ViewerStage({
 
   // Auto-tour: schedule the next advance after the dwell. Reschedules on each
   // activeIndex change; cleared when the tour is off or the mode leaves immersive.
+  // Held while a video plays so the reader isn't flown off mid-clip (it resumes
+  // when the video pauses/ends — videoPlaying flips false).
   useEffect(() => {
-    if (!autoTour || mode !== 'immersive') return
+    if (!autoTour || mode !== 'immersive' || videoPlaying) return
     const id = window.setTimeout(() => step(1, { wrap: true }), AUTO_TOUR_DWELL_MS)
     return () => window.clearTimeout(id)
-  }, [autoTour, mode, activeIndex, step])
+  }, [autoTour, mode, activeIndex, step, videoPlaying])
+
+  // Quiesce the render loop (and its per-frame splat sort) while a video plays so
+  // the decoder/compositor get the main thread; interaction overrides it in the
+  // viewer, and releasing catches the scene up.
+  useEffect(() => {
+    viewer?.setRenderPaused(videoPlaying)
+  }, [viewer, videoPlaying])
 
   return (
     <StageContext.Provider value={{ hostEl: hostRef.current, viewer }}>

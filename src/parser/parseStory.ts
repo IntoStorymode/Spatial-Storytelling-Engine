@@ -66,6 +66,11 @@ export function parseStory(raw: string, basePath = ''): Story {
         if (nav === 'orbit' || nav === 'firstPerson') frontmatter.navigation = nav
         else warnings.push(`Frontmatter navigation: expected "orbit" or "firstPerson", got "${nav}"`)
       }
+      if (data.orientation !== undefined) {
+        const orient = toStr(data.orientation)
+        if (orient === 'flip' || orient === 'none') frontmatter.orientation = orient
+        else warnings.push(`Frontmatter orientation: expected "flip" or "none", got "${orient}"`)
+      }
     } catch (e) {
       warnings.push(`Frontmatter parse error: ${String(e)}`)
     }

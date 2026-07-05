@@ -330,6 +330,7 @@ export function EditorRoute() {
           <HotspotPlacer
             previewSrc={previewSrc}
             previewFormat={previewFormat}
+            previewOrientation={fm.orientation}
             basePath={basePath}
             selected={selected}
             onHotspotChange={(h) => selected && setHotspot(selected.id, h)}

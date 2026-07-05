@@ -71,6 +71,7 @@ export class ThreeViewer {
   private readonly resizeObserver: ResizeObserver
   private rafId = 0
   private renderTail = 0 // frames left to render; 0 = idle (on-demand rendering)
+  private renderPaused = false // hold the idle render tail (e.g. while a video plays)
   private currentModel: THREE.Object3D | null = null
   private readonly gizmos: Record<GizmoSlot, Gizmo | null> = { item: null, start: null }
   private disposed = false
@@ -139,11 +140,27 @@ export class ThreeViewer {
     this.applyFlyMovement(delta)
     this.applyMoveAccum()
     // Damping/inertia tail and any programmatic camera change land here.
-    if (this.controls.update(delta)) this.invalidate()
-    if (this.renderTail > 0) {
+    const cameraMoved = this.controls.update(delta)
+    if (cameraMoved) this.invalidate()
+    // While a video plays we hold the idle render tail (and its per-frame splat
+    // sort) so the decoder/compositor aren't starved. Genuine interaction — held
+    // fly keys or the camera actually moving this frame — still renders, so a
+    // settled-but-paused scene never freezes under the reader's hands.
+    const interacting = this.heldKeys.size > 0 || cameraMoved
+    if (this.renderTail > 0 && (!this.renderPaused || interacting)) {
       this.renderTail--
       this.renderer.render(this.scene, this.camera)
     }
+  }
+
+  /**
+   * Hold or release the idle render tail. Set true while an overlay video plays
+   * so the settled scene stops re-rendering (and re-sorting splats); interaction
+   * overrides it per-frame in `animate`, and releasing invalidates to catch up.
+   */
+  setRenderPaused(paused: boolean): void {
+    this.renderPaused = paused
+    if (!paused) this.invalidate()
   }
 
   /**
@@ -166,13 +183,18 @@ export class ThreeViewer {
   }
 
   /** Replace the current model. Frames the camera to fit it. */
-  async setModel(url: string, basePath = '', formatHint?: string): Promise<THREE.Object3D> {
+  async setModel(
+    url: string,
+    basePath = '',
+    formatHint?: string,
+    orientation?: 'flip' | 'none',
+  ): Promise<THREE.Object3D> {
     if (this.currentModel) {
       this.scene.remove(this.currentModel)
       disposeObject(this.currentModel)
       this.currentModel = null
     }
-    const obj = await loadModel(url, basePath, formatHint)
+    const obj = await loadModel(url, basePath, formatHint, orientation)
     if (this.disposed) {
       disposeObject(obj)
       return obj
