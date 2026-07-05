@@ -33,6 +33,8 @@ interface DraftState {
   /** Set when leaving the editor for /preview; consumed on the editor's next mount. */
   resume: EditSnapshot | null
   openPreview: (preview: DraftPreview, resume: EditSnapshot) => void
+  /** Stash a resume snapshot without a preview — used to re-open a saved story. */
+  stashResume: (resume: EditSnapshot) => void
   /** Pure read — the snapshot for `key`, or null. Safe to call during render. */
   peekResume: (key: string) => EditSnapshot | null
   clearResume: () => void
@@ -49,6 +51,7 @@ export const useDraftStore = create<DraftState>((set, get) => ({
   preview: null,
   resume: null,
   openPreview: (preview, resume) => set({ preview, resume }),
+  stashResume: (resume) => set({ resume }),
   peekResume: (key) => {
     const snap = get().resume
     return snap && snap.key === key ? snap : null

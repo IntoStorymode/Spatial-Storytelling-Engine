@@ -4,6 +4,9 @@ import { parseStory } from '../parser/parseStory'
 import type { Frontmatter, Hotspot, ItemType, Story, StoryItem } from '../parser/types'
 import { useDraftStore } from '../store/useDraftStore'
 import type { Upload } from '../store/useDraftStore'
+import { useGalleryStore } from '../store/useGalleryStore'
+import { collectAssets } from '../publish/collectAssets'
+import { slugify } from '../publish/slug'
 import { StoryMetaForm } from '../components/editor/StoryMetaForm'
 import { ItemList } from '../components/editor/ItemList'
 import { ItemForm } from '../components/editor/ItemForm'
@@ -189,16 +192,17 @@ export function EditorRoute() {
 
   // Uploaded model/media live only in this browser session (held as blob URLs,
   // not on disk). Warn before they're lost — but NOT when going to /preview
-  // (a round-trip that keeps the uploads), and NOT once the site is downloaded.
+  // (a round-trip that keeps the uploads), and NOT once the story is saved to
+  // the gallery (the session store then holds the uploads).
   const hasUploads = !!uploaded || Object.keys(mediaUploads).length > 0
-  // Set when "Download website" saves the uploads to disk; any later edit re-arms
-  // the warning since the exported zip no longer matches the draft.
-  const [exported, setExported] = useState(false)
-  const warnOnLeave = hasUploads && !exported
+  // Set when "Save to gallery" hands the draft to the gallery store; any later
+  // edit re-arms the warning since the saved copy no longer matches the draft.
+  const [saved, setSaved] = useState(false)
+  const warnOnLeave = hasUploads && !saved
   const [confirmLeave, setConfirmLeave] = useState(false)
 
   useEffect(() => {
-    setExported(false)
+    setSaved(false)
   }, [fm, items, uploaded, mediaUploads])
 
   function leaveToHome() {
@@ -218,15 +222,28 @@ export function EditorRoute() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [warnOnLeave])
 
-  // Bundle-able assets actually referenced by the current draft: the uploaded
-  // model plus any uploaded media still pointed at by an item.
-  const bundleAssets: { path: string; file: File }[] = [
-    ...(uploaded ? [{ path: fm.model, file: uploaded.file }] : []),
-    ...items
-      .map((i) => i.src)
-      .filter((src): src is string => !!src && !!mediaUploads[src])
-      .map((src) => ({ path: src, file: mediaUploads[src].file })),
-  ]
+  // Bundle-able assets actually referenced by the current draft (shared with the
+  // gallery export so both compute the same set).
+  const bundleAssets = collectAssets(fm, items, uploaded, mediaUploads)
+
+  // Finish → hand this draft to the in-session gallery (as an editor snapshot so
+  // it re-opens verbatim), then go to the gallery where the author selects and
+  // exports. Upsert by slug, so re-saving an edited story updates it in place.
+  function saveToGallery() {
+    const slug = slugify(fm.title)
+    useGalleryStore.getState().save({
+      slug,
+      key: slug,
+      fm,
+      items,
+      basePath,
+      uploaded,
+      mediaUploads,
+      savedAt: Date.now(),
+    })
+    setSaved(true)
+    navigate('/')
+  }
 
   // Open the draft in the real viewer (Mode A/B) without exporting. Stashes a
   // resume snapshot so returning restores this exact draft, blob model included.
@@ -276,7 +293,7 @@ export function EditorRoute() {
           <ExportBar
             story={{ frontmatter: fm, items, basePath, warnings: [] }}
             assets={bundleAssets}
-            onBundleDownloaded={() => setExported(true)}
+            onSave={saveToGallery}
           />
         </div>
       </div>
@@ -327,7 +344,7 @@ export function EditorRoute() {
           title="Discard uploaded files?"
           message={
             'Your uploaded 3D model and media live only in this browser session — ' +
-            "they aren't saved anywhere yet. Download the website first if you want to keep them."
+            "they aren't saved anywhere yet. Save to your gallery first if you want to keep them."
           }
           confirmLabel="Leave & discard"
           cancelLabel="Keep editing"

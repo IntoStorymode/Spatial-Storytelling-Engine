@@ -98,8 +98,8 @@ writeFileSync(indexPath, injectKiosk(readFileSync(indexPath, 'utf8'), slug))
 // ── 6. Zip <slug>-site/ (the site) + DEPLOY.md ───────────────────────────────
 // DEPLOY.md lives next to the folder in the zip, not inside the site.
 const zip = new JSZip()
-zip.file('DEPLOY.md', deployMd({ title: entry.title, slug }))
 const siteRoot = siteDirName(slug)
+zip.file('DEPLOY.md', deployMd({ title: entry.title, siteDir: siteRoot }))
 function addDir(absDir, zipPrefix) {
   for (const name of readdirSync(absDir)) {
     // The build's app-shell manifest is only consumed by the editor's in-app

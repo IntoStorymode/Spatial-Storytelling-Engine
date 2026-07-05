@@ -28,25 +28,38 @@ export async function fetchManifest(): Promise<Manifest | null> {
   }
 }
 
-interface BuildSiteOpts {
-  story: Story
-  /** Uploaded files to include, at their export paths (e.g. `assets/scene.glb`). */
-  assets: { path: string; file: File }[]
+/** One story to include in an export: its slug, parsed story, and uploaded assets. */
+export interface ExportStory {
   slug: string
+  story: Story
+  assets: { path: string; file: File }[]
+}
+
+interface BuildSiteOpts {
+  /** One or more stories. One → opens straight into it (kiosk); many → opens on the gallery. */
+  stories: ExportStory[]
   manifest: Manifest
 }
 
 /**
- * Assemble a complete, deploy-anywhere static site for ONE story, entirely in
- * the browser — the same `<slug>-site.zip` that `npm run publish:site` produces,
+ * Assemble a complete, deploy-anywhere static site for one OR several stories,
+ * entirely in the browser — the same shape `npm run publish:site` produces,
  * without a rebuild or a repo round-trip.
  *
- * The zip contains a `<slug>-site/` folder (the deployable website: the running
- * app's shell + this story's data + a kiosk redirect) plus a `DEPLOY.md`.
+ * The zip contains a site folder (the app shell + the stories' data + a `DEPLOY.md`).
+ * A **single** story gets a kiosk redirect so the site opens straight into it
+ * (folder `<slug>-site`); **multiple** stories get no redirect, so the site opens
+ * on the gallery/Home listing them (folder `gallery-site`).
+ *
+ * Returns the blob plus the suggested download filename.
  */
-export async function buildSiteZip({ story, assets, slug, manifest }: BuildSiteOpts): Promise<Blob> {
+export async function buildSiteZip({ stories, manifest }: BuildSiteOpts): Promise<{ blob: Blob; fileName: string }> {
+  if (!stories.length) throw new Error('publish: no stories selected to export')
+  const single = stories.length === 1
+  const dirName = single ? siteDirName(stories[0].slug) : siteDirName('gallery')
+
   const zip = new JSZip()
-  const site = zip.folder(siteDirName(slug))!
+  const site = zip.folder(dirName)!
 
   // 1. The generic app shell, fetched from the running (built) app. index.html
   //    is special-cased: fetch as text so the kiosk redirect can be injected;
@@ -59,25 +72,31 @@ export async function buildSiteZip({ story, assets, slug, manifest }: BuildSiteO
   }
   const htmlRes = await fetch('index.html')
   if (!htmlRes.ok) throw new Error(`publish: could not fetch index.html (${htmlRes.status})`)
-  site.file('index.html', injectKiosk(await htmlRes.text(), slug))
+  const html = await htmlRes.text()
+  // Kiosk only for a single story; a gallery export should land on Home.
+  site.file('index.html', single ? injectKiosk(html, stories[0].slug) : html)
 
-  // 2. This story's data: a one-entry index + the serialized story.md.
+  // 2. The registry: one entry per exported story.
   site.file(
     'stories/index.json',
-    JSON.stringify({ stories: [indexEntry(story.frontmatter, slug)] }, null, 2),
+    JSON.stringify({ stories: stories.map((s) => indexEntry(s.story.frontmatter, s.slug)) }, null, 2),
   )
-  site.file(`stories/${slug}/story.md`, serializeStory(story))
 
-  // 3. Uploaded assets (deduped by export path), under the story's assets/.
-  const seen = new Set<string>()
-  for (const { path, file } of assets) {
-    if (seen.has(path)) continue
-    seen.add(path)
-    site.file(`stories/${slug}/${path}`, file)
+  // 3. Each story's data: serialized story.md + its uploaded assets (deduped).
+  for (const { slug, story, assets } of stories) {
+    site.file(`stories/${slug}/story.md`, serializeStory(story))
+    const seen = new Set<string>()
+    for (const { path, file } of assets) {
+      if (seen.has(path)) continue
+      seen.add(path)
+      site.file(`stories/${slug}/${path}`, file)
+    }
   }
 
   // 4. Hosting instructions, alongside the site folder (not inside it).
-  zip.file('DEPLOY.md', deployMd({ title: story.frontmatter.title || slug, slug }))
+  const title = single ? stories[0].story.frontmatter.title || stories[0].slug : `${stories.length} stories`
+  zip.file('DEPLOY.md', deployMd({ title, siteDir: dirName }))
 
-  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+  return { blob, fileName: `${dirName}.zip` }
 }

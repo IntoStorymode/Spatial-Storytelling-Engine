@@ -16,4 +16,4 @@ export interface IndexEntry {
 }
 export function indexEntry(fm: Partial<Frontmatter>, slug: string): IndexEntry
 
-export function deployMd(opts: { title: string; slug: string }): string
+export function deployMd(opts: { title: string; siteDir: string }): string
