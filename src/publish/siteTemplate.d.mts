@@ -5,6 +5,7 @@ import type { Frontmatter } from '../parser/types'
 export function siteDirName(slug: string): string
 export function kioskScript(slug: string): string
 export function injectKiosk(html: string, slug: string): string
+export function injectPublishedMarker(html: string): string
 
 export interface IndexEntry {
   id: string

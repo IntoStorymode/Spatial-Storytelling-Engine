@@ -5,6 +5,7 @@ import { useStoryStore } from '../../store/useStoryStore'
 import { StageSlot } from './StageSlot'
 import { ModeToggle } from './ModeToggle'
 import { ItemContent } from '../content/ItemContent'
+import { isPublishedSite } from '../../publish/published'
 
 /**
  * Mode B — the page view (default). A scrolling long-form article: header, then
@@ -43,7 +44,7 @@ export function PageView({ story }: { story: Story }) {
           ← All stories
         </Link>
         <div className="page-topbar-actions">
-          {id && (
+          {id && !isPublishedSite() && (
             <Link to={`/edit/${id}`} className="btn mode-toggle">
               ✎ Edit
             </Link>
