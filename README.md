@@ -6,7 +6,6 @@ drives two switchable presentation modes — no reload, no backend.
 > The scan is shared infrastructure; the story is the act of authorship.
 
 ![Page view and immersive view of the same story](./docs/images/hero-modes.png)
-<!-- TODO: replace with a side-by-side capture from a real splat story (Mode B | Mode A) -->
 
 - **Page view (Mode B):** a scrolling long-form article; the 3D model is one inline element in
   the scroll. *Narrative around the scan.*
