@@ -7,6 +7,8 @@ import type { ThreeViewer } from '../../three/ThreeViewer'
 interface Props {
   previewSrc: string
   previewFormat?: string
+  /** Splat up-axis override (`flip`/`none`); mirrors the published site's orientation. */
+  previewOrientation?: 'flip' | 'none'
   basePath: string
   selected: StoryItem | null
   onHotspotChange: (hotspot: Hotspot | undefined) => void
@@ -30,6 +32,7 @@ function fmt(t: [number, number, number]): string {
 export function HotspotPlacer({
   previewSrc,
   previewFormat,
+  previewOrientation,
   basePath,
   selected,
   onHotspotChange,
@@ -139,6 +142,7 @@ export function HotspotPlacer({
         <ThreeCanvas
           model={previewSrc}
           modelFormat={previewFormat}
+          modelOrientation={previewOrientation}
           basePath={basePath}
           onReady={(v) => {
             viewerRef.current = v

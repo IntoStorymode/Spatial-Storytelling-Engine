@@ -21,7 +21,11 @@ const SCENE_FORMAT_BY_EXT: Record<string, 'Ply' | 'Splat' | 'KSplat' | 'Spz'> = 
   spz: 'Spz',
 }
 
-export async function loadSplat(resolvedUrl: string, ext?: string): Promise<THREE.Object3D> {
+export async function loadSplat(
+  resolvedUrl: string,
+  ext?: string,
+  orientation?: 'flip' | 'none',
+): Promise<THREE.Object3D> {
   const GaussianSplats3D = await import('@mkkellogg/gaussian-splats-3d')
 
   // Use the most compatible sort path: a plain worker sort, no GPU compute and
@@ -55,10 +59,16 @@ export async function loadSplat(resolvedUrl: string, ext?: string): Promise<THRE
   // INRIA-format .ply splats use a Y-down / Z-forward (COLMAP) convention, so
   // they land upside-down in Three.js's Y-up world. Correct with a 180° rotation
   // about X — a true rotation (det +1, no mirroring), pivoted on the model's own
-  // bounding-box centre so its world position is preserved. Other splat formats
-  // (.splat/.ksplat/.spz) are typically already Y-up from conversion, so we leave
-  // them alone. See loadModel's formatHint for how uploads carry their extension.
-  if (normExt === 'ply') {
+  // bounding-box centre so its world position is preserved.
+  //
+  // The default is auto: flip `.ply`, leave other formats alone (they're usually
+  // already Y-up from conversion). But a SuperSplat `.splat`/`.ksplat` repacked
+  // from an INRIA `.ply` inherits the same flipped orientation, so authors can
+  // override via frontmatter `orientation:` — `flip` forces the correction on any
+  // format, `none` disables it. See loadModel's formatHint for how uploads carry
+  // their extension.
+  const shouldFlip = orientation ?? (normExt === 'ply' ? 'flip' : 'none')
+  if (shouldFlip === 'flip') {
     orientPlyUpright(viewer)
   }
 

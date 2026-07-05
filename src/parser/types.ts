@@ -40,6 +40,14 @@ export interface Frontmatter {
    * The reader can still switch live via the in-viewer toggle.
    */
   navigation?: 'orbit' | 'firstPerson'
+  /**
+   * Override the automatic splat up-axis correction. Absent = **auto**: `.ply`
+   * splats get the 180° upright flip, other splat formats are left as-is. `flip`
+   * forces the upright flip (e.g. a SuperSplat `.splat` repacked from an INRIA
+   * `.ply` that inherits the flipped orientation); `none` disables it. Affects
+   * splat models only — meshes are Y-up by spec.
+   */
+  orientation?: 'flip' | 'none'
 }
 
 export interface Story {

@@ -24,6 +24,7 @@ export function serializeStory(story: Story): string {
     `model: "${fm.model}"`,
   ]
   if (fm.navigation) headLines.push(`navigation: "${fm.navigation}"`)
+  if (fm.orientation) headLines.push(`orientation: "${fm.orientation}"`)
   if (fm.start) {
     headLines.push(
       'start:',

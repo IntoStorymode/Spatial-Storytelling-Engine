@@ -9,6 +9,8 @@ interface ThreeCanvasProps {
   basePath?: string
   /** Format hint (extension) for blob:/data: model URLs that carry no extension. */
   modelFormat?: string
+  /** Override the automatic splat up-axis correction (`flip`/`none`); absent = auto. */
+  modelOrientation?: 'flip' | 'none'
   /** Called once with the live viewer instance after it mounts. */
   onReady?: (viewer: ThreeViewer) => void
   /** Called if a model fails to load. */
@@ -25,6 +27,7 @@ export function ThreeCanvas({
   model,
   basePath = '',
   modelFormat,
+  modelOrientation,
   onReady,
   onError,
   style,
@@ -47,8 +50,10 @@ export function ThreeCanvas({
   }, [])
 
   useEffect(() => {
-    viewerRef.current?.setModel(model, basePath, modelFormat).catch((e) => cbRef.current.onError?.(e))
-  }, [model, basePath, modelFormat])
+    viewerRef.current
+      ?.setModel(model, basePath, modelFormat, modelOrientation)
+      .catch((e) => cbRef.current.onError?.(e))
+  }, [model, basePath, modelFormat, modelOrientation])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%', ...style }} />
 }

@@ -17,6 +17,12 @@ interface StoryUIState {
    * `frontmatter.navigation` default on load, then toggleable live by the reader.
    */
   navMode: NavMode
+  /**
+   * True while an overlay video is playing. Pauses the auto-tour (so a video
+   * isn't flown away mid-play) and lets the viewer quiesce its render loop so the
+   * decoder/compositor aren't starved by the per-frame splat sort.
+   */
+  videoPlaying: boolean
 
   setMode: (mode: ViewMode) => void
   toggleMode: () => void
@@ -28,6 +34,7 @@ interface StoryUIState {
   setItemCount: (n: number) => void
   setNavMode: (mode: NavMode) => void
   toggleNavMode: () => void
+  setVideoPlaying: (playing: boolean) => void
   /** Reset UI state when a new story loads. */
   reset: () => void
 }
@@ -44,13 +51,16 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   autoTour: false,
   itemCount: 0,
   navMode: 'orbit',
+  videoPlaying: false,
 
   setMode: (mode) => set({ mode, autoTour: mode === 'page' ? false : get().autoTour }),
   toggleMode: () => get().setMode(get().mode === 'page' ? 'immersive' : 'page'),
 
   setActiveIndex: (index) => {
     const max = Math.max(0, get().itemCount - 1)
-    set({ activeIndex: Math.min(Math.max(index, 0), max) })
+    // Leaving the item unmounts its video without a reliable pause event, so
+    // clear the flag here to release the auto-tour / render-loop hold.
+    set({ activeIndex: Math.min(Math.max(index, 0), max), videoPlaying: false })
   },
 
   step: (delta, opts) => {
@@ -59,7 +69,7 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
     let next = activeIndex + delta
     if (opts?.wrap) next = (next + itemCount) % itemCount
     else next = Math.min(Math.max(next, 0), itemCount - 1)
-    set({ activeIndex: next })
+    set({ activeIndex: next, videoPlaying: false })
   },
 
   setAutoTour: (on) => set({ autoTour: on }),
@@ -67,8 +77,9 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   setItemCount: (n) => set({ itemCount: n }),
   setNavMode: (mode) => set({ navMode: mode }),
   toggleNavMode: () => set({ navMode: get().navMode === 'orbit' ? 'firstPerson' : 'orbit' }),
+  setVideoPlaying: (playing) => set({ videoPlaying: playing }),
   // NB: navMode is intentionally NOT reset here — it's seeded per-story from
   // `frontmatter.navigation` by ViewerStage. Resetting it would clobber that seed
   // (a parent route's reset() runs after the child ViewerStage seed effect).
-  reset: () => set({ mode: 'page', activeIndex: 0, autoTour: false }),
+  reset: () => set({ mode: 'page', activeIndex: 0, autoTour: false, videoPlaying: false }),
 }))

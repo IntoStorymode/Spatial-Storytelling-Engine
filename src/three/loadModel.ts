@@ -16,6 +16,7 @@ export async function loadModel(
   url: string,
   basePath = '',
   formatHint?: string,
+  orientation?: 'flip' | 'none',
 ): Promise<THREE.Object3D> {
   if (url.startsWith('builtin:')) {
     return buildPrimitive(url.slice('builtin:'.length))
@@ -39,7 +40,7 @@ export async function loadModel(
     if (ext === 'ply' && !(await plyIsSplat(resolved))) {
       return loadPly(resolved)
     }
-    return loadSplat(resolved, ext)
+    return loadSplat(resolved, ext, orientation)
   }
 
   throw new Error(`Unsupported model format: "${url}"`)

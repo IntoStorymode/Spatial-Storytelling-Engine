@@ -93,6 +93,22 @@ export function StoryMetaForm({ fm, uploadedModel, onChange, onModelPath, onUplo
         </select>
         <p className="ed-hint">The reader can still switch live in the viewer.</p>
       </label>
+
+      <label className="ed-field">
+        <span>Model orientation</span>
+        <select
+          value={fm.orientation ?? 'auto'}
+          onChange={(e) => {
+            const v = e.target.value
+            onChange({ orientation: v === 'flip' || v === 'none' ? v : undefined })
+          }}
+        >
+          <option value="auto">Auto — flip .ply splats, leave others as-is</option>
+          <option value="flip">Flip upright (180°)</option>
+          <option value="none">As-is — no correction</option>
+        </select>
+        <p className="ed-hint">Fix a splat that loads upside down (e.g. a SuperSplat .splat).</p>
+      </label>
     </section>
   )
 }
