@@ -25,13 +25,17 @@ export function serializeStory(story: Story): string {
   ]
   if (fm.navigation) headLines.push(`navigation: "${fm.navigation}"`)
   if (fm.orientation) headLines.push(`orientation: "${fm.orientation}"`)
-  if (fm.start) {
-    headLines.push(
-      'start:',
-      `  position: ${fmtTriple(fm.start.position)}`,
-      `  target: ${fmtTriple(fm.start.target)}`,
-    )
+  if (fm.waypoints && fm.waypoints.length) {
+    headLines.push('waypoints:')
+    for (const w of fm.waypoints) {
+      headLines.push(
+        `  - name: "${w.name}"`,
+        `    position: ${fmtTriple(w.position)}`,
+        `    target: ${fmtTriple(w.target)}`,
+      )
+    }
   }
+  if (fm.start) headLines.push(`start: ${fm.start}`)
   headLines.push('---')
   const head = headLines.join('\n')
 
@@ -44,13 +48,9 @@ function serializeItem(item: StoryItem): string {
   const lines: string[] = [`## [${item.id}] ${item.title}`, '', `type: ${item.type}`]
   if (item.src) lines.push(`src: ${item.src}`)
   if (item.caption) lines.push(`caption: ${item.caption}`)
+  if (item.waypoint) lines.push(`waypoint: ${item.waypoint}`)
   if (item.body) {
     lines.push('', item.body)
-  }
-  if (item.hotspot) {
-    lines.push('', 'hotspot:')
-    lines.push(`  position: ${fmtTriple(item.hotspot.position)}`)
-    lines.push(`  target: ${fmtTriple(item.hotspot.target)}`)
   }
   return lines.join('\n')
 }

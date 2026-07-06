@@ -5,6 +5,7 @@ import type { Frontmatter, Hotspot, ItemType, Story, StoryItem } from '../parser
 import { useDraftStore } from '../store/useDraftStore'
 import type { Upload } from '../store/useDraftStore'
 import { useGalleryStore } from '../store/useGalleryStore'
+import { resolveWaypoint, upsertWaypoint, pruneWaypoint } from '../parser/waypoints'
 import { collectAssets } from '../publish/collectAssets'
 import { slugify } from '../publish/slug'
 import { StoryMetaForm } from '../components/editor/StoryMetaForm'
@@ -147,8 +148,41 @@ export function EditorRoute() {
       return next
     })
   }
-  function setHotspot(itemId: string, hotspot: Hotspot | undefined) {
-    patchItem(itemId, { hotspot })
+  // Capture/clear the selected item's camera. Cameras are named waypoints in the
+  // frontmatter, referenced by the item; the editor keeps its capture UX and
+  // translates it to a waypoint underneath (auto-named after the item, or the
+  // item's existing waypoint so re-capturing edits it in place). Clearing prunes
+  // the waypoint once nothing else references it.
+  function setItemView(itemId: string, hotspot: Hotspot | undefined) {
+    const name = items.find((i) => i.id === itemId)?.waypoint ?? itemId
+    if (hotspot) {
+      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, waypoint: name } : i)))
+      setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, name, hotspot) }))
+    } else {
+      const nextItems = items.map((i) => (i.id === itemId ? { ...i, waypoint: undefined } : i))
+      setItems(nextItems)
+      setFm((m) => {
+        const stillReferenced = nextItems.some((i) => i.waypoint === name) || m.start === name
+        return { ...m, waypoints: pruneWaypoint(m.waypoints, name, stillReferenced) }
+      })
+    }
+  }
+
+  // The story's opening view — a named waypoint referenced by frontmatter `start`.
+  function setStartView(hotspot: Hotspot | undefined) {
+    if (hotspot) {
+      setFm((m) => {
+        const name = m.start ?? 'start'
+        return { ...m, start: name, waypoints: upsertWaypoint(m.waypoints, name, hotspot) }
+      })
+    } else {
+      setFm((m) => {
+        const name = m.start
+        if (!name) return m
+        const stillReferenced = items.some((i) => i.waypoint === name)
+        return { ...m, start: undefined, waypoints: pruneWaypoint(m.waypoints, name, stillReferenced) }
+      })
+    }
   }
 
   // ── Model selection ───────────────────────────────────────────────────────
@@ -364,9 +398,10 @@ export function EditorRoute() {
             previewOrientation={fm.orientation}
             basePath={basePath}
             selected={selected}
-            onHotspotChange={(h) => selected && setHotspot(selected.id, h)}
-            start={fm.start ?? null}
-            onStartChange={(start) => setFm((m) => ({ ...m, start }))}
+            selectedHotspot={resolveWaypoint(fm, selected?.waypoint) ?? null}
+            onHotspotChange={(h) => selected && setItemView(selected.id, h)}
+            start={resolveWaypoint(fm, fm.start) ?? null}
+            onStartChange={(h) => setStartView(h)}
           />
         </main>
       </div>

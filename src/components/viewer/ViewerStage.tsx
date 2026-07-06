@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ThreeViewer } from '../../three/ThreeViewer'
 import type { Story } from '../../parser/types'
+import { resolveWaypoint } from '../../parser/waypoints'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageContext } from './stageContext'
 
@@ -28,7 +29,8 @@ export function ViewerStage({
   children: ReactNode
 }) {
   const { items, basePath, frontmatter } = story
-  const start = frontmatter.start
+  // The opening view — resolve the named waypoint `start` references.
+  const start = resolveWaypoint(frontmatter, frontmatter.start)
   const [viewer, setViewer] = useState<ThreeViewer | null>(null)
 
   // One stable host div; the viewer renders into it for the component's life.
@@ -146,11 +148,11 @@ export function ViewerStage({
         return
       }
     }
-    const hotspot = items[activeIndex]?.hotspot
+    const hotspot = resolveWaypoint(frontmatter, items[activeIndex]?.waypoint)
     if (hotspot) place(hotspot.position, hotspot.target)
     else if (start) place(start.position, start.target)
     else viewer.frameObject(viewer.scene, animate)
-  }, [viewer, mode, activeIndex, items, reducedMotion, start, navMode])
+  }, [viewer, mode, activeIndex, items, reducedMotion, start, navMode, frontmatter])
 
   // Auto-tour: schedule the next advance after the dwell. Reschedules on each
   // activeIndex change; cleared when the tour is off or the mode leaves immersive.

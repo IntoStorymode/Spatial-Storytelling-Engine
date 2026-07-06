@@ -43,7 +43,7 @@ export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove 
             </span>
             <span className="ed-item-title">
               {item.title || <em className="muted">Untitled</em>}
-              {item.hotspot && <span className="ed-item-pin" title="Has a waypoint">📍</span>}
+              {item.waypoint && <span className="ed-item-pin" title="Has a waypoint">📍</span>}
             </span>
             <span className="ed-item-actions">
               <button
