@@ -862,6 +862,21 @@ button.cta {
   align-items: center;
   gap: 8px;
 }
+.editor-collapse {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.editor-collapse:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
 
 /* Preview bar (draft preview overlay) */
 .preview-bar {
@@ -896,12 +911,38 @@ button.cta {
   display: flex;
   min-height: 0;
 }
+/* While dragging the divider, suppress text selection everywhere in the body. */
+.editor-body.is-dragging {
+  user-select: none;
+  cursor: col-resize;
+}
 .editor-forms {
-  width: 420px;
+  /* Width is driven by an inline style (useRailResize); the stylesheet only
+     clamps the drag range. Below 820px the media query takes over (full width). */
   flex-shrink: 0;
+  min-width: 320px;
+  max-width: 720px;
   overflow-y: auto;
   padding: 20px 22px 60px;
-  border-right: 1px solid var(--line);
+}
+/* Draggable divider between the forms rail and the 3D stage. The 6px bar also
+   serves as the visual divider (replacing the rail's old border-right). */
+.editor-resizer {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: var(--line);
+  transition: background 0.15s ease;
+  touch-action: none;
+  user-select: none;
+}
+.editor-resizer:hover,
+.editor-body.is-dragging .editor-resizer {
+  background: var(--accent);
+}
+/* Collapsed: hide the rail + divider and hand the width to the stage. */
+.editor-body.is-collapsed .editor-forms,
+.editor-body.is-collapsed .editor-resizer {
+  display: none;
 }
 .editor-stage {
   flex: 1;
@@ -1222,9 +1263,14 @@ button.cta {
     flex-direction: column;
   }
   .editor-forms {
+    /* Stacked: full-width rail on top (useRailResize passes no inline width here). */
     width: 100%;
-    border-right: none;
+    min-width: 0;
+    max-width: none;
     border-bottom: 1px solid var(--line);
+  }
+  .editor-resizer {
+    display: none;
   }
   .editor-stage {
     min-height: 60vh;

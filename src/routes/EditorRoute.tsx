@@ -12,6 +12,7 @@ import { ItemList } from '../components/editor/ItemList'
 import { ItemForm } from '../components/editor/ItemForm'
 import { HotspotPlacer } from '../components/editor/HotspotPlacer'
 import { ExportBar } from '../components/editor/ExportBar'
+import { useRailResize } from '../components/editor/useRailResize'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
 interface IndexEntry {
@@ -46,6 +47,9 @@ export function EditorRoute() {
   const navigate = useNavigate()
   const isNew = !id
   const routeKey = id ?? 'new'
+
+  // Draggable / collapsible split between the forms rail and the 3D stage.
+  const rail = useRailResize()
 
   // Restore the in-progress draft if we're returning from /preview (else seed a
   // fresh draft). Computed once per mount; peekResume is a pure read.
@@ -285,6 +289,19 @@ export function EditorRoute() {
         <button type="button" className="back" onClick={leaveToHome}>
           ← All stories
         </button>
+        <button
+          type="button"
+          className="editor-collapse"
+          onClick={rail.toggleCollapsed}
+          aria-pressed={rail.collapsed}
+          title={
+            rail.collapsed
+              ? 'Show the editing panel'
+              : 'Hide the editing panel to enlarge the 3D view'
+          }
+        >
+          {rail.collapsed ? 'Show panel ⇥' : '⇤ Hide panel'}
+        </button>
         <p className="eyebrow">{isNew ? 'New story' : `Editing ${id}`}</p>
         <div className="editor-topbar-actions">
           <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
@@ -298,8 +315,14 @@ export function EditorRoute() {
         </div>
       </div>
 
-      <div className="editor-body">
-        <aside className="editor-forms">
+      <div
+        className={
+          'editor-body' +
+          (rail.collapsed ? ' is-collapsed' : '') +
+          (rail.dragging ? ' is-dragging' : '')
+        }
+      >
+        <aside className="editor-forms" style={rail.railStyle}>
           <StoryMetaForm
             fm={fm}
             uploadedModel={uploaded ? fm.model : null}
@@ -325,6 +348,14 @@ export function EditorRoute() {
             />
           )}
         </aside>
+
+        <div
+          className="editor-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize the editing panel"
+          {...rail.resizerHandlers}
+        />
 
         <main className="editor-stage">
           <HotspotPlacer
