@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
-import type { Hotspot, Section } from '../../parser/types'
+import type { Hotspot, Section, Waypoint } from '../../parser/types'
+import { countUsage, resolveWaypoint } from '../../parser/waypoints'
 import { ThreeCanvas } from '../ThreeCanvas'
 import type { ThreeViewer } from '../../three/ThreeViewer'
 
@@ -10,13 +11,21 @@ interface Props {
   /** Splat up-axis override (`flip`/`none`); mirrors the published site's orientation. */
   previewOrientation?: 'flip' | 'none'
   basePath: string
-  selected: Section | null
-  /** The selected section's camera, resolved from its waypoint reference. */
-  selectedHotspot: Hotspot | null
-  onHotspotChange: (hotspot: Hotspot | undefined) => void
-  /** The story's opening camera (Mode A initial view), and its setter. */
-  start: Hotspot | null
-  onStartChange: (start: Hotspot | undefined) => void
+  /** The story's named waypoints (the library). */
+  waypoints: Waypoint[]
+  /** Sections, for per-waypoint usage counts. */
+  sections: Section[]
+  /** Name of the waypoint currently being edited (gizmo + fine-tune), or null. */
+  activeWaypoint: string | null
+  /** Capture the current camera as a new waypoint. */
+  onCapture: (camera: Hotspot) => void
+  onSelectWaypoint: (name: string | null) => void
+  onRename: (oldName: string, newName: string) => void
+  onDelete: (name: string) => void
+  /** Set/move/aim the active waypoint's camera. */
+  onEditActive: (camera: Hotspot) => void
+  /** Expose the viewer so the section form can capture the current view. */
+  onViewerReady?: (viewer: ThreeViewer) => void
 }
 
 function fmt(t: [number, number, number]): string {
@@ -24,23 +33,25 @@ function fmt(t: [number, number, number]): string {
 }
 
 /**
- * Embeds the 3D scene for the editor and binds a waypoint (camera view) to the
- * selected section, plus the story's start view:
- *  - Set waypoint to this view → capture camera position + look-point in one click
- *  - Move camera here          → camera position only (keeps the look-point)
- *  - Aim look-point            → next click in the scene raycasts a world point
- * Gizmos mark the bound camera (teal), look-point (copper), and start (green).
+ * The 3D scene plus the story's **waypoint library**: capture named camera views,
+ * select one to edit (rename / set-to-view / move-camera / aim-look-point /
+ * go-to / delete), and see how many sections use each. Sections reference these
+ * by name (assigned in the section form); several may share one.
  */
 export function HotspotPlacer({
   previewSrc,
   previewFormat,
   previewOrientation,
   basePath,
-  selected,
-  selectedHotspot,
-  onHotspotChange,
-  start,
-  onStartChange,
+  waypoints,
+  sections,
+  activeWaypoint,
+  onCapture,
+  onSelectWaypoint,
+  onRename,
+  onDelete,
+  onEditActive,
+  onViewerReady,
 }: Props) {
   const viewerRef = useRef<ThreeViewer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -48,6 +59,9 @@ export function HotspotPlacer({
   const [placing, setPlacing] = useState(false)
   const [lookMode, setLookMode] = useState<'orbit' | 'firstPerson'>('firstPerson')
   const [error, setError] = useState<string | null>(null)
+  const [nameDraft, setNameDraft] = useState('')
+
+  const active = resolveWaypoint({ waypoints }, activeWaypoint ?? undefined) ?? null
 
   // Apply the chosen look mode (orbit vs first-person walk-through).
   useEffect(() => {
@@ -55,46 +69,19 @@ export function HotspotPlacer({
     if (v && ready) v.setLookMode(lookMode)
   }, [ready, lookMode])
 
-  const hotspot = selectedHotspot
-  const hotspotKey = hotspot ? [...hotspot.position, ...hotspot.target].join(',') : null
-
   // Keep the in-scene gizmo (camera + look-point + view line) in sync with the
-  // selected section's hotspot.
+  // active waypoint being edited.
+  const activeKey = active ? [...active.position, ...active.target].join(',') : null
   useEffect(() => {
     const v = viewerRef.current
     if (!v || !ready) return
-    v.setHotspotGizmo(hotspot ?? null)
-  }, [ready, hotspotKey, selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    v.setHotspotGizmo(active ?? null)
+  }, [ready, activeKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The story start gizmo (green) is shown persistently alongside the section one.
-  const startKey = start ? [...start.position, ...start.target].join(',') : null
+  // Reset the rename draft whenever the active waypoint changes.
   useEffect(() => {
-    const v = viewerRef.current
-    if (!v || !ready) return
-    v.setStartGizmo(start ?? null)
-  }, [ready, startKey]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  function setStartToView() {
-    const v = viewerRef.current
-    if (!v) return
-    onStartChange(v.getView())
-  }
-
-  // Fly the camera back to a saved view so the author can re-check it. Switches
-  // the toggle to orbit to match the relaxed camera state flyToView leaves behind.
-  function goToStart() {
-    const v = viewerRef.current
-    if (!v || !start) return
-    setLookMode('orbit')
-    void v.flyToView(start.position, start.target, true)
-  }
-
-  function goToHotspot() {
-    const v = viewerRef.current
-    if (!v || !hotspot) return
-    setLookMode('orbit')
-    void v.flyToView(hotspot.position, hotspot.target, true)
-  }
+    setNameDraft(activeWaypoint ?? '')
+  }, [activeWaypoint])
 
   // Leaving placing mode (or unmount) must always re-enable orbit.
   useEffect(() => {
@@ -102,27 +89,44 @@ export function HotspotPlacer({
     if (v) v.setControlsEnabled(!placing)
   }, [placing])
 
-  function useCurrentView() {
+  function capture() {
     const v = viewerRef.current
-    if (!v || !selected) return
-    const view = v.getView()
-    onHotspotChange({ position: view.position, target: view.target })
+    if (!v) return
+    onCapture(v.getView())
   }
 
-  function capturePosition() {
+  function setToView() {
     const v = viewerRef.current
-    if (!v || !selected) return
-    const view = v.getView()
-    onHotspotChange({ position: view.position, target: hotspot?.target ?? view.target })
+    if (!v) return
+    onEditActive(v.getView())
   }
 
-  function clearHotspot() {
-    onHotspotChange(undefined)
-    viewerRef.current?.setHotspotGizmo(null)
+  function moveCamera() {
+    const v = viewerRef.current
+    if (!v || !active) return
+    onEditActive({ position: v.getView().position, target: active.target })
+  }
+
+  function goTo(w: Waypoint) {
+    const v = viewerRef.current
+    if (!v) return
+    setLookMode('orbit')
+    void v.flyToView(w.position, w.target, true)
+  }
+
+  function commitName() {
+    const n = nameDraft.trim()
+    if (!activeWaypoint) return
+    // Revert on empty, unchanged, or a name already in use.
+    if (!n || n === activeWaypoint || waypoints.some((w) => w.name === n)) {
+      setNameDraft(activeWaypoint)
+      return
+    }
+    onRename(activeWaypoint, n)
   }
 
   function onCanvasClick(e: MouseEvent<HTMLDivElement>) {
-    if (!placing || !selected) return
+    if (!placing || !active) return
     const v = viewerRef.current
     const el = containerRef.current
     if (!v || !el) return
@@ -130,8 +134,7 @@ export function HotspotPlacer({
     const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1
     const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1
     const target = v.raycastToWorld(ndcX, ndcY)
-    const position = hotspot?.position ?? v.getView().position
-    onHotspotChange({ position, target })
+    onEditActive({ position: active.position, target })
     setPlacing(false)
   }
 
@@ -152,6 +155,7 @@ export function HotspotPlacer({
             v.setFlyEnabled(true) // WASD/QE fly-cam, editor only
             v.setLookMode(lookMode)
             setReady(true)
+            onViewerReady?.(v)
           }}
           onError={(err) => setError(String(err))}
         />
@@ -180,50 +184,74 @@ export function HotspotPlacer({
       </div>
 
       <div className="hp-tools">
-        <div className="hp-start">
+        <div className="wp-head">
           <p className="hp-scope">
-            <span className="hp-key hp-key-start">●</span> Story start
-            <span className="muted"> — where the reader begins</span>
+            Waypoints <span className="muted">— named camera views</span>
           </p>
-          <div className="ed-chips">
-            <button className="btn ed-chip" onClick={setStartToView} title="Capture the current view as the story's opening camera">
-              🚩 Set start to this view
-            </button>
-            <button className="btn ed-chip" onClick={goToStart} disabled={!start} title="Fly the camera to the saved start view">
-              ↩ Go to start
-            </button>
-            <button className="btn ed-chip" onClick={() => onStartChange(undefined)} disabled={!start}>
-              Clear
-            </button>
-          </div>
-          <div className="hp-readout">
-            {start ? (
-              <div>
-                <span className="hp-key hp-key-start">●</span> start [{fmt(start.position)}]
-              </div>
-            ) : (
-              <span className="muted">No start set — Mode A opens on default framing.</span>
-            )}
-          </div>
+          <button
+            className="btn btn-accent ed-chip"
+            onClick={capture}
+            title="Save the current view as a new named waypoint"
+          >
+            ＋ Capture this view
+          </button>
         </div>
 
-        {!selected ? (
-          <p className="muted">Select an section on the left to give it a waypoint.</p>
+        {waypoints.length === 0 ? (
+          <p className="muted">
+            No views yet. Frame the scene, then <strong>Capture this view</strong> to make your first
+            waypoint.
+          </p>
         ) : (
-          <>
-            <p className="hp-scope">
-              Waypoint for <strong>{selected.title || selected.id}</strong>
-            </p>
-            <p className="ed-hint">
-              Fly/orbit until the scene looks the way a reader should see it here, then:
-            </p>
-            <button className="btn btn-accent hp-primary" onClick={useCurrentView}>
-              ◎ Set waypoint to this view
-            </button>
-            <p className="hp-finetune-label">Fine-tune</p>
+          <ul className="wp-list">
+            {waypoints.map((w) => {
+              const isActive = w.name === activeWaypoint
+              const uses = countUsage(sections, w.name)
+              return (
+                <li
+                  key={w.name}
+                  className={isActive ? 'wp-row wp-row-active' : 'wp-row'}
+                  onClick={() => onSelectWaypoint(isActive ? null : w.name)}
+                >
+                  <span className="hp-key hp-key-cam">●</span>
+                  <span className="wp-name">{w.name}</span>
+                  <span className="wp-usage" title={`${uses} section(s) use this view`}>
+                    {uses || '—'}
+                  </span>
+                  <button
+                    className="ed-icon"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      goTo(w)
+                    }}
+                    title="Fly the camera to this view"
+                  >
+                    ↩
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {active && activeWaypoint && (
+          <div className="wp-editor">
+            <label className="ed-field">
+              <span>Name</span>
+              <input
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={commitName}
+                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              />
+            </label>
+            <p className="hp-finetune-label">Adjust</p>
             <div className="ed-chips">
-              <button className="btn ed-chip" onClick={capturePosition} title="Move only the camera; keep the look-point">
-                🎥 Move camera here
+              <button className="btn ed-chip" onClick={setToView} title="Replace with the current camera view">
+                ◎ Set to view
+              </button>
+              <button className="btn ed-chip" onClick={moveCamera} title="Move only the camera; keep the look-point">
+                🎥 Move camera
               </button>
               <button
                 className={placing ? 'btn btn-accent ed-chip' : 'btn ed-chip'}
@@ -232,28 +260,22 @@ export function HotspotPlacer({
               >
                 {placing ? '… click a point' : '📍 Aim look-point'}
               </button>
-              <button className="btn ed-chip" onClick={goToHotspot} disabled={!hotspot} title="Fly the camera to this section's saved waypoint">
-                ↩ Go to waypoint
+              <button className="btn ed-chip" onClick={() => goTo(active)} title="Fly the camera here">
+                ↩ Go to
               </button>
-              <button className="btn ed-chip" onClick={clearHotspot} disabled={!hotspot}>
-                Clear
+              <button className="btn ed-chip ed-chip-danger" onClick={() => onDelete(activeWaypoint)}>
+                🗑 Delete
               </button>
             </div>
             <div className="hp-readout">
-              {hotspot ? (
-                <>
-                  <div>
-                    <span className="hp-key hp-key-cam">●</span> camera [{fmt(hotspot.position)}]
-                  </div>
-                  <div>
-                    <span className="hp-key hp-key-look">●</span> look-point [{fmt(hotspot.target)}]
-                  </div>
-                </>
-              ) : (
-                <span className="muted">No waypoint yet — this section uses default framing.</span>
-              )}
+              <div>
+                <span className="hp-key hp-key-cam">●</span> camera [{fmt(active.position)}]
+              </div>
+              <div>
+                <span className="hp-key hp-key-look">●</span> look-point [{fmt(active.target)}]
+              </div>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

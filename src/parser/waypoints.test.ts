@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import type { Waypoint } from './types'
-import { resolveWaypoint, upsertWaypoint, pruneWaypoint } from './waypoints'
+import type { Section, Waypoint } from './types'
+import {
+  resolveWaypoint,
+  upsertWaypoint,
+  pruneWaypoint,
+  countUsage,
+  renameWaypoint,
+  deleteWaypoint,
+  nextWaypointName,
+} from './waypoints'
 
 const wp = (name: string, p: number): Waypoint => ({ name, position: [p, p, p], target: [0, 0, 0] })
+const sec = (id: string, waypoint?: string): Section => ({ id, title: id, type: 'text', body: '', waypoint })
 
 describe('resolveWaypoint', () => {
   const fm = { waypoints: [wp('a', 1), wp('b', 2)] }
@@ -46,5 +55,49 @@ describe('pruneWaypoint', () => {
 
   it('returns undefined when the list empties', () => {
     expect(pruneWaypoint([wp('a', 1)], 'a', false)).toBeUndefined()
+  })
+})
+
+describe('countUsage', () => {
+  it('counts sections referencing a waypoint', () => {
+    const sections = [sec('s1', 'a'), sec('s2', 'a'), sec('s3', 'b'), sec('s4')]
+    expect(countUsage(sections, 'a')).toBe(2)
+    expect(countUsage(sections, 'b')).toBe(1)
+    expect(countUsage(sections, 'ghost')).toBe(0)
+  })
+})
+
+describe('renameWaypoint', () => {
+  it('renames the waypoint and rewrites every section reference', () => {
+    const waypoints = [wp('a', 1), wp('b', 2)]
+    const sections = [sec('s1', 'a'), sec('s2', 'a'), sec('s3', 'b')]
+    const out = renameWaypoint(waypoints, sections, 'a', 'entrance')
+    expect(out.waypoints.map((w) => w.name)).toEqual(['entrance', 'b'])
+    expect(out.sections.map((s) => s.waypoint)).toEqual(['entrance', 'entrance', 'b'])
+  })
+})
+
+describe('deleteWaypoint', () => {
+  it('removes the waypoint and unsets referencing sections', () => {
+    const waypoints = [wp('a', 1), wp('b', 2)]
+    const sections = [sec('s1', 'a'), sec('s2', 'b'), sec('s3', 'a')]
+    const out = deleteWaypoint(waypoints, sections, 'a')
+    expect(out.waypoints?.map((w) => w.name)).toEqual(['b'])
+    expect(out.sections.map((s) => s.waypoint)).toEqual([undefined, 'b', undefined])
+  })
+
+  it('returns undefined waypoints when the last one is deleted', () => {
+    const out = deleteWaypoint([wp('a', 1)], [sec('s1', 'a')], 'a')
+    expect(out.waypoints).toBeUndefined()
+    expect(out.sections[0].waypoint).toBeUndefined()
+  })
+})
+
+describe('nextWaypointName', () => {
+  it('picks the first free view-N name', () => {
+    expect(nextWaypointName(undefined)).toBe('view-1')
+    expect(nextWaypointName([wp('view-1', 1)])).toBe('view-2')
+    // skips a taken slot at the natural index
+    expect(nextWaypointName([wp('x', 1), wp('view-2', 2)])).toBe('view-3')
   })
 })

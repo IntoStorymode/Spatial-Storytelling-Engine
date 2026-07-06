@@ -1226,6 +1226,204 @@ button.cta {
   border-bottom: 1px solid var(--line);
 }
 
+/* ── Rail accordion (stepped editor) ─────────────────────────────────────── */
+.ed-acc {
+  border-bottom: 1px solid var(--line);
+}
+.ed-acc:last-child {
+  border-bottom: none;
+}
+.ed-acc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+.ed-acc-chevron {
+  width: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ed-acc-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+.ed-acc-open .ed-acc-step {
+  border-color: var(--accent);
+}
+.ed-acc-title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+.ed-acc-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.ed-acc-body {
+  padding: 0 2px 16px;
+}
+
+/* A lighter sub-block within a step (e.g. the selected section) */
+.ed-subsection {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.ed-h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Disclosure (Scene options) */
+.ed-disclosure {
+  margin-top: 12px;
+}
+.ed-disclosure > summary {
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ed-disclosure[open] > summary {
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+
+/* Publish step: stack the actions */
+.ed-publish {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* ── Waypoint library (canvas tools) ─────────────────────────────────────── */
+.wp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.wp-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  cursor: pointer;
+}
+.wp-row-active {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.wp-name {
+  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wp-usage {
+  min-width: 16px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.wp-editor {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* Waypoint coverage checklist (rail step 3) */
+.wp-coverage {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wp-cov-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.wp-cov-sel {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.wp-cov-idx {
+  min-width: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.wp-cov-title {
+  flex: 1;
+  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wp-cov-set {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+.wp-cov-none {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Danger chip (delete a waypoint) */
+.ed-chip-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--line));
+}
+.ed-chip-danger:hover {
+  border-color: var(--danger);
+}
+
 /* Export bar */
 .export {
   position: relative;

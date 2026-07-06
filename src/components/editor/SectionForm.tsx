@@ -1,14 +1,20 @@
 import { useRef } from 'react'
-import type { SectionType, Section } from '../../parser/types'
+import type { SectionType, Section, Waypoint } from '../../parser/types'
 
 interface Props {
   section: Section
+  /** The story's named waypoints, for the assign-a-view picker. */
+  waypoints: Waypoint[]
   onChange: (patch: Partial<Section>) => void
   onChangeType: (type: SectionType) => void
   /** Register an uploaded media file for this section (blob preview + bundling). */
   onUpload: (file: File) => void
   /** True when this section's src came from an upload (shows a hint). */
   uploaded: boolean
+  /** Point this section at a named waypoint (or none). */
+  onAssignWaypoint: (name: string | undefined) => void
+  /** Capture the current 3D view as a new waypoint and assign it to this section. */
+  onCaptureForSection: () => void
 }
 
 const TYPES: SectionType[] = ['text', 'image', 'audio', 'video']
@@ -18,20 +24,25 @@ const ACCEPT: Record<Exclude<SectionType, 'text'>, string> = {
   video: 'video/*',
 }
 
-/** Edit the selected section — title, type, per-type src/caption, and body. */
-export function SectionForm({ section, onChange, onChangeType, onUpload, uploaded }: Props) {
+/** Edit the selected section — title, type, per-type src/caption, body, and its waypoint. */
+export function SectionForm({
+  section,
+  waypoints,
+  onChange,
+  onChangeType,
+  onUpload,
+  uploaded,
+  onAssignWaypoint,
+  onCaptureForSection,
+}: Props) {
   const isMedia = section.type !== 'text'
   const fileRef = useRef<HTMLInputElement>(null)
 
   return (
-    <section className="ed-section">
-      <h2 className="ed-h2">
-        Section <span className="muted">{section.id}</span>
-      </h2>
-      <p className="ed-hint">
-        The content of this story section. Set its waypoint — the camera view Mode A flies
-        to — in the 3D scene on the right.
-      </p>
+    <div className="ed-subsection">
+      <h3 className="ed-h3">
+        Selected section <span className="muted">{section.id}</span>
+      </h3>
 
       <label className="ed-field">
         <span>Title</span>
@@ -81,8 +92,8 @@ export function SectionForm({ section, onChange, onChangeType, onUpload, uploade
           </div>
           {uploaded && (
             <p className="ed-hint">
-              Previewing your uploaded file. Use <strong>Download website</strong> on export to
-              get it packaged at <code>{section.src}</code> automatically.
+              Previewing your uploaded file. Use <strong>Download website</strong> on export to get it
+              packaged at <code>{section.src}</code> automatically.
             </p>
           )}
           <label className="ed-field">
@@ -104,6 +115,26 @@ export function SectionForm({ section, onChange, onChangeType, onUpload, uploade
           placeholder="Write the narrative for this section…"
         />
       </label>
-    </section>
+
+      <div className="ed-field">
+        <span>Waypoint — the view Mode A flies to</span>
+        <select
+          value={section.waypoint ?? ''}
+          onChange={(e) => onAssignWaypoint(e.target.value || undefined)}
+        >
+          <option value="">None — default framing</option>
+          {waypoints.map((w) => (
+            <option key={w.name} value={w.name}>
+              {w.name}
+            </option>
+          ))}
+        </select>
+        <div className="ed-chips">
+          <button className="btn ed-chip" onClick={onCaptureForSection}>
+            ＋ New from current view
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
