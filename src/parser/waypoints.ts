@@ -17,7 +17,7 @@ export function resolveWaypoint(
  * Upsert a named waypoint into a `waypoints` list (pure — returns a new array).
  * If `name` already exists its camera is replaced in place; otherwise the
  * waypoint is appended. Used by the editor to translate a captured view into a
- * named waypoint the item/start can reference.
+ * named waypoint the section/start can reference.
  */
 export function upsertWaypoint(
   waypoints: Waypoint[] | undefined,

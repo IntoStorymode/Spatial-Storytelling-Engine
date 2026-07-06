@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
-import type { Hotspot, StoryItem } from '../../parser/types'
+import type { Hotspot, Section } from '../../parser/types'
 import { ThreeCanvas } from '../ThreeCanvas'
 import type { ThreeViewer } from '../../three/ThreeViewer'
 
@@ -10,8 +10,8 @@ interface Props {
   /** Splat up-axis override (`flip`/`none`); mirrors the published site's orientation. */
   previewOrientation?: 'flip' | 'none'
   basePath: string
-  selected: StoryItem | null
-  /** The selected item's camera, resolved from its waypoint reference. */
+  selected: Section | null
+  /** The selected section's camera, resolved from its waypoint reference. */
   selectedHotspot: Hotspot | null
   onHotspotChange: (hotspot: Hotspot | undefined) => void
   /** The story's opening camera (Mode A initial view), and its setter. */
@@ -25,7 +25,7 @@ function fmt(t: [number, number, number]): string {
 
 /**
  * Embeds the 3D scene for the editor and binds a waypoint (camera view) to the
- * selected item, plus the story's start view:
+ * selected section, plus the story's start view:
  *  - Set waypoint to this view → capture camera position + look-point in one click
  *  - Move camera here          → camera position only (keeps the look-point)
  *  - Aim look-point            → next click in the scene raycasts a world point
@@ -59,14 +59,14 @@ export function HotspotPlacer({
   const hotspotKey = hotspot ? [...hotspot.position, ...hotspot.target].join(',') : null
 
   // Keep the in-scene gizmo (camera + look-point + view line) in sync with the
-  // selected item's hotspot.
+  // selected section's hotspot.
   useEffect(() => {
     const v = viewerRef.current
     if (!v || !ready) return
     v.setHotspotGizmo(hotspot ?? null)
   }, [ready, hotspotKey, selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The story start gizmo (green) is shown persistently alongside the item one.
+  // The story start gizmo (green) is shown persistently alongside the section one.
   const startKey = start ? [...start.position, ...start.target].join(',') : null
   useEffect(() => {
     const v = viewerRef.current
@@ -208,7 +208,7 @@ export function HotspotPlacer({
         </div>
 
         {!selected ? (
-          <p className="muted">Select an item on the left to give it a waypoint.</p>
+          <p className="muted">Select an section on the left to give it a waypoint.</p>
         ) : (
           <>
             <p className="hp-scope">
@@ -232,7 +232,7 @@ export function HotspotPlacer({
               >
                 {placing ? '… click a point' : '📍 Aim look-point'}
               </button>
-              <button className="btn ed-chip" onClick={goToHotspot} disabled={!hotspot} title="Fly the camera to this item's saved waypoint">
+              <button className="btn ed-chip" onClick={goToHotspot} disabled={!hotspot} title="Fly the camera to this section's saved waypoint">
                 ↩ Go to waypoint
               </button>
               <button className="btn ed-chip" onClick={clearHotspot} disabled={!hotspot}>
@@ -250,7 +250,7 @@ export function HotspotPlacer({
                   </div>
                 </>
               ) : (
-                <span className="muted">No waypoint yet — this item uses default framing.</span>
+                <span className="muted">No waypoint yet — this section uses default framing.</span>
               )}
             </div>
           </>

@@ -6,12 +6,12 @@ export type NavMode = 'orbit' | 'firstPerson'
 interface StoryUIState {
   /** Which presentation mode is showing. Default = page (Mode B). */
   mode: ViewMode
-  /** Index of the active story item — shared by both modes so toggling preserves position. */
+  /** Index of the active story section — shared by both modes so toggling preserves position. */
   activeIndex: number
   /** Whether the immersive auto-tour is running. */
   autoTour: boolean
-  /** Number of items in the loaded story (set by the viewer; bounds navigation). */
-  itemCount: number
+  /** Number of sections in the loaded story (set by the viewer; bounds navigation). */
+  sectionCount: number
   /**
    * Reader's current Mode A camera navigation. Seeded from the story's
    * `frontmatter.navigation` default on load, then toggleable live by the reader.
@@ -27,11 +27,11 @@ interface StoryUIState {
   setMode: (mode: ViewMode) => void
   toggleMode: () => void
   setActiveIndex: (index: number) => void
-  /** Advance/retreat one item, clamped (auto-tour wraps via `wrap`). */
+  /** Advance/retreat one section, clamped (auto-tour wraps via `wrap`). */
   step: (delta: number, opts?: { wrap?: boolean }) => void
   setAutoTour: (on: boolean) => void
   toggleAutoTour: () => void
-  setItemCount: (n: number) => void
+  setSectionCount: (n: number) => void
   setNavMode: (mode: NavMode) => void
   toggleNavMode: () => void
   setVideoPlaying: (playing: boolean) => void
@@ -49,7 +49,7 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   mode: 'page',
   activeIndex: 0,
   autoTour: false,
-  itemCount: 0,
+  sectionCount: 0,
   navMode: 'orbit',
   videoPlaying: false,
 
@@ -57,24 +57,24 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   toggleMode: () => get().setMode(get().mode === 'page' ? 'immersive' : 'page'),
 
   setActiveIndex: (index) => {
-    const max = Math.max(0, get().itemCount - 1)
-    // Leaving the item unmounts its video without a reliable pause event, so
+    const max = Math.max(0, get().sectionCount - 1)
+    // Leaving the section unmounts its video without a reliable pause event, so
     // clear the flag here to release the auto-tour / render-loop hold.
     set({ activeIndex: Math.min(Math.max(index, 0), max), videoPlaying: false })
   },
 
   step: (delta, opts) => {
-    const { activeIndex, itemCount } = get()
-    if (itemCount === 0) return
+    const { activeIndex, sectionCount } = get()
+    if (sectionCount === 0) return
     let next = activeIndex + delta
-    if (opts?.wrap) next = (next + itemCount) % itemCount
-    else next = Math.min(Math.max(next, 0), itemCount - 1)
+    if (opts?.wrap) next = (next + sectionCount) % sectionCount
+    else next = Math.min(Math.max(next, 0), sectionCount - 1)
     set({ activeIndex: next, videoPlaying: false })
   },
 
   setAutoTour: (on) => set({ autoTour: on }),
   toggleAutoTour: () => set({ autoTour: !get().autoTour }),
-  setItemCount: (n) => set({ itemCount: n }),
+  setSectionCount: (n) => set({ sectionCount: n }),
   setNavMode: (mode) => set({ navMode: mode }),
   toggleNavMode: () => set({ navMode: get().navMode === 'orbit' ? 'firstPerson' : 'orbit' }),
   setVideoPlaying: (playing) => set({ videoPlaying: playing }),

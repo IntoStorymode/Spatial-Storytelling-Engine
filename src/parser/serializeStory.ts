@@ -1,4 +1,4 @@
-import type { Story, StoryItem } from './types'
+import type { Story, Section } from './types'
 
 /** Round to ~4 decimals and drop trailing zeros so coords stay readable. */
 function fmtNum(n: number): string {
@@ -11,7 +11,7 @@ function fmtTriple(t: [number, number, number]): string {
 
 /**
  * Serialize a Story back into the story.md format. The exact inverse of parseStory:
- * `parseStory(serializeStory(s))` reproduces `s` (frontmatter + items).
+ * `parseStory(serializeStory(s))` reproduces `s` (frontmatter + sections).
  */
 export function serializeStory(story: Story): string {
   const fm = story.frontmatter
@@ -39,18 +39,18 @@ export function serializeStory(story: Story): string {
   headLines.push('---')
   const head = headLines.join('\n')
 
-  const body = story.items.map(serializeItem).join('\n\n---\n\n')
+  const body = story.sections.map(serializeSection).join('\n\n---\n\n')
 
   return `${head}\n\n${body}\n`
 }
 
-function serializeItem(item: StoryItem): string {
-  const lines: string[] = [`## [${item.id}] ${item.title}`, '', `type: ${item.type}`]
-  if (item.src) lines.push(`src: ${item.src}`)
-  if (item.caption) lines.push(`caption: ${item.caption}`)
-  if (item.waypoint) lines.push(`waypoint: ${item.waypoint}`)
-  if (item.body) {
-    lines.push('', item.body)
+function serializeSection(section: Section): string {
+  const lines: string[] = [`## [${section.id}] ${section.title}`, '', `type: ${section.type}`]
+  if (section.src) lines.push(`src: ${section.src}`)
+  if (section.caption) lines.push(`caption: ${section.caption}`)
+  if (section.waypoint) lines.push(`waypoint: ${section.waypoint}`)
+  if (section.body) {
+    lines.push('', section.body)
   }
   return lines.join('\n')
 }

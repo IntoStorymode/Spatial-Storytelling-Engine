@@ -2,12 +2,12 @@ import { useStoryStore } from '../../store/useStoryStore'
 
 /**
  * Mode A navigation: Prev / Next plus the auto-tour on/off toggle. Manual
- * stepping turns the auto-tour off (one gesture = one item); the tour button
+ * stepping turns the auto-tour off (one gesture = one section); the tour button
  * starts a self-running pass through every hotspot.
  */
 export function NavControls() {
   const activeIndex = useStoryStore((s) => s.activeIndex)
-  const itemCount = useStoryStore((s) => s.itemCount)
+  const sectionCount = useStoryStore((s) => s.sectionCount)
   const step = useStoryStore((s) => s.step)
   const autoTour = useStoryStore((s) => s.autoTour)
   const setAutoTour = useStoryStore((s) => s.setAutoTour)
@@ -24,7 +24,7 @@ export function NavControls() {
         className="btn nav-btn"
         onClick={() => manualStep(-1)}
         disabled={activeIndex === 0}
-        aria-label="Previous item"
+        aria-label="Previous section"
       >
         ← Prev
       </button>
@@ -39,8 +39,8 @@ export function NavControls() {
       <button
         className="btn nav-btn"
         onClick={() => manualStep(1)}
-        disabled={activeIndex >= itemCount - 1}
-        aria-label="Next item"
+        disabled={activeIndex >= sectionCount - 1}
+        aria-label="Next section"
       >
         Next →
       </button>

@@ -1,4 +1,4 @@
-export type ItemType = 'text' | 'image' | 'audio' | 'video'
+export type SectionType = 'text' | 'image' | 'audio' | 'video'
 
 export interface Hotspot {
   /** Camera world position the camera animates *to* in Mode A. */
@@ -8,28 +8,28 @@ export interface Hotspot {
 }
 
 /**
- * A named camera position for the story's scan. Items and `start` reference a
- * waypoint by `name` (unique within a story), so several items can share one
+ * A named camera position for the story's scan. Sections and `start` reference a
+ * waypoint by `name` (unique within a story), so several sections can share one
  * view. Defined once in the frontmatter `waypoints` list.
  */
 export interface Waypoint extends Hotspot {
-  /** Human name, referenced by items/`start` (e.g. "north-window"). */
+  /** Human name, referenced by sections/`start` (e.g. "north-window"). */
   name: string
 }
 
-export interface StoryItem {
+export interface Section {
   /** Stable id from the `## [item-01]` heading. */
   id: string
   title: string
-  type: ItemType
+  type: SectionType
   /** Asset path exactly as authored (resolved against Story.basePath at render time). */
   src?: string
   caption?: string
   /** Freeform body text (markdown/plain). */
   body: string
   /**
-   * Name of the waypoint this item flies to in Mode A (see Frontmatter.waypoints).
-   * Optional — items without a waypoint fall back to default framing.
+   * Name of the waypoint this section flies to in Mode A (see Frontmatter.waypoints).
+   * Optional — sections without a waypoint fall back to default framing.
    */
   waypoint?: string
 }
@@ -42,8 +42,8 @@ export interface Frontmatter {
   /** Path to the 3D model: `.glb`/`.gltf`, a splat (`.ply`/`.splat`/`.ksplat`), or `builtin:room`. */
   model: string
   /**
-   * Named camera positions for this story's scan. Items and `start` reference
-   * these by name; several items may share one. Absent/empty = no named views.
+   * Named camera positions for this story's scan. Sections and `start` reference
+   * these by name; several sections may share one. Absent/empty = no named views.
    */
   waypoints?: Waypoint[]
   /**
@@ -70,7 +70,7 @@ export interface Frontmatter {
 
 export interface Story {
   frontmatter: Frontmatter
-  items: StoryItem[]
+  sections: Section[]
   /** Directory the story.md was loaded from, e.g. `/stories/demo/`. Used to resolve `src`/`model`. */
   basePath: string
   /** Non-fatal parse issues, surfaced in the UI rather than thrown. */

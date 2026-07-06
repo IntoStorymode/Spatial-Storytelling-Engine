@@ -1,24 +1,24 @@
 import { useState } from 'react'
 import type { Story } from '../../parser/types'
 import { useStoryStore } from '../../store/useStoryStore'
-import { ItemContent } from '../content/ItemContent'
+import { SectionContent } from '../content/SectionContent'
 
 /**
- * Mode A content overlay — renders the active story item over the 3D scene
- * using the SAME ItemContent as the page view, so prose/media never diverge
+ * Mode A content overlay — renders the active story section over the 3D scene
+ * using the SAME SectionContent as the page view, so prose/media never diverge
  * between modes.
  *
  * The panel can be collapsed (tucked off to the left) so the reader can orbit
  * the scene and reach the header unobstructed — important on phones where the
  * expanded panel otherwise covers most of the screen. Collapse state lives on
- * this stable wrapper (not the keyed content) so it persists across items; the
- * inner block stays keyed on activeIndex so its fade replays per item.
+ * this stable wrapper (not the keyed content) so it persists across sections; the
+ * inner block stays keyed on activeIndex so its fade replays per section.
  */
 export function OverlayPanel({ story }: { story: Story }) {
   const activeIndex = useStoryStore((s) => s.activeIndex)
   const [collapsed, setCollapsed] = useState(false)
-  const item = story.items[activeIndex]
-  if (!item) return null
+  const section = story.sections[activeIndex]
+  if (!section) return null
 
   return (
     <>
@@ -32,13 +32,13 @@ export function OverlayPanel({ story }: { story: Story }) {
         >
           ‹ Hide
         </button>
-        <div className="overlay-content" key={item.id}>
+        <div className="overlay-content" key={section.id}>
           <p className="item-eyebrow">
             {String(activeIndex + 1).padStart(2, '0')} /{' '}
-            {String(story.items.length).padStart(2, '0')}
+            {String(story.sections.length).padStart(2, '0')}
           </p>
-          <h2 className="item-title">{item.title}</h2>
-          <ItemContent item={item} basePath={story.basePath} />
+          <h2 className="item-title">{section.title}</h2>
+          <SectionContent section={section} basePath={story.basePath} />
         </div>
       </div>
 

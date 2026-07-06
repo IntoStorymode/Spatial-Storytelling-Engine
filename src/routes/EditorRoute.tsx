@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { parseStory } from '../parser/parseStory'
-import type { Frontmatter, Hotspot, ItemType, Story, StoryItem } from '../parser/types'
+import type { Frontmatter, Hotspot, SectionType, Story, Section } from '../parser/types'
 import { useDraftStore } from '../store/useDraftStore'
 import type { Upload } from '../store/useDraftStore'
 import { useGalleryStore } from '../store/useGalleryStore'
@@ -9,8 +9,8 @@ import { resolveWaypoint, upsertWaypoint, pruneWaypoint } from '../parser/waypoi
 import { collectAssets } from '../publish/collectAssets'
 import { slugify } from '../publish/slug'
 import { StoryMetaForm } from '../components/editor/StoryMetaForm'
-import { ItemList } from '../components/editor/ItemList'
-import { ItemForm } from '../components/editor/ItemForm'
+import { SectionList } from '../components/editor/SectionList'
+import { SectionForm } from '../components/editor/SectionForm'
 import { HotspotPlacer } from '../components/editor/HotspotPlacer'
 import { ExportBar } from '../components/editor/ExportBar'
 import { useRailResize } from '../components/editor/useRailResize'
@@ -29,9 +29,9 @@ function emptyFrontmatter(): Frontmatter {
   return { title: 'Untitled story', author: '', location: '', date: todayISO(), model: 'builtin:room' }
 }
 
-function newItem(items: StoryItem[]): StoryItem {
-  const ids = new Set(items.map((i) => i.id))
-  let n = items.length + 1
+function newSection(sections: Section[]): Section {
+  const ids = new Set(sections.map((i) => i.id))
+  let n = sections.length + 1
   let id = `item-${String(n).padStart(2, '0')}`
   while (ids.has(id)) id = `item-${String(++n).padStart(2, '0')}`
   return { id, title: 'New section', type: 'text', body: '' }
@@ -39,7 +39,7 @@ function newItem(items: StoryItem[]): StoryItem {
 
 /**
  * Editor (screen 2) — create or edit a story.md end to end: metadata, an ordered
- * list of items with per-type content, click-to-place hotspots in the 3D scene,
+ * list of sections with per-type content, click-to-place hotspots in the 3D scene,
  * and export back to a story.md via the serializer. Draft lives in local state;
  * nothing is written until the author exports.
  */
@@ -56,7 +56,7 @@ export function EditorRoute() {
   // fresh draft). Computed once per mount; peekResume is a pure read.
   const initRef = useRef<{
     fm: Frontmatter
-    items: StoryItem[]
+    sections: Section[]
     basePath: string
     uploaded: (Upload & { format: string }) | null
     mediaUploads: Record<string, Upload>
@@ -65,14 +65,14 @@ export function EditorRoute() {
   if (!initRef.current) {
     const snap = useDraftStore.getState().peekResume(routeKey)
     initRef.current = snap
-      ? { fm: snap.fm, items: snap.items, basePath: snap.basePath, uploaded: snap.uploaded, mediaUploads: snap.mediaUploads, resumed: true }
-      : { fm: emptyFrontmatter(), items: [newItem([])], basePath: '', uploaded: null, mediaUploads: {}, resumed: false }
+      ? { fm: snap.fm, sections: snap.sections, basePath: snap.basePath, uploaded: snap.uploaded, mediaUploads: snap.mediaUploads, resumed: true }
+      : { fm: emptyFrontmatter(), sections: [newSection([])], basePath: '', uploaded: null, mediaUploads: {}, resumed: false }
   }
   const init = initRef.current
 
   const [fm, setFm] = useState<Frontmatter>(init.fm)
-  const [items, setItems] = useState<StoryItem[]>(init.items)
-  const [selectedId, setSelectedId] = useState<string | null>(init.items[0]?.id ?? null)
+  const [sections, setSections] = useState<Section[]>(init.sections)
+  const [selectedId, setSelectedId] = useState<string | null>(init.sections[0]?.id ?? null)
   const [basePath, setBasePath] = useState(init.basePath)
   // An uploaded model previews from a blob URL while exporting an assets/ path.
   const [uploaded, setUploaded] = useState<(Upload & { format: string }) | null>(init.uploaded)
@@ -98,8 +98,8 @@ export function EditorRoute() {
       const story = parseStory(raw, dir)
       if (cancelled) return
       setFm(story.frontmatter)
-      setItems(story.items)
-      setSelectedId(story.items[0]?.id ?? null)
+      setSections(story.sections)
+      setSelectedId(story.sections[0]?.id ?? null)
       setBasePath(dir)
     }
     load().catch((e) => !cancelled && setLoadError(String(e)))
@@ -108,39 +108,39 @@ export function EditorRoute() {
     }
   }, [id, isNew])
 
-  const selected = items.find((i) => i.id === selectedId) ?? null
+  const selected = sections.find((i) => i.id === selectedId) ?? null
 
   // ── Draft mutations ───────────────────────────────────────────────────────
-  function patchItem(itemId: string, patch: Partial<StoryItem>) {
-    setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, ...patch } : i)))
+  function patchSection(sectionId: string, patch: Partial<Section>) {
+    setSections((prev) => prev.map((i) => (i.id === sectionId ? { ...i, ...patch } : i)))
   }
-  function changeType(itemId: string, type: ItemType) {
+  function changeType(sectionId: string, type: SectionType) {
     // Dropping to text clears media-only fields so export stays clean.
-    setItems((prev) =>
+    setSections((prev) =>
       prev.map((i) =>
-        i.id === itemId
+        i.id === sectionId
           ? { ...i, type, ...(type === 'text' ? { src: undefined, caption: undefined } : {}) }
           : i,
       ),
     )
   }
-  function addItem() {
-    setItems((prev) => {
-      const it = newItem(prev)
+  function addSection() {
+    setSections((prev) => {
+      const it = newSection(prev)
       setSelectedId(it.id)
       return [...prev, it]
     })
   }
-  function removeItem(itemId: string) {
-    setItems((prev) => {
-      const next = prev.filter((i) => i.id !== itemId)
-      if (selectedId === itemId) setSelectedId(next[0]?.id ?? null)
+  function removeSection(sectionId: string) {
+    setSections((prev) => {
+      const next = prev.filter((i) => i.id !== sectionId)
+      if (selectedId === sectionId) setSelectedId(next[0]?.id ?? null)
       return next
     })
   }
-  function moveItem(itemId: string, dir: -1 | 1) {
-    setItems((prev) => {
-      const idx = prev.findIndex((i) => i.id === itemId)
+  function moveSection(sectionId: string, dir: -1 | 1) {
+    setSections((prev) => {
+      const idx = prev.findIndex((i) => i.id === sectionId)
       const swap = idx + dir
       if (idx < 0 || swap < 0 || swap >= prev.length) return prev
       const next = [...prev]
@@ -148,21 +148,21 @@ export function EditorRoute() {
       return next
     })
   }
-  // Capture/clear the selected item's camera. Cameras are named waypoints in the
-  // frontmatter, referenced by the item; the editor keeps its capture UX and
-  // translates it to a waypoint underneath (auto-named after the item, or the
-  // item's existing waypoint so re-capturing edits it in place). Clearing prunes
+  // Capture/clear the selected section's camera. Cameras are named waypoints in the
+  // frontmatter, referenced by the section; the editor keeps its capture UX and
+  // translates it to a waypoint underneath (auto-named after the section, or the
+  // section's existing waypoint so re-capturing edits it in place). Clearing prunes
   // the waypoint once nothing else references it.
-  function setItemView(itemId: string, hotspot: Hotspot | undefined) {
-    const name = items.find((i) => i.id === itemId)?.waypoint ?? itemId
+  function setSectionView(sectionId: string, hotspot: Hotspot | undefined) {
+    const name = sections.find((i) => i.id === sectionId)?.waypoint ?? sectionId
     if (hotspot) {
-      setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, waypoint: name } : i)))
+      setSections((prev) => prev.map((i) => (i.id === sectionId ? { ...i, waypoint: name } : i)))
       setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, name, hotspot) }))
     } else {
-      const nextItems = items.map((i) => (i.id === itemId ? { ...i, waypoint: undefined } : i))
-      setItems(nextItems)
+      const nextSections = sections.map((i) => (i.id === sectionId ? { ...i, waypoint: undefined } : i))
+      setSections(nextSections)
       setFm((m) => {
-        const stillReferenced = nextItems.some((i) => i.waypoint === name) || m.start === name
+        const stillReferenced = nextSections.some((i) => i.waypoint === name) || m.start === name
         return { ...m, waypoints: pruneWaypoint(m.waypoints, name, stillReferenced) }
       })
     }
@@ -179,7 +179,7 @@ export function EditorRoute() {
       setFm((m) => {
         const name = m.start
         if (!name) return m
-        const stillReferenced = items.some((i) => i.waypoint === name)
+        const stillReferenced = sections.some((i) => i.waypoint === name)
         return { ...m, start: undefined, waypoints: pruneWaypoint(m.waypoints, name, stillReferenced) }
       })
     }
@@ -203,18 +203,18 @@ export function EditorRoute() {
 
   // ── Media uploads (image/audio/video) ─────────────────────────────────────
   // Hold the File so it can be bundled on export; preview from a blob URL by
-  // pointing the item's src at the assets/ path it will export to.
-  function onMediaUpload(itemId: string, file: File) {
+  // pointing the section's src at the assets/ path it will export to.
+  function onMediaUpload(sectionId: string, file: File) {
     const path = `assets/${file.name}`
     const url = URL.createObjectURL(file)
     setMediaUploads((prev) => {
       const next = { ...prev }
-      const old = items.find((i) => i.id === itemId)?.src
+      const old = sections.find((i) => i.id === sectionId)?.src
       if (old && next[old] && old !== path) URL.revokeObjectURL(next[old].url)
       next[path] = { url, file }
       return next
     })
-    patchItem(itemId, { src: path })
+    patchSection(sectionId, { src: path })
   }
 
   // Uploaded model/media blob URLs intentionally live for the whole tab session:
@@ -241,7 +241,7 @@ export function EditorRoute() {
 
   useEffect(() => {
     setSaved(false)
-  }, [fm, items, uploaded, mediaUploads])
+  }, [fm, sections, uploaded, mediaUploads])
 
   function leaveToHome() {
     if (warnOnLeave) setConfirmLeave(true)
@@ -262,7 +262,7 @@ export function EditorRoute() {
 
   // Bundle-able assets actually referenced by the current draft (shared with the
   // gallery export so both compute the same set).
-  const bundleAssets = collectAssets(fm, items, uploaded, mediaUploads)
+  const bundleAssets = collectAssets(fm, sections, uploaded, mediaUploads)
 
   // Finish → hand this draft to the in-session gallery (as an editor snapshot so
   // it re-opens verbatim), then go to the gallery where the author selects and
@@ -273,7 +273,7 @@ export function EditorRoute() {
       slug,
       key: slug,
       fm,
-      items,
+      sections,
       basePath,
       uploaded,
       mediaUploads,
@@ -286,20 +286,20 @@ export function EditorRoute() {
   // Open the draft in the real viewer (Mode A/B) without exporting. Stashes a
   // resume snapshot so returning restores this exact draft, blob model included.
   function goPreview() {
-    // Point each uploaded media item at its blob URL so it renders in the real
+    // Point each uploaded media section at its blob URL so it renders in the real
     // viewer; the resume snapshot keeps the original assets/ paths + uploads.
-    const previewItems = items.map((i) =>
+    const previewSections = sections.map((i) =>
       i.src && mediaUploads[i.src] ? { ...i, src: mediaUploads[i.src].url } : i,
     )
     const story: Story = {
       frontmatter: { ...fm, model: previewSrc },
-      items: previewItems,
+      sections: previewSections,
       basePath,
       warnings: [],
     }
     useDraftStore.getState().openPreview(
       { story, modelFormat: previewFormat, returnTo: isNew ? '/edit/new' : `/edit/${id}` },
-      { key: routeKey, fm, items, basePath, uploaded, mediaUploads },
+      { key: routeKey, fm, sections, basePath, uploaded, mediaUploads },
     )
     navigate('/preview')
   }
@@ -342,7 +342,7 @@ export function EditorRoute() {
             ▶ Preview
           </button>
           <ExportBar
-            story={{ frontmatter: fm, items, basePath, warnings: [] }}
+            story={{ frontmatter: fm, sections, basePath, warnings: [] }}
             assets={bundleAssets}
             onSave={saveToGallery}
           />
@@ -364,18 +364,18 @@ export function EditorRoute() {
             onModelPath={setModelPath}
             onUpload={onUpload}
           />
-          <ItemList
-            items={items}
+          <SectionList
+            sections={sections}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            onAdd={addItem}
-            onRemove={removeItem}
-            onMove={moveItem}
+            onAdd={addSection}
+            onRemove={removeSection}
+            onMove={moveSection}
           />
           {selected && (
-            <ItemForm
-              item={selected}
-              onChange={(patch) => patchItem(selected.id, patch)}
+            <SectionForm
+              section={selected}
+              onChange={(patch) => patchSection(selected.id, patch)}
               onChangeType={(t) => changeType(selected.id, t)}
               onUpload={(file) => onMediaUpload(selected.id, file)}
               uploaded={!!selected.src && !!mediaUploads[selected.src]}
@@ -399,7 +399,7 @@ export function EditorRoute() {
             basePath={basePath}
             selected={selected}
             selectedHotspot={resolveWaypoint(fm, selected?.waypoint) ?? null}
-            onHotspotChange={(h) => selected && setItemView(selected.id, h)}
+            onHotspotChange={(h) => selected && setSectionView(selected.id, h)}
             start={resolveWaypoint(fm, fm.start) ?? null}
             onStartChange={(h) => setStartView(h)}
           />

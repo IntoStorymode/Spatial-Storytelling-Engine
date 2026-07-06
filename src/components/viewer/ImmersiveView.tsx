@@ -10,13 +10,13 @@ import { ModeToggle } from './ModeToggle'
 import { NavModeToggle } from './NavModeToggle'
 import { TouchWalkHint } from './TouchWalkHint'
 
-const STEP_COOLDOWN_MS = 650 // lock so one keypress = one item
+const STEP_COOLDOWN_MS = 650 // lock so one keypress = one section
 
 /**
  * Mode A — the immersive view. The persistent canvas fills the screen; the
- * active item shows as an overlay. Arrow keys and Prev/Next advance one item
+ * active section shows as an overlay. Arrow keys and Prev/Next advance one section
  * (locked during the camera transition); the store's camera effect flies to that
- * item's hotspot. The wheel is left to the scene — zoom in orbit, walk in
+ * section's hotspot. The wheel is left to the scene — zoom in orbit, walk in
  * first-person — and to the overlay panel (native scroll), matching Mode B.
  * Any manual nav cancels the auto-tour.
  */

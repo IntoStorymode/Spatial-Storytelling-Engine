@@ -22,7 +22,7 @@ const FLY_MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
  */
 const RENDER_TAIL_FRAMES = 60
 
-type GizmoSlot = 'item' | 'start'
+type GizmoSlot = 'section' | 'start'
 type GizmoSpot = { position: [number, number, number]; target: [number, number, number] }
 interface Gizmo {
   cam: THREE.Sprite
@@ -73,7 +73,7 @@ export class ThreeViewer {
   private renderTail = 0 // frames left to render; 0 = idle (on-demand rendering)
   private renderPaused = false // hold the idle render tail (e.g. while a video plays)
   private currentModel: THREE.Object3D | null = null
-  private readonly gizmos: Record<GizmoSlot, Gizmo | null> = { item: null, start: null }
+  private readonly gizmos: Record<GizmoSlot, Gizmo | null> = { section: null, start: null }
   private disposed = false
 
   // ── Fly-cam + look mode (editor) ──────────────────────────────────────────
@@ -227,7 +227,7 @@ export class ThreeViewer {
     return { center: box.getCenter(new THREE.Vector3()), diameter: Math.max(size.x, size.y, size.z) || 1 }
   }
 
-  /** Default framing from a model's bounds (fallback when an item has no hotspot). */
+  /** Default framing from a model's bounds (fallback when an section has no hotspot). */
   frameObject(obj: THREE.Object3D, animate = true): void {
     const framing = this.modelFraming(obj)
     if (!framing) return
@@ -359,7 +359,7 @@ export class ThreeViewer {
 
   /**
    * Enable/disable wheel-to-dolly. Mode A turns this OFF so the scroll wheel
-   * can drive item navigation instead of zooming the camera.
+   * can drive section navigation instead of zooming the camera.
    */
   setWheelDolly(enabled: boolean): void {
     this.controls.mouseButtons.wheel = enabled
@@ -546,17 +546,17 @@ export class ThreeViewer {
   }
 
   /**
-   * Draw the selected item's waypoint gizmo: a teal ring at the camera position,
+   * Draw the selected section's waypoint gizmo: a teal ring at the camera position,
    * a copper disc at the look target, and a faint line between them. Pass null to
    * clear.
    */
   setHotspotGizmo(hotspot: GizmoSpot | null): void {
-    this.drawGizmo('item', hotspot, { cam: 0x5fb0a7, look: 0xc17a3a })
+    this.drawGizmo('section', hotspot, { cam: 0x5fb0a7, look: 0xc17a3a })
   }
 
   /**
    * Draw the story's start-camera gizmo, in green, so the author can always see
-   * where the reader begins — shown alongside the selected item's waypoint.
+   * where the reader begins — shown alongside the selected section's waypoint.
    */
   setStartGizmo(hotspot: GizmoSpot | null): void {
     this.drawGizmo('start', hotspot, { cam: 0x6cc070, look: 0x6cc070 })

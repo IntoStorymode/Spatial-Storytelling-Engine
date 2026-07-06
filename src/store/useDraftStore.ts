@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Frontmatter, Story, StoryItem } from '../parser/types'
+import type { Frontmatter, Story, Section } from '../parser/types'
 
 /** An uploaded asset held in memory: its blob URL plus the File for bundling. */
 export interface Upload {
@@ -12,7 +12,7 @@ export interface EditSnapshot {
   /** Route identity: the story id, or 'new'. */
   key: string
   fm: Frontmatter
-  items: StoryItem[]
+  sections: Section[]
   basePath: string
   uploaded: (Upload & { format: string }) | null
   /** Uploaded media, keyed by the asset path it will export to. */

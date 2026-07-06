@@ -4,23 +4,23 @@ import type { Story } from '../../parser/types'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageSlot } from './StageSlot'
 import { ModeToggle } from './ModeToggle'
-import { ItemContent } from '../content/ItemContent'
+import { SectionContent } from '../content/SectionContent'
 import { isPublishedSite } from '../../publish/published'
 
 /**
  * Mode B — the page view (default). A scrolling long-form article: header, then
- * story items top-to-bottom via the shared ItemContent. The persistent 3D model
+ * story sections top-to-bottom via the shared SectionContent. The persistent 3D model
  * appears inline as ONE element in the scroll. An IntersectionObserver tracks
- * which item is centred so that toggling into Mode A lands on the same item.
+ * which section is centred so that toggling into Mode A lands on the same section.
  */
 export function PageView({ story }: { story: Story }) {
-  const { frontmatter: fm, items, basePath } = story
+  const { frontmatter: fm, sections, basePath } = story
   const { id } = useParams<{ id: string }>()
   const setActiveIndex = useStoryStore((s) => s.setActiveIndex)
   const sectionRefs = useRef<(HTMLElement | null)[]>([])
-  const modelAfter = items.length > 1 ? 0 : items.length - 1
+  const modelAfter = sections.length > 1 ? 0 : sections.length - 1
 
-  // Update activeIndex as items scroll through the middle of the viewport.
+  // Update activeIndex as sections scroll through the middle of the viewport.
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {
@@ -35,7 +35,7 @@ export function PageView({ story }: { story: Story }) {
     )
     sectionRefs.current.forEach((el) => el && obs.observe(el))
     return () => obs.disconnect()
-  }, [items, setActiveIndex])
+  }, [sections, setActiveIndex])
 
   return (
     <div className="page">
@@ -74,18 +74,18 @@ export function PageView({ story }: { story: Story }) {
           </p>
         </header>
 
-        {items.map((item, i) => (
-          <Fragment key={item.id}>
+        {sections.map((section, i) => (
+          <Fragment key={section.id}>
             <section
-              className="item"
-              id={item.id}
+              className="section"
+              id={section.id}
               ref={(el) => (sectionRefs.current[i] = el)}
             >
               <p className="item-eyebrow">
-                {String(i + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}
+                {String(i + 1).padStart(2, '0')} / {String(sections.length).padStart(2, '0')}
               </p>
-              <h2 className="item-title">{item.title}</h2>
-              <ItemContent item={item} basePath={basePath} />
+              <h2 className="item-title">{section.title}</h2>
+              <SectionContent section={section} basePath={basePath} />
             </section>
 
             {i === modelAfter && (
