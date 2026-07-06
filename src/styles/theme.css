@@ -862,22 +862,6 @@ button.cta {
   align-items: center;
   gap: 8px;
 }
-.editor-collapse {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 4px 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.editor-collapse:hover {
-  color: var(--text);
-  border-color: var(--accent);
-}
-
 /* Preview bar (draft preview overlay) */
 .preview-bar {
   position: fixed;
@@ -907,6 +891,7 @@ button.cta {
   padding: 6px 12px;
 }
 .editor-body {
+  position: relative;
   flex: 1;
   display: flex;
   min-height: 0;
@@ -928,6 +913,7 @@ button.cta {
 /* Draggable divider between the forms rail and the 3D stage. The 6px bar also
    serves as the visual divider (replacing the rail's old border-right). */
 .editor-resizer {
+  position: relative;
   flex: 0 0 6px;
   cursor: col-resize;
   background: var(--line);
@@ -943,6 +929,36 @@ button.cta {
 .editor-body.is-collapsed .editor-forms,
 .editor-body.is-collapsed .editor-resizer {
   display: none;
+}
+/* Collapse/expand toggle that rides the divider (‹) or floats at the stage edge
+   when collapsed (›). */
+.rail-toggle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 44px;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.rail-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.rail-show {
+  left: 8px;
+  transform: translateY(-50%);
 }
 .editor-stage {
   flex: 1;
@@ -1444,6 +1460,25 @@ button.cta {
 }
 .export-warn[data-count='0'] {
   color: var(--muted);
+}
+
+/* Header readiness pill */
+.story-status {
+  position: relative;
+}
+.status-btn {
+  white-space: nowrap;
+}
+.status-ok {
+  color: #6cc070;
+  border-color: color-mix(in srgb, #6cc070 45%, var(--line));
+}
+.status-warn {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+.status-pop {
+  width: 300px;
 }
 .export-pop {
   position: absolute;

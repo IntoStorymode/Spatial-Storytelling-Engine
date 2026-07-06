@@ -36,7 +36,7 @@ export function PreviewRoute() {
           ← Back to editor
         </Link>
       </div>
-      {mode === 'page' ? <PageView story={story} /> : <ImmersiveView story={story} />}
+      {mode === 'page' ? <PageView story={story} hideBack /> : <ImmersiveView story={story} hideBack />}
     </ViewerStage>
   )
 }

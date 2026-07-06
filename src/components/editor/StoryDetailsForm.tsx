@@ -11,7 +11,11 @@ export function StoryDetailsForm({ fm, onChange }: Props) {
     <div className="ed-fields">
       <label className="ed-field">
         <span>Title</span>
-        <input value={fm.title} onChange={(e) => onChange({ title: e.target.value })} />
+        <input
+          value={fm.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+          placeholder="Untitled story"
+        />
       </label>
       <label className="ed-field">
         <span>Author</span>

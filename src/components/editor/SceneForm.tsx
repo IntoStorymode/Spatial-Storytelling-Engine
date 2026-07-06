@@ -26,12 +26,6 @@ export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }
           placeholder="builtin:room or assets/scene.glb"
         />
         <div className="ed-chips">
-          <button className="btn ed-chip" onClick={() => onModelPath('builtin:room')}>
-            Built-in room
-          </button>
-          <button className="btn ed-chip" onClick={() => onModelPath('builtin:cube')}>
-            Built-in cube
-          </button>
           <button className="btn ed-chip" onClick={() => fileRef.current?.click()}>
             Upload file…
           </button>

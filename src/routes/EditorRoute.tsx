@@ -16,6 +16,8 @@ import { SectionForm } from '../components/editor/SectionForm'
 import { AccordionSection } from '../components/editor/AccordionSection'
 import { HotspotPlacer } from '../components/editor/HotspotPlacer'
 import { ExportBar } from '../components/editor/ExportBar'
+import { StoryStatus } from '../components/editor/StoryStatus'
+import { validateStory } from '../publish/validateStory'
 import { useRailResize } from '../components/editor/useRailResize'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 
@@ -29,7 +31,7 @@ function todayISO(): string {
 }
 
 function emptyFrontmatter(): Frontmatter {
-  return { title: 'Untitled story', author: '', location: '', date: todayISO(), model: 'builtin:room' }
+  return { title: '', author: '', location: '', date: todayISO(), model: 'builtin:room' }
 }
 
 function newSection(sections: Section[]): Section {
@@ -37,7 +39,7 @@ function newSection(sections: Section[]): Section {
   let n = sections.length + 1
   let id = `item-${String(n).padStart(2, '0')}`
   while (ids.has(id)) id = `item-${String(++n).padStart(2, '0')}`
-  return { id, title: 'New section', type: 'text', body: '' }
+  return { id, title: '', type: 'text', body: '' }
 }
 
 /**
@@ -292,10 +294,14 @@ export function EditorRoute() {
   // gallery export so both compute the same set).
   const bundleAssets = collectAssets(fm, sections, uploaded, mediaUploads)
 
+  // Readiness for the header status pill (soft — never blocks save/preview).
+  const issues = validateStory({ frontmatter: fm, sections, basePath, warnings: [] })
+
   // Finish → hand this draft to the in-session gallery (as an editor snapshot so
   // it re-opens verbatim), then go to the gallery where the author selects and
   // exports. Upsert by slug, so re-saving an edited story updates it in place.
   function saveToGallery() {
+    if (validateStory({ frontmatter: fm, sections, basePath, warnings: [] }).length > 0) return
     const slug = slugify(fm.title)
     useGalleryStore.getState().save({
       slug,
@@ -351,20 +357,25 @@ export function EditorRoute() {
         <button type="button" className="back" onClick={leaveToHome}>
           ← All stories
         </button>
-        <button
-          type="button"
-          className="editor-collapse"
-          onClick={rail.toggleCollapsed}
-          aria-pressed={rail.collapsed}
-          title={
-            rail.collapsed
-              ? 'Show the editing panel'
-              : 'Hide the editing panel to enlarge the 3D view'
-          }
-        >
-          {rail.collapsed ? 'Show panel ⇥' : '⇤ Hide panel'}
-        </button>
         <p className="eyebrow">{isNew ? 'New story' : `Editing ${id}`}</p>
+        <div className="editor-topbar-actions">
+          <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
+            ▶ Preview
+          </button>
+          <button
+            className="btn btn-accent"
+            onClick={saveToGallery}
+            disabled={issues.length > 0}
+            title={
+              issues.length > 0
+                ? 'Resolve the items in the status checklist before saving'
+                : 'Add this story to your gallery — then choose it (and any others) to export as a website'
+            }
+          >
+            💾 Save to gallery
+          </button>
+          <StoryStatus issues={issues} />
+        </div>
       </div>
 
       <div
@@ -457,16 +468,14 @@ export function EditorRoute() {
           </AccordionSection>
 
           <AccordionSection step={4} title="Publish" open={openSteps.publish} onToggle={() => toggleStep('publish')}>
-            <div className="ed-fields ed-publish">
-              <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
-                ▶ Preview
-              </button>
-              <ExportBar
-                story={{ frontmatter: fm, sections, basePath, warnings: [] }}
-                assets={bundleAssets}
-                onSave={saveToGallery}
-              />
-            </div>
+            <p className="ed-hint">
+              Use <strong>Save to gallery</strong> in the top bar to keep this story and export a
+              website. Or grab the raw file:
+            </p>
+            <ExportBar
+              story={{ frontmatter: fm, sections, basePath, warnings: [] }}
+              assets={bundleAssets}
+            />
           </AccordionSection>
         </aside>
 
@@ -476,7 +485,30 @@ export function EditorRoute() {
           aria-orientation="vertical"
           aria-label="Resize the editing panel"
           {...rail.resizerHandlers}
-        />
+        >
+          <button
+            type="button"
+            className="rail-toggle"
+            onPointerDown={(e) => e.stopPropagation()} // don't start a drag
+            onClick={rail.toggleCollapsed}
+            title="Hide the editing panel"
+            aria-label="Hide the editing panel"
+          >
+            ‹
+          </button>
+        </div>
+
+        {rail.collapsed && (
+          <button
+            type="button"
+            className="rail-toggle rail-show"
+            onClick={rail.toggleCollapsed}
+            title="Show the editing panel"
+            aria-label="Show the editing panel"
+          >
+            ›
+          </button>
+        )}
 
         <main className="editor-stage">
           <HotspotPlacer
