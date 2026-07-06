@@ -5,12 +5,15 @@ import type { Frontmatter, Hotspot, SectionType, Story, Section } from '../parse
 import { useDraftStore } from '../store/useDraftStore'
 import type { Upload } from '../store/useDraftStore'
 import { useGalleryStore } from '../store/useGalleryStore'
-import { resolveWaypoint, upsertWaypoint, pruneWaypoint } from '../parser/waypoints'
+import { upsertWaypoint, renameWaypoint, deleteWaypoint, nextWaypointName, countUsage } from '../parser/waypoints'
 import { collectAssets } from '../publish/collectAssets'
 import { slugify } from '../publish/slug'
-import { StoryMetaForm } from '../components/editor/StoryMetaForm'
+import type { ThreeViewer } from '../three/ThreeViewer'
+import { SceneForm } from '../components/editor/SceneForm'
+import { StoryDetailsForm } from '../components/editor/StoryDetailsForm'
 import { SectionList } from '../components/editor/SectionList'
 import { SectionForm } from '../components/editor/SectionForm'
+import { AccordionSection } from '../components/editor/AccordionSection'
 import { HotspotPlacer } from '../components/editor/HotspotPlacer'
 import { ExportBar } from '../components/editor/ExportBar'
 import { useRailResize } from '../components/editor/useRailResize'
@@ -80,6 +83,16 @@ export function EditorRoute() {
   const [mediaUploads, setMediaUploads] = useState<Record<string, Upload>>(init.mediaUploads)
   const [loadError, setLoadError] = useState<string | null>(null)
 
+  // Waypoint-library state: which named waypoint is being edited on the canvas,
+  // and a pending delete (confirmed via a dialog that shows its usage).
+  const [activeWaypoint, setActiveWaypoint] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  // Rail accordion: each step collapses independently; all open by default.
+  const [openSteps, setOpenSteps] = useState({ scene: true, story: true, waypoints: true, publish: true })
+  const toggleStep = (k: keyof typeof openSteps) => setOpenSteps((s) => ({ ...s, [k]: !s[k] }))
+  // The live viewer, so the section form's "new from current view" can capture.
+  const viewerRef = useRef<ThreeViewer | null>(null)
+
   // Consume the resume snapshot once so a later fresh open starts clean.
   useEffect(() => {
     if (init.resumed) useDraftStore.getState().clearResume()
@@ -148,41 +161,54 @@ export function EditorRoute() {
       return next
     })
   }
-  // Capture/clear the selected section's camera. Cameras are named waypoints in the
-  // frontmatter, referenced by the section; the editor keeps its capture UX and
-  // translates it to a waypoint underneath (auto-named after the section, or the
-  // section's existing waypoint so re-capturing edits it in place). Clearing prunes
-  // the waypoint once nothing else references it.
-  function setSectionView(sectionId: string, hotspot: Hotspot | undefined) {
-    const name = sections.find((i) => i.id === sectionId)?.waypoint ?? sectionId
-    if (hotspot) {
-      setSections((prev) => prev.map((i) => (i.id === sectionId ? { ...i, waypoint: name } : i)))
-      setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, name, hotspot) }))
-    } else {
-      const nextSections = sections.map((i) => (i.id === sectionId ? { ...i, waypoint: undefined } : i))
-      setSections(nextSections)
-      setFm((m) => {
-        const stillReferenced = nextSections.some((i) => i.waypoint === name) || m.start === name
-        return { ...m, waypoints: pruneWaypoint(m.waypoints, name, stillReferenced) }
-      })
-    }
+  // ── Waypoints (named camera views) ─────────────────────────────────────────
+  // The frontmatter holds the library; sections reference entries by name. The
+  // opening view is simply the first section's waypoint (no separate control).
+
+  /** Capture the current camera as a new named waypoint (library only). */
+  function captureWaypoint(camera: Hotspot) {
+    const name = nextWaypointName(fm.waypoints)
+    setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, name, camera) }))
+    setActiveWaypoint(name)
   }
 
-  // The story's opening view — a named waypoint referenced by frontmatter `start`.
-  function setStartView(hotspot: Hotspot | undefined) {
-    if (hotspot) {
-      setFm((m) => {
-        const name = m.start ?? 'start'
-        return { ...m, start: name, waypoints: upsertWaypoint(m.waypoints, name, hotspot) }
-      })
-    } else {
-      setFm((m) => {
-        const name = m.start
-        if (!name) return m
-        const stillReferenced = sections.some((i) => i.waypoint === name)
-        return { ...m, start: undefined, waypoints: pruneWaypoint(m.waypoints, name, stillReferenced) }
-      })
-    }
+  /** Capture the current view and assign it to a section (the fast per-section path). */
+  function captureForSection(sectionId: string) {
+    const v = viewerRef.current
+    if (!v) return
+    const name = nextWaypointName(fm.waypoints)
+    setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, name, v.getView()) }))
+    patchSection(sectionId, { waypoint: name })
+    setActiveWaypoint(name)
+  }
+
+  /** Point a section at a named waypoint (or none). Reuse = pick an existing one. */
+  function assignWaypoint(sectionId: string, name: string | undefined) {
+    patchSection(sectionId, { waypoint: name })
+    if (name) setActiveWaypoint(name)
+  }
+
+  /** Replace the active waypoint's camera (set-to-view / move / aim). */
+  function editActiveCamera(camera: Hotspot) {
+    if (!activeWaypoint) return
+    setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, activeWaypoint, camera) }))
+  }
+
+  /** Rename a waypoint and rewrite every section reference (child validates uniqueness). */
+  function renameActiveWaypoint(oldName: string, newName: string) {
+    const out = renameWaypoint(fm.waypoints ?? [], sections, oldName, newName)
+    setFm((m) => ({ ...m, waypoints: out.waypoints }))
+    setSections(out.sections)
+    setActiveWaypoint(newName)
+  }
+
+  /** Delete a waypoint (confirmed) — referencing sections fall back to default framing. */
+  function deleteWaypointConfirmed(name: string) {
+    const out = deleteWaypoint(fm.waypoints ?? [], sections, name)
+    setFm((m) => ({ ...m, waypoints: out.waypoints }))
+    setSections(out.sections)
+    if (activeWaypoint === name) setActiveWaypoint(null)
+    setConfirmDelete(null)
   }
 
   // ── Model selection ───────────────────────────────────────────────────────
@@ -337,16 +363,6 @@ export function EditorRoute() {
           {rail.collapsed ? 'Show panel ⇥' : '⇤ Hide panel'}
         </button>
         <p className="eyebrow">{isNew ? 'New story' : `Editing ${id}`}</p>
-        <div className="editor-topbar-actions">
-          <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
-            ▶ Preview
-          </button>
-          <ExportBar
-            story={{ frontmatter: fm, sections, basePath, warnings: [] }}
-            assets={bundleAssets}
-            onSave={saveToGallery}
-          />
-        </div>
       </div>
 
       <div
@@ -357,30 +373,88 @@ export function EditorRoute() {
         }
       >
         <aside className="editor-forms" style={rail.railStyle}>
-          <StoryMetaForm
-            fm={fm}
-            uploadedModel={uploaded ? fm.model : null}
-            onChange={(patch) => setFm((m) => ({ ...m, ...patch }))}
-            onModelPath={setModelPath}
-            onUpload={onUpload}
-          />
-          <SectionList
-            sections={sections}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onAdd={addSection}
-            onRemove={removeSection}
-            onMove={moveSection}
-          />
-          {selected && (
-            <SectionForm
-              section={selected}
-              onChange={(patch) => patchSection(selected.id, patch)}
-              onChangeType={(t) => changeType(selected.id, t)}
-              onUpload={(file) => onMediaUpload(selected.id, file)}
-              uploaded={!!selected.src && !!mediaUploads[selected.src]}
+          <AccordionSection step={1} title="Scene" open={openSteps.scene} onToggle={() => toggleStep('scene')}>
+            <SceneForm
+              fm={fm}
+              uploadedModel={uploaded ? fm.model : null}
+              onChange={(patch) => setFm((m) => ({ ...m, ...patch }))}
+              onModelPath={setModelPath}
+              onUpload={onUpload}
             />
-          )}
+          </AccordionSection>
+
+          <AccordionSection step={2} title="Story" open={openSteps.story} onToggle={() => toggleStep('story')}>
+            <StoryDetailsForm fm={fm} onChange={(patch) => setFm((m) => ({ ...m, ...patch }))} />
+            <SectionList
+              sections={sections}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onAdd={addSection}
+              onRemove={removeSection}
+              onMove={moveSection}
+            />
+            {selected && (
+              <SectionForm
+                section={selected}
+                waypoints={fm.waypoints ?? []}
+                onChange={(patch) => patchSection(selected.id, patch)}
+                onChangeType={(t) => changeType(selected.id, t)}
+                onUpload={(file) => onMediaUpload(selected.id, file)}
+                uploaded={!!selected.src && !!mediaUploads[selected.src]}
+                onAssignWaypoint={(name) => assignWaypoint(selected.id, name)}
+                onCaptureForSection={() => captureForSection(selected.id)}
+              />
+            )}
+          </AccordionSection>
+
+          <AccordionSection
+            step={3}
+            title="Waypoints"
+            open={openSteps.waypoints}
+            onToggle={() => toggleStep('waypoints')}
+            badge={`${sections.filter((s) => s.waypoint).length}/${sections.length}`}
+          >
+            <div className="ed-fields">
+              <p className="ed-hint">
+                Each section flies to its waypoint in Mode A. The <strong>first section</strong> is the
+                reader's opening view. Capture and edit views in the 3D scene on the right.
+              </p>
+              <ul className="wp-coverage">
+                {sections.map((s, i) => (
+                  <li
+                    key={s.id}
+                    className={s.id === selectedId ? 'wp-cov-row wp-cov-sel' : 'wp-cov-row'}
+                    onClick={() => {
+                      setSelectedId(s.id)
+                      if (s.waypoint) setActiveWaypoint(s.waypoint)
+                    }}
+                  >
+                    <span className="wp-cov-idx">{i + 1}</span>
+                    <span className="wp-cov-title">
+                      {s.title || <em className="muted">Untitled</em>}
+                      {i === 0 && <span className="muted"> · opening</span>}
+                    </span>
+                    <span className={s.waypoint ? 'wp-cov-set' : 'wp-cov-none'}>
+                      {s.waypoint ?? '— none'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </AccordionSection>
+
+          <AccordionSection step={4} title="Publish" open={openSteps.publish} onToggle={() => toggleStep('publish')}>
+            <div className="ed-fields ed-publish">
+              <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
+                ▶ Preview
+              </button>
+              <ExportBar
+                story={{ frontmatter: fm, sections, basePath, warnings: [] }}
+                assets={bundleAssets}
+                onSave={saveToGallery}
+              />
+            </div>
+          </AccordionSection>
         </aside>
 
         <div
@@ -397,11 +471,17 @@ export function EditorRoute() {
             previewFormat={previewFormat}
             previewOrientation={fm.orientation}
             basePath={basePath}
-            selected={selected}
-            selectedHotspot={resolveWaypoint(fm, selected?.waypoint) ?? null}
-            onHotspotChange={(h) => selected && setSectionView(selected.id, h)}
-            start={resolveWaypoint(fm, fm.start) ?? null}
-            onStartChange={(h) => setStartView(h)}
+            waypoints={fm.waypoints ?? []}
+            sections={sections}
+            activeWaypoint={activeWaypoint}
+            onViewerReady={(v) => {
+              viewerRef.current = v
+            }}
+            onCapture={captureWaypoint}
+            onSelectWaypoint={setActiveWaypoint}
+            onRename={renameActiveWaypoint}
+            onDelete={setConfirmDelete}
+            onEditActive={editActiveCamera}
           />
         </main>
       </div>
@@ -418,6 +498,23 @@ export function EditorRoute() {
           danger
           onConfirm={() => navigate('/')}
           onCancel={() => setConfirmLeave(false)}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmDialog
+          title={`Delete waypoint "${confirmDelete}"?`}
+          message={(() => {
+            const uses = countUsage(sections, confirmDelete)
+            return uses > 0
+              ? `${uses} section${uses > 1 ? 's' : ''} use this view — they'll fall back to default framing.`
+              : 'No sections use this view.'
+          })()}
+          confirmLabel="Delete & unset"
+          cancelLabel="Keep"
+          danger
+          onConfirm={() => deleteWaypointConfirmed(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
         />
       )}
     </div>

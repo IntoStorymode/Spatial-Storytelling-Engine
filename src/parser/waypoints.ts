@@ -1,4 +1,4 @@
-import type { Frontmatter, Hotspot, Waypoint } from './types'
+import type { Frontmatter, Hotspot, Section, Waypoint } from './types'
 
 /**
  * Resolve a waypoint reference (a name) to its camera, looking it up in the
@@ -45,4 +45,50 @@ export function pruneWaypoint(
   if (!waypoints || referenced) return waypoints
   const next = waypoints.filter((w) => w.name !== name)
   return next.length ? next : undefined
+}
+
+/** How many sections reference a waypoint by name (for usage badges + delete confirm). */
+export function countUsage(sections: Section[], name: string): number {
+  return sections.filter((s) => s.waypoint === name).length
+}
+
+/**
+ * Rename a waypoint and rewrite every section reference. Pure — returns new
+ * `waypoints` + `sections`. The caller is responsible for rejecting an empty or
+ * duplicate `newName` before calling.
+ */
+export function renameWaypoint(
+  waypoints: Waypoint[],
+  sections: Section[],
+  oldName: string,
+  newName: string,
+): { waypoints: Waypoint[]; sections: Section[] } {
+  return {
+    waypoints: waypoints.map((w) => (w.name === oldName ? { ...w, name: newName } : w)),
+    sections: sections.map((s) => (s.waypoint === oldName ? { ...s, waypoint: newName } : s)),
+  }
+}
+
+/**
+ * Delete a waypoint and unset every section that referenced it (those sections
+ * fall back to default framing). Pure — returns new `waypoints` + `sections`.
+ */
+export function deleteWaypoint(
+  waypoints: Waypoint[],
+  sections: Section[],
+  name: string,
+): { waypoints: Waypoint[] | undefined; sections: Section[] } {
+  const next = waypoints.filter((w) => w.name !== name)
+  return {
+    waypoints: next.length ? next : undefined,
+    sections: sections.map((s) => (s.waypoint === name ? { ...s, waypoint: undefined } : s)),
+  }
+}
+
+/** First free `view-N` name, so a freshly captured waypoint gets a unique default. */
+export function nextWaypointName(waypoints: Waypoint[] | undefined): string {
+  const taken = new Set((waypoints ?? []).map((w) => w.name))
+  let n = (waypoints?.length ?? 0) + 1
+  while (taken.has(`view-${n}`)) n++
+  return `view-${n}`
 }
