@@ -7,6 +7,16 @@ export interface Hotspot {
   target: [number, number, number]
 }
 
+/**
+ * A named camera position for the story's scan. Items and `start` reference a
+ * waypoint by `name` (unique within a story), so several items can share one
+ * view. Defined once in the frontmatter `waypoints` list.
+ */
+export interface Waypoint extends Hotspot {
+  /** Human name, referenced by items/`start` (e.g. "north-window"). */
+  name: string
+}
+
 export interface StoryItem {
   /** Stable id from the `## [item-01]` heading. */
   id: string
@@ -17,8 +27,11 @@ export interface StoryItem {
   caption?: string
   /** Freeform body text (markdown/plain). */
   body: string
-  /** Optional — items without a hotspot fall back to default framing in Mode A. */
-  hotspot?: Hotspot
+  /**
+   * Name of the waypoint this item flies to in Mode A (see Frontmatter.waypoints).
+   * Optional — items without a waypoint fall back to default framing.
+   */
+  waypoint?: string
 }
 
 export interface Frontmatter {
@@ -29,11 +42,16 @@ export interface Frontmatter {
   /** Path to the 3D model: `.glb`/`.gltf`, a splat (`.ply`/`.splat`/`.ksplat`), or `builtin:room`. */
   model: string
   /**
-   * Optional opening camera for the story — the first view the reader sees in
-   * Mode A (and the initial framing in Mode B). Falls back to model bounding-box
-   * framing when absent.
+   * Named camera positions for this story's scan. Items and `start` reference
+   * these by name; several items may share one. Absent/empty = no named views.
    */
-  start?: Hotspot
+  waypoints?: Waypoint[]
+  /**
+   * Name of the waypoint used as the story's opening view — the first view the
+   * reader sees in Mode A (and the initial framing in Mode B). Falls back to
+   * model bounding-box framing when absent or the name doesn't resolve.
+   */
+  start?: string
   /**
    * The reader's *default* Mode A camera navigation: `orbit` circles the model,
    * `firstPerson` looks around in place (+ WASD walk on desktop). Absent = orbit.

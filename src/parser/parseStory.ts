@@ -1,8 +1,8 @@
 import yaml from 'js-yaml'
-import type { Frontmatter, Hotspot, ItemType, Story, StoryItem } from './types'
+import type { Frontmatter, Hotspot, ItemType, Story, StoryItem, Waypoint } from './types'
 
 const ITEM_TYPES: readonly string[] = ['text', 'image', 'audio', 'video']
-const META_RE = /^(type|src|caption):\s*(.*)$/
+const META_RE = /^(type|src|caption|waypoint):\s*(.*)$/
 const HEADING_RE = /^##\s*\[([^\]]+)\]\s*(.*)$/
 const HOTSPOT_RE = /^hotspot:\s*$/
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?/
@@ -31,11 +31,24 @@ function toHotspot(v: unknown): Hotspot | null {
   return position && target ? { position, target } : null
 }
 
+/** A `{ name, position, target }` frontmatter entry → Waypoint, or null if malformed. */
+function toWaypoint(v: unknown): Waypoint | null {
+  if (!v || typeof v !== 'object') return null
+  const name = toStr((v as Record<string, unknown>).name).trim()
+  const h = toHotspot(v)
+  return name && h ? { name, position: h.position, target: h.target } : null
+}
+
 /**
  * Parse a story.md (YAML frontmatter + a sequence of `## [id] title` item blocks)
  * into a Story. Resilient: malformed pieces produce `warnings` rather than throwing.
  * `src`/`model` are kept verbatim (resolved against basePath at render time), which
  * keeps parse→serialize→parse idempotent.
+ *
+ * Cameras are named waypoints defined in the frontmatter `waypoints` list;
+ * items and `start` reference them by name. Legacy files that inline a
+ * `hotspot:`/`start:` camera still load — each is migrated into a synthesized
+ * named waypoint (silently), so old and hand-authored stories keep working.
  */
 export function parseStory(raw: string, basePath = ''): Story {
   const warnings: string[] = []
@@ -43,6 +56,9 @@ export function parseStory(raw: string, basePath = ''): Story {
 
   // --- frontmatter ---
   let frontmatter: Frontmatter = { title: '', author: '', location: '', date: '', model: '' }
+  // The story's named cameras — seeded from frontmatter, then any legacy inline
+  // cameras (item hotspots / inline start) are appended as synthesized entries.
+  const waypoints: Waypoint[] = []
   let body = text
 
   const fmMatch = text.match(FRONTMATTER_RE)
@@ -56,10 +72,37 @@ export function parseStory(raw: string, basePath = ''): Story {
         date: toStr(data.date),
         model: toStr(data.model),
       }
+      if (data.waypoints !== undefined) {
+        if (Array.isArray(data.waypoints)) {
+          for (const entry of data.waypoints) {
+            const wp = toWaypoint(entry)
+            if (!wp) {
+              warnings.push('Frontmatter waypoints: each needs a name and position/target of 3 numbers')
+            } else if (waypoints.some((w) => w.name === wp.name)) {
+              warnings.push(`Frontmatter waypoints: duplicate name "${wp.name}"`)
+            } else {
+              waypoints.push(wp)
+            }
+          }
+        } else {
+          warnings.push('Frontmatter waypoints: expected a list')
+        }
+      }
       if (data.start !== undefined) {
-        const start = toHotspot(data.start)
-        if (start) frontmatter.start = start
-        else warnings.push('Frontmatter start: position/target must each be 3 numbers')
+        if (typeof data.start === 'string') {
+          frontmatter.start = data.start.trim() // reference validated after items
+        } else {
+          // Legacy inline start camera → synthesize a "start" waypoint.
+          const h = toHotspot(data.start)
+          if (h) {
+            if (!waypoints.some((w) => w.name === 'start')) {
+              waypoints.push({ name: 'start', position: h.position, target: h.target })
+            }
+            frontmatter.start = 'start'
+          } else {
+            warnings.push('Frontmatter start: expected a waypoint name, or position/target of 3 numbers')
+          }
+        }
       }
       if (data.navigation !== undefined) {
         const nav = toStr(data.navigation)
@@ -87,14 +130,27 @@ export function parseStory(raw: string, basePath = ''): Story {
 
   const items: StoryItem[] = []
   for (const chunk of chunks) {
-    const item = parseItem(chunk, warnings)
+    const item = parseItem(chunk, warnings, waypoints)
     if (item) items.push(item)
+  }
+
+  if (waypoints.length) frontmatter.waypoints = waypoints
+
+  // Flag references that don't resolve (helps catch typos / deleted waypoints).
+  const names = new Set(waypoints.map((w) => w.name))
+  for (const it of items) {
+    if (it.waypoint && !names.has(it.waypoint)) {
+      warnings.push(`Item ${it.id}: waypoint "${it.waypoint}" is not defined`)
+    }
+  }
+  if (frontmatter.start && !names.has(frontmatter.start)) {
+    warnings.push(`Frontmatter start: waypoint "${frontmatter.start}" is not defined`)
   }
 
   return { frontmatter, items, basePath, warnings }
 }
 
-function parseItem(chunk: string, warnings: string[]): StoryItem | null {
+function parseItem(chunk: string, warnings: string[], waypoints: Waypoint[]): StoryItem | null {
   const lines = chunk.split('\n')
   const heading = lines[0].match(HEADING_RE)
   if (!heading) {
@@ -109,7 +165,7 @@ function parseItem(chunk: string, warnings: string[]): StoryItem | null {
   const preLines = hotspotIdx === -1 ? rest : rest.slice(0, hotspotIdx)
   const hotspotLines = hotspotIdx === -1 ? [] : rest.slice(hotspotIdx + 1)
 
-  // Metadata (type/src/caption) sits at the top of the preamble; the body follows.
+  // Metadata (type/src/caption/waypoint) sits at the top of the preamble; the body follows.
   const meta: Record<string, string> = {}
   let i = 0
   while (i < preLines.length && preLines[i].trim() === '') i++
@@ -129,22 +185,31 @@ function parseItem(chunk: string, warnings: string[]): StoryItem | null {
     warnings.push(`Item ${id}: missing type, defaulting to text`)
   }
 
-  let hotspot: Hotspot | undefined
-  if (hotspotLines.length > 0) {
+  const item: StoryItem = { id, title, type, body: itemBody }
+  if (meta.src) item.src = meta.src
+  if (meta.caption) item.caption = meta.caption
+
+  if (meta.waypoint) {
+    // New format: an explicit reference to a named waypoint.
+    item.waypoint = meta.waypoint
+  } else if (hotspotLines.length > 0) {
+    // Legacy inline hotspot → synthesize a waypoint named after the item id.
     // Dedent so js-yaml parses the indented sub-block as a top-level mapping.
     const dedented = hotspotLines.map((l) => l.replace(/^\s+/, '')).join('\n')
     try {
       const h = toHotspot(yaml.load(dedented))
-      if (h) hotspot = h
-      else warnings.push(`Item ${id}: hotspot position/target must each be 3 numbers`)
+      if (h) {
+        if (!waypoints.some((w) => w.name === id)) {
+          waypoints.push({ name: id, position: h.position, target: h.target })
+        }
+        item.waypoint = id
+      } else {
+        warnings.push(`Item ${id}: hotspot position/target must each be 3 numbers`)
+      }
     } catch (e) {
       warnings.push(`Item ${id}: hotspot parse error: ${String(e)}`)
     }
   }
 
-  const item: StoryItem = { id, title, type, body: itemBody }
-  if (meta.src) item.src = meta.src
-  if (meta.caption) item.caption = meta.caption
-  if (hotspot) item.hotspot = hotspot
   return item
 }

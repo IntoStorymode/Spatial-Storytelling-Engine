@@ -11,6 +11,8 @@ interface Props {
   previewOrientation?: 'flip' | 'none'
   basePath: string
   selected: StoryItem | null
+  /** The selected item's camera, resolved from its waypoint reference. */
+  selectedHotspot: Hotspot | null
   onHotspotChange: (hotspot: Hotspot | undefined) => void
   /** The story's opening camera (Mode A initial view), and its setter. */
   start: Hotspot | null
@@ -35,6 +37,7 @@ export function HotspotPlacer({
   previewOrientation,
   basePath,
   selected,
+  selectedHotspot,
   onHotspotChange,
   start,
   onStartChange,
@@ -52,7 +55,7 @@ export function HotspotPlacer({
     if (v && ready) v.setLookMode(lookMode)
   }, [ready, lookMode])
 
-  const hotspot = selected?.hotspot
+  const hotspot = selectedHotspot
   const hotspotKey = hotspot ? [...hotspot.position, ...hotspot.target].join(',') : null
 
   // Keep the in-scene gizmo (camera + look-point + view line) in sync with the
