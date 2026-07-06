@@ -7,11 +7,11 @@ import { triggerDownload } from '../../publish/download'
 function validate(story: Story): string[] {
   const warnings: string[] = []
   if (!story.frontmatter.title.trim()) warnings.push('Story has no title.')
-  if (!story.items.length) warnings.push('Story has no items.')
-  story.items.forEach((it, i) => {
-    const n = `Item ${i + 1}`
+  if (!story.sections.length) warnings.push('Story has no sections.')
+  story.sections.forEach((it, i) => {
+    const n = `Section ${i + 1}`
     if (!it.title.trim()) warnings.push(`${n}: no title.`)
-    if (it.type !== 'text' && !it.src?.trim()) warnings.push(`${n}: ${it.type} item has no source path.`)
+    if (it.type !== 'text' && !it.src?.trim()) warnings.push(`${n}: ${it.type} section has no source path.`)
   })
   return warnings
 }

@@ -12,7 +12,7 @@ const AUTO_TOUR_DWELL_MS = 3800
 /**
  * Owns the ONE persistent ThreeViewer for a story and wires it to the store:
  *  - loads the model once (reloads only when the story's model changes)
- *  - in Mode A, flies the camera to the active item's hotspot on every change
+ *  - in Mode A, flies the camera to the active section's hotspot on every change
  *  - sets the per-mode control scheme (orbit vs first-person; wheel zoom/walk)
  *  - runs the auto-tour scheduler
  * Children (PageView / ImmersiveView) swap freely without tearing down the
@@ -28,7 +28,7 @@ export function ViewerStage({
   modelFormat?: string
   children: ReactNode
 }) {
-  const { items, basePath, frontmatter } = story
+  const { sections, basePath, frontmatter } = story
   // The opening view — resolve the named waypoint `start` references.
   const start = resolveWaypoint(frontmatter, frontmatter.start)
   const [viewer, setViewer] = useState<ThreeViewer | null>(null)
@@ -45,7 +45,7 @@ export function ViewerStage({
   const mode = useStoryStore((s) => s.mode)
   const activeIndex = useStoryStore((s) => s.activeIndex)
   const autoTour = useStoryStore((s) => s.autoTour)
-  const setItemCount = useStoryStore((s) => s.setItemCount)
+  const setSectionCount = useStoryStore((s) => s.setSectionCount)
   const step = useStoryStore((s) => s.step)
   const navMode = useStoryStore((s) => s.navMode)
   const setNavMode = useStoryStore((s) => s.setNavMode)
@@ -95,13 +95,13 @@ export function ViewerStage({
   }, [viewer, frontmatter.model, basePath, modelFormat, frontmatter.orientation, start])
 
   // A fresh entry into Mode A should open on the story start view, not jump
-  // straight to item 1's waypoint — so reset the "opened" latch in Mode B.
+  // straight to section 1's waypoint — so reset the "opened" latch in Mode B.
   useEffect(() => {
     if (mode !== 'immersive') openedRef.current = false
   }, [mode])
 
-  // Keep the store's item count in sync for navigation bounds.
-  useEffect(() => setItemCount(items.length), [items.length, setItemCount])
+  // Keep the store's section count in sync for navigation bounds.
+  useEffect(() => setSectionCount(sections.length), [sections.length, setSectionCount])
 
   // Apply the control scheme for the current mode + reader nav mode. The wheel,
   // over the canvas, behaves the same in both modes — zoom in orbit, walk
@@ -128,7 +128,7 @@ export function ViewerStage({
     }
   }, [viewer, mode, navMode])
 
-  // Camera ↔ active item. In Mode A, place the camera at the active hotspot on
+  // Camera ↔ active section. In Mode A, place the camera at the active hotspot on
   // every change (and when first entering immersive), honoring the reader's nav
   // mode: orbit frames the waypoint, first-person stands the eye at it. Mode B
   // leaves the camera to free orbit. Re-runs on navMode so toggling re-places.
@@ -140,7 +140,7 @@ export function ViewerStage({
         ? viewer.flyToFirstPerson(position, target, animate)
         : viewer.flyTo(position, target, animate)
     // First entry into Mode A honors the story start view as the opening frame;
-    // an item's own waypoint takes over only once the reader navigates.
+    // an section's own waypoint takes over only once the reader navigates.
     if (!openedRef.current) {
       openedRef.current = true
       if (start) {
@@ -148,11 +148,11 @@ export function ViewerStage({
         return
       }
     }
-    const hotspot = resolveWaypoint(frontmatter, items[activeIndex]?.waypoint)
+    const hotspot = resolveWaypoint(frontmatter, sections[activeIndex]?.waypoint)
     if (hotspot) place(hotspot.position, hotspot.target)
     else if (start) place(start.position, start.target)
     else viewer.frameObject(viewer.scene, animate)
-  }, [viewer, mode, activeIndex, items, reducedMotion, start, navMode, frontmatter])
+  }, [viewer, mode, activeIndex, sections, reducedMotion, start, navMode, frontmatter])
 
   // Auto-tour: schedule the next advance after the dwell. Reschedules on each
   // activeIndex change; cleared when the tour is off or the mode leaves immersive.

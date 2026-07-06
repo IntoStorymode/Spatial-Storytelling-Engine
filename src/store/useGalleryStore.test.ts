@@ -7,7 +7,7 @@ const make = (slug: string, savedAt = 1): SavedStory => ({
   slug,
   key: slug,
   fm: { ...baseFm, title: slug },
-  items: [],
+  sections: [],
   basePath: '',
   uploaded: null,
   mediaUploads: {},

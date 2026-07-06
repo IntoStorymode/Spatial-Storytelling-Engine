@@ -1,12 +1,12 @@
 import yaml from 'js-yaml'
-import type { Frontmatter, Hotspot, ItemType, Story, StoryItem, Waypoint } from './types'
+import type { Frontmatter, Hotspot, SectionType, Story, Section, Waypoint } from './types'
 
-const ITEM_TYPES: readonly string[] = ['text', 'image', 'audio', 'video']
+const SECTION_TYPES: readonly string[] = ['text', 'image', 'audio', 'video']
 const META_RE = /^(type|src|caption|waypoint):\s*(.*)$/
 const HEADING_RE = /^##\s*\[([^\]]+)\]\s*(.*)$/
 const HOTSPOT_RE = /^hotspot:\s*$/
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?/
-const ITEM_SEPARATOR_RE = /^---\s*$/m
+const SECTION_SEPARATOR_RE = /^---\s*$/m
 
 function toStr(v: unknown): string {
   if (v == null) return ''
@@ -40,13 +40,13 @@ function toWaypoint(v: unknown): Waypoint | null {
 }
 
 /**
- * Parse a story.md (YAML frontmatter + a sequence of `## [id] title` item blocks)
+ * Parse a story.md (YAML frontmatter + a sequence of `## [id] title` section blocks)
  * into a Story. Resilient: malformed pieces produce `warnings` rather than throwing.
  * `src`/`model` are kept verbatim (resolved against basePath at render time), which
  * keeps parse→serialize→parse idempotent.
  *
  * Cameras are named waypoints defined in the frontmatter `waypoints` list;
- * items and `start` reference them by name. Legacy files that inline a
+ * sections and `start` reference them by name. Legacy files that inline a
  * `hotspot:`/`start:` camera still load — each is migrated into a synthesized
  * named waypoint (silently), so old and hand-authored stories keep working.
  */
@@ -57,7 +57,7 @@ export function parseStory(raw: string, basePath = ''): Story {
   // --- frontmatter ---
   let frontmatter: Frontmatter = { title: '', author: '', location: '', date: '', model: '' }
   // The story's named cameras — seeded from frontmatter, then any legacy inline
-  // cameras (item hotspots / inline start) are appended as synthesized entries.
+  // cameras (section hotspots / inline start) are appended as synthesized entries.
   const waypoints: Waypoint[] = []
   let body = text
 
@@ -90,7 +90,7 @@ export function parseStory(raw: string, basePath = ''): Story {
       }
       if (data.start !== undefined) {
         if (typeof data.start === 'string') {
-          frontmatter.start = data.start.trim() // reference validated after items
+          frontmatter.start = data.start.trim() // reference validated after sections
         } else {
           // Legacy inline start camera → synthesize a "start" waypoint.
           const h = toHotspot(data.start)
@@ -122,35 +122,35 @@ export function parseStory(raw: string, basePath = ''): Story {
     warnings.push('No frontmatter block found')
   }
 
-  // --- items ---
+  // --- sections ---
   const chunks = body
-    .split(ITEM_SEPARATOR_RE)
+    .split(SECTION_SEPARATOR_RE)
     .map((c) => c.trim())
     .filter((c) => c.length > 0)
 
-  const items: StoryItem[] = []
+  const sections: Section[] = []
   for (const chunk of chunks) {
-    const item = parseItem(chunk, warnings, waypoints)
-    if (item) items.push(item)
+    const section = parseSection(chunk, warnings, waypoints)
+    if (section) sections.push(section)
   }
 
   if (waypoints.length) frontmatter.waypoints = waypoints
 
   // Flag references that don't resolve (helps catch typos / deleted waypoints).
   const names = new Set(waypoints.map((w) => w.name))
-  for (const it of items) {
+  for (const it of sections) {
     if (it.waypoint && !names.has(it.waypoint)) {
-      warnings.push(`Item ${it.id}: waypoint "${it.waypoint}" is not defined`)
+      warnings.push(`Section ${it.id}: waypoint "${it.waypoint}" is not defined`)
     }
   }
   if (frontmatter.start && !names.has(frontmatter.start)) {
     warnings.push(`Frontmatter start: waypoint "${frontmatter.start}" is not defined`)
   }
 
-  return { frontmatter, items, basePath, warnings }
+  return { frontmatter, sections, basePath, warnings }
 }
 
-function parseItem(chunk: string, warnings: string[], waypoints: Waypoint[]): StoryItem | null {
+function parseSection(chunk: string, warnings: string[], waypoints: Waypoint[]): Section | null {
   const lines = chunk.split('\n')
   const heading = lines[0].match(HEADING_RE)
   if (!heading) {
@@ -177,23 +177,23 @@ function parseItem(chunk: string, warnings: string[], waypoints: Waypoint[]): St
   }
   const itemBody = preLines.slice(i).join('\n').trim()
 
-  let type: ItemType = 'text'
+  let type: SectionType = 'text'
   if (meta.type) {
-    if (ITEM_TYPES.includes(meta.type)) type = meta.type as ItemType
-    else warnings.push(`Item ${id}: unknown type "${meta.type}", defaulting to text`)
+    if (SECTION_TYPES.includes(meta.type)) type = meta.type as SectionType
+    else warnings.push(`Section ${id}: unknown type "${meta.type}", defaulting to text`)
   } else {
-    warnings.push(`Item ${id}: missing type, defaulting to text`)
+    warnings.push(`Section ${id}: missing type, defaulting to text`)
   }
 
-  const item: StoryItem = { id, title, type, body: itemBody }
-  if (meta.src) item.src = meta.src
-  if (meta.caption) item.caption = meta.caption
+  const section: Section = { id, title, type, body: itemBody }
+  if (meta.src) section.src = meta.src
+  if (meta.caption) section.caption = meta.caption
 
   if (meta.waypoint) {
     // New format: an explicit reference to a named waypoint.
-    item.waypoint = meta.waypoint
+    section.waypoint = meta.waypoint
   } else if (hotspotLines.length > 0) {
-    // Legacy inline hotspot → synthesize a waypoint named after the item id.
+    // Legacy inline hotspot → synthesize a waypoint named after the section id.
     // Dedent so js-yaml parses the indented sub-block as a top-level mapping.
     const dedented = hotspotLines.map((l) => l.replace(/^\s+/, '')).join('\n')
     try {
@@ -202,14 +202,14 @@ function parseItem(chunk: string, warnings: string[], waypoints: Waypoint[]): St
         if (!waypoints.some((w) => w.name === id)) {
           waypoints.push({ name: id, position: h.position, target: h.target })
         }
-        item.waypoint = id
+        section.waypoint = id
       } else {
-        warnings.push(`Item ${id}: hotspot position/target must each be 3 numbers`)
+        warnings.push(`Section ${id}: hotspot position/target must each be 3 numbers`)
       }
     } catch (e) {
-      warnings.push(`Item ${id}: hotspot parse error: ${String(e)}`)
+      warnings.push(`Section ${id}: hotspot parse error: ${String(e)}`)
     }
   }
 
-  return item
+  return section
 }

@@ -15,40 +15,40 @@ describe('story parser — demo story', () => {
     expect(story.warnings).toEqual([])
     expect(story.frontmatter.title).toBeTruthy()
     expect(story.frontmatter.model).toBeTruthy()
-    expect(story.items).toHaveLength(3)
+    expect(story.sections).toHaveLength(3)
   })
 
   it('captures ids, types, and waypoint refs in order', () => {
     const story = parseStory(raw, BASE)
-    expect(story.items.map((i) => i.id)).toEqual(['item-01', 'item-02', 'item-03'])
-    expect(story.items.map((i) => i.type)).toEqual(['text', 'image', 'audio'])
-    expect(story.items.every((i) => i.waypoint)).toBe(true)
+    expect(story.sections.map((i) => i.id)).toEqual(['item-01', 'item-02', 'item-03'])
+    expect(story.sections.map((i) => i.type)).toEqual(['text', 'image', 'audio'])
+    expect(story.sections.every((i) => i.waypoint)).toBe(true)
     expect(story.basePath).toBe(BASE)
   })
 
-  it('defines named waypoints and resolves item references to cameras', () => {
+  it('defines named waypoints and resolves section references to cameras', () => {
     const story = parseStory(raw, BASE)
     const fm = story.frontmatter
     expect(fm.waypoints?.map((w) => w.name)).toEqual(['entrance-hall', 'composing-room', 'courtyard'])
     expect(fm.start).toBe('entrance-hall')
-    // each item's ref resolves to a real waypoint camera
-    for (const item of story.items) {
-      expect(resolveWaypoint(fm, item.waypoint)).toBeDefined()
+    // each section's ref resolves to a real waypoint camera
+    for (const section of story.sections) {
+      expect(resolveWaypoint(fm, section.waypoint)).toBeDefined()
     }
-    expect(resolveWaypoint(fm, story.items[0].waypoint)?.position).toEqual([0.5, 1.2, -2.1])
+    expect(resolveWaypoint(fm, story.sections[0].waypoint)?.position).toEqual([0.5, 1.2, -2.1])
   })
 
   it('keeps src verbatim (not pre-resolved against basePath)', () => {
     const story = parseStory(raw, BASE)
-    expect(story.items[1].src).toBe('assets/entrance.svg')
-    expect(story.items[2].src).toBe('assets/narration.wav')
+    expect(story.sections[1].src).toBe('assets/entrance.svg')
+    expect(story.sections[2].src).toBe('assets/narration.wav')
   })
 
   it('round-trips: parse → serialize → parse is idempotent', () => {
     const s1 = parseStory(raw, BASE)
     const s2 = parseStory(serializeStory(s1), BASE)
     expect(s2.frontmatter).toEqual(s1.frontmatter)
-    expect(s2.items).toEqual(s1.items)
+    expect(s2.sections).toEqual(s1.sections)
     expect(s2.warnings).toEqual([])
   })
 })
@@ -76,7 +76,7 @@ describe('story parser — named waypoints', () => {
     '',
     '## [b] B',
     'type: text',
-    'waypoint: north', // reused by another item
+    'waypoint: north', // reused by another section
     '',
     '---',
     '',
@@ -84,17 +84,17 @@ describe('story parser — named waypoints', () => {
     'type: text', // no waypoint
   ].join('\n')
 
-  it('parses the waypoint list and item references', () => {
+  it('parses the waypoint list and section references', () => {
     const story = parseStory(md, BASE)
     expect(story.warnings).toEqual([])
     expect(story.frontmatter.waypoints).toHaveLength(2)
-    expect(story.items.map((i) => i.waypoint)).toEqual(['north', 'north', undefined])
+    expect(story.sections.map((i) => i.waypoint)).toEqual(['north', 'north', undefined])
   })
 
-  it('lets several items share one waypoint (reuse)', () => {
+  it('lets several sections share one waypoint (reuse)', () => {
     const story = parseStory(md, BASE)
-    const a = resolveWaypoint(story.frontmatter, story.items[0].waypoint)
-    const b = resolveWaypoint(story.frontmatter, story.items[1].waypoint)
+    const a = resolveWaypoint(story.frontmatter, story.sections[0].waypoint)
+    const b = resolveWaypoint(story.frontmatter, story.sections[1].waypoint)
     expect(a).toBeDefined()
     expect(a).toBe(b) // same underlying waypoint object
   })
@@ -108,14 +108,14 @@ describe('story parser — named waypoints', () => {
     const s1 = parseStory(md, BASE)
     const s2 = parseStory(serializeStory(s1), BASE)
     expect(s2.frontmatter).toEqual(s1.frontmatter)
-    expect(s2.items).toEqual(s1.items)
+    expect(s2.sections).toEqual(s1.sections)
     expect(s2.warnings).toEqual([])
   })
 
-  it('warns on a dangling item reference', () => {
+  it('warns on a dangling section reference', () => {
     const bad = '---\ntitle: "x"\n---\n\n## [a] A\ntype: text\nwaypoint: ghost\n'
     const story = parseStory(bad, BASE)
-    expect(story.items[0].waypoint).toBe('ghost')
+    expect(story.sections[0].waypoint).toBe('ghost')
     expect(story.warnings.some((w) => w.includes('ghost'))).toBe(true)
   })
 
@@ -138,12 +138,12 @@ describe('story parser — named waypoints', () => {
 })
 
 describe('story parser — legacy inline cameras (back-compat)', () => {
-  it('migrates an item hotspot into a synthesized named waypoint', () => {
+  it('migrates an section hotspot into a synthesized named waypoint', () => {
     const legacy =
       '---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n\nhotspot:\n  position: [1, 2, 3]\n  target: [4, 5, 6]\n'
     const story = parseStory(legacy, BASE)
     expect(story.warnings).toEqual([])
-    expect(story.items[0].waypoint).toBe('a') // named after the item id
+    expect(story.sections[0].waypoint).toBe('a') // named after the section id
     expect(resolveWaypoint(story.frontmatter, 'a')?.position).toEqual([1, 2, 3])
   })
 
@@ -171,24 +171,24 @@ describe('story parser — legacy inline cameras (back-compat)', () => {
     const md =
       '---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n\nhotspot:\n  position: [1, 2]\n  target: [0, 0, 0]\n'
     const story = parseStory(md, BASE)
-    expect(story.items[0].waypoint).toBeUndefined()
+    expect(story.sections[0].waypoint).toBeUndefined()
     expect(story.warnings.some((w) => w.includes('position/target'))).toBe(true)
   })
 })
 
 describe('story parser — resilience', () => {
   it('warns instead of throwing on a block with no heading', () => {
-    const story = parseStory('---\ntitle: "x"\n---\n\nnot an item block\n', BASE)
-    expect(story.items).toHaveLength(0)
+    const story = parseStory('---\ntitle: "x"\n---\n\nnot an section block\n', BASE)
+    expect(story.sections).toHaveLength(0)
     expect(story.warnings.length).toBeGreaterThan(0)
   })
 
-  it('parses an item with no waypoint', () => {
+  it('parses an section with no waypoint', () => {
     const md = '---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nHello world\n'
     const story = parseStory(md, BASE)
-    expect(story.items).toHaveLength(1)
-    expect(story.items[0].waypoint).toBeUndefined()
-    expect(story.items[0].body).toBe('Hello world')
+    expect(story.sections).toHaveLength(1)
+    expect(story.sections[0].waypoint).toBeUndefined()
+    expect(story.sections[0].body).toBe('Hello world')
   })
 })
 

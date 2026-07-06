@@ -1,32 +1,32 @@
 import { useRef } from 'react'
-import type { ItemType, StoryItem } from '../../parser/types'
+import type { SectionType, Section } from '../../parser/types'
 
 interface Props {
-  item: StoryItem
-  onChange: (patch: Partial<StoryItem>) => void
-  onChangeType: (type: ItemType) => void
-  /** Register an uploaded media file for this item (blob preview + bundling). */
+  section: Section
+  onChange: (patch: Partial<Section>) => void
+  onChangeType: (type: SectionType) => void
+  /** Register an uploaded media file for this section (blob preview + bundling). */
   onUpload: (file: File) => void
-  /** True when this item's src came from an upload (shows a hint). */
+  /** True when this section's src came from an upload (shows a hint). */
   uploaded: boolean
 }
 
-const TYPES: ItemType[] = ['text', 'image', 'audio', 'video']
-const ACCEPT: Record<Exclude<ItemType, 'text'>, string> = {
+const TYPES: SectionType[] = ['text', 'image', 'audio', 'video']
+const ACCEPT: Record<Exclude<SectionType, 'text'>, string> = {
   image: 'image/*',
   audio: 'audio/*',
   video: 'video/*',
 }
 
-/** Edit the selected item — title, type, per-type src/caption, and body. */
-export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: Props) {
-  const isMedia = item.type !== 'text'
+/** Edit the selected section — title, type, per-type src/caption, and body. */
+export function SectionForm({ section, onChange, onChangeType, onUpload, uploaded }: Props) {
+  const isMedia = section.type !== 'text'
   const fileRef = useRef<HTMLInputElement>(null)
 
   return (
     <section className="ed-section">
       <h2 className="ed-h2">
-        Item <span className="muted">{item.id}</span>
+        Section <span className="muted">{section.id}</span>
       </h2>
       <p className="ed-hint">
         The content of this story section. Set its waypoint — the camera view Mode A flies
@@ -35,7 +35,7 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
 
       <label className="ed-field">
         <span>Title</span>
-        <input value={item.title} onChange={(e) => onChange({ title: e.target.value })} />
+        <input value={section.title} onChange={(e) => onChange({ title: e.target.value })} />
       </label>
 
       <div className="ed-field">
@@ -44,7 +44,7 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
           {TYPES.map((t) => (
             <button
               key={t}
-              className={t === item.type ? 'btn btn-accent ed-chip' : 'btn ed-chip'}
+              className={t === section.type ? 'btn btn-accent ed-chip' : 'btn ed-chip'}
               onClick={() => onChangeType(t)}
             >
               {t}
@@ -58,7 +58,7 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
           <label className="ed-field">
             <span>Source path</span>
             <input
-              value={item.src ?? ''}
+              value={section.src ?? ''}
               onChange={(e) => onChange({ src: e.target.value })}
               placeholder="assets/photo.jpg"
             />
@@ -70,7 +70,7 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
             <input
               ref={fileRef}
               type="file"
-              accept={ACCEPT[item.type as Exclude<ItemType, 'text'>]}
+              accept={ACCEPT[section.type as Exclude<SectionType, 'text'>]}
               hidden
               onChange={(e) => {
                 const f = e.target.files?.[0]
@@ -82,13 +82,13 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
           {uploaded && (
             <p className="ed-hint">
               Previewing your uploaded file. Use <strong>Download website</strong> on export to
-              get it packaged at <code>{item.src}</code> automatically.
+              get it packaged at <code>{section.src}</code> automatically.
             </p>
           )}
           <label className="ed-field">
             <span>Caption</span>
             <input
-              value={item.caption ?? ''}
+              value={section.caption ?? ''}
               onChange={(e) => onChange({ caption: e.target.value })}
             />
           </label>
@@ -99,9 +99,9 @@ export function ItemForm({ item, onChange, onChangeType, onUpload, uploaded }: P
         <span>Body</span>
         <textarea
           rows={6}
-          value={item.body}
+          value={section.body}
           onChange={(e) => onChange({ body: e.target.value })}
-          placeholder="Write the narrative for this item…"
+          placeholder="Write the narrative for this section…"
         />
       </label>
     </section>

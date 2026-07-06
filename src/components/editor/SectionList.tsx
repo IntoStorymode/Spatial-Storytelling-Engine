@@ -1,7 +1,7 @@
-import type { StoryItem } from '../../parser/types'
+import type { Section } from '../../parser/types'
 
 interface Props {
-  items: StoryItem[]
+  sections: Section[]
   selectedId: string | null
   onSelect: (id: string) => void
   onAdd: () => void
@@ -9,41 +9,41 @@ interface Props {
   onMove: (id: string, dir: -1 | 1) => void
 }
 
-const TYPE_GLYPH: Record<StoryItem['type'], string> = {
+const TYPE_GLYPH: Record<Section['type'], string> = {
   text: '¶',
   image: '▣',
   audio: '♪',
   video: '►',
 }
 
-/** Ordered list of story items: select, reorder, add, remove. */
-export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove }: Props) {
+/** Ordered list of story sections: select, reorder, add, remove. */
+export function SectionList({ sections, selectedId, onSelect, onAdd, onRemove, onMove }: Props) {
   return (
     <section className="ed-section">
       <div className="ed-section-head">
-        <h2 className="ed-h2">Items</h2>
+        <h2 className="ed-h2">Sections</h2>
         <button className="btn ed-chip" onClick={onAdd}>
           + Add
         </button>
       </div>
       <p className="ed-hint">
-        Each item is a section of your story. Select one, then give it a waypoint in the 3D
+        Each section is a part of your story. Select one, then give it a waypoint in the 3D
         scene so Mode A flies the camera there.
       </p>
 
       <ul className="ed-items">
-        {items.map((item, i) => (
+        {sections.map((section, i) => (
           <li
-            key={item.id}
-            className={item.id === selectedId ? 'ed-item ed-item-sel' : 'ed-item'}
-            onClick={() => onSelect(item.id)}
+            key={section.id}
+            className={section.id === selectedId ? 'ed-item ed-item-sel' : 'ed-item'}
+            onClick={() => onSelect(section.id)}
           >
-            <span className="ed-item-glyph" title={item.type}>
-              {TYPE_GLYPH[item.type]}
+            <span className="ed-item-glyph" title={section.type}>
+              {TYPE_GLYPH[section.type]}
             </span>
             <span className="ed-item-title">
-              {item.title || <em className="muted">Untitled</em>}
-              {item.waypoint && <span className="ed-item-pin" title="Has a waypoint">📍</span>}
+              {section.title || <em className="muted">Untitled</em>}
+              {section.waypoint && <span className="ed-item-pin" title="Has a waypoint">📍</span>}
             </span>
             <span className="ed-item-actions">
               <button
@@ -51,7 +51,7 @@ export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove 
                 disabled={i === 0}
                 onClick={(e) => {
                   e.stopPropagation()
-                  onMove(item.id, -1)
+                  onMove(section.id, -1)
                 }}
                 aria-label="Move up"
               >
@@ -59,10 +59,10 @@ export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove 
               </button>
               <button
                 className="ed-icon"
-                disabled={i === items.length - 1}
+                disabled={i === sections.length - 1}
                 onClick={(e) => {
                   e.stopPropagation()
-                  onMove(item.id, 1)
+                  onMove(section.id, 1)
                 }}
                 aria-label="Move down"
               >
@@ -70,10 +70,10 @@ export function ItemList({ items, selectedId, onSelect, onAdd, onRemove, onMove 
               </button>
               <button
                 className="ed-icon ed-icon-danger"
-                disabled={items.length === 1}
+                disabled={sections.length === 1}
                 onClick={(e) => {
                   e.stopPropagation()
-                  onRemove(item.id)
+                  onRemove(section.id)
                 }}
                 aria-label="Remove"
               >

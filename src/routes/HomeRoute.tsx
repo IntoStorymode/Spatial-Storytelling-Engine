@@ -88,8 +88,8 @@ export function HomeRoute() {
     try {
       const exportStories: ExportStory[] = chosen.map((s) => ({
         slug: s.slug,
-        story: { frontmatter: s.fm, items: s.items, basePath: s.basePath, warnings: [] },
-        assets: collectAssets(s.fm, s.items, s.uploaded, s.mediaUploads),
+        story: { frontmatter: s.fm, sections: s.sections, basePath: s.basePath, warnings: [] },
+        assets: collectAssets(s.fm, s.sections, s.uploaded, s.mediaUploads),
       }))
       const { blob, fileName } = await buildSiteZip({ stories: exportStories, manifest })
       triggerDownload(blob, fileName)
