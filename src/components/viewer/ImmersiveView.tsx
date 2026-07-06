@@ -20,7 +20,7 @@ const STEP_COOLDOWN_MS = 650 // lock so one keypress = one section
  * first-person — and to the overlay panel (native scroll), matching Mode B.
  * Any manual nav cancels the auto-tour.
  */
-export function ImmersiveView({ story }: { story: Story }) {
+export function ImmersiveView({ story, hideBack }: { story: Story; hideBack?: boolean }) {
   const step = useStoryStore((s) => s.step)
   const setAutoTour = useStoryStore((s) => s.setAutoTour)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -70,9 +70,13 @@ export function ImmersiveView({ story }: { story: Story }) {
       <StageSlot className="immersive-canvas" />
 
       <div className="immersive-topbar" ref={topbarRef}>
-        <Link to="/" className="back">
-          ← All stories
-        </Link>
+        {hideBack ? (
+          <span />
+        ) : (
+          <Link to="/" className="back">
+            ← All stories
+          </Link>
+        )}
         <div className="topbar-toggles">
           <NavModeToggle />
           <ModeToggle />

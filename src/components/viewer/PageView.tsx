@@ -13,7 +13,7 @@ import { isPublishedSite } from '../../publish/published'
  * appears inline as ONE element in the scroll. An IntersectionObserver tracks
  * which section is centred so that toggling into Mode A lands on the same section.
  */
-export function PageView({ story }: { story: Story }) {
+export function PageView({ story, hideBack }: { story: Story; hideBack?: boolean }) {
   const { frontmatter: fm, sections, basePath } = story
   const { id } = useParams<{ id: string }>()
   const setActiveIndex = useStoryStore((s) => s.setActiveIndex)
@@ -40,9 +40,13 @@ export function PageView({ story }: { story: Story }) {
   return (
     <div className="page">
       <div className="page-topbar">
-        <Link to="/" className="back">
-          ← All stories
-        </Link>
+        {hideBack ? (
+          <span />
+        ) : (
+          <Link to="/" className="back">
+            ← All stories
+          </Link>
+        )}
         <div className="page-topbar-actions">
           {id && !isPublishedSite() && (
             <Link to={`/edit/${id}`} className="btn mode-toggle">

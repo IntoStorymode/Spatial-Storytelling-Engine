@@ -43,7 +43,11 @@ export function SectionForm({
 
       <label className="ed-field">
         <span>Title</span>
-        <input value={section.title} onChange={(e) => onChange({ title: e.target.value })} />
+        <input
+          value={section.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+          placeholder="New section"
+        />
       </label>
 
       <div className="ed-field">
