@@ -13,8 +13,6 @@ interface Props {
   uploaded: boolean
   /** Point this section at a named waypoint (or none). */
   onAssignWaypoint: (name: string | undefined) => void
-  /** Capture the current 3D view as a new waypoint and assign it to this section. */
-  onCaptureForSection: () => void
 }
 
 const TYPES: SectionType[] = ['text', 'image', 'audio', 'video']
@@ -33,7 +31,6 @@ export function SectionForm({
   onUpload,
   uploaded,
   onAssignWaypoint,
-  onCaptureForSection,
 }: Props) {
   const isMedia = section.type !== 'text'
   const fileRef = useRef<HTMLInputElement>(null)
@@ -129,11 +126,10 @@ export function SectionForm({
             </option>
           ))}
         </select>
-        <div className="ed-chips">
-          <button className="btn ed-chip" onClick={onCaptureForSection}>
-            ＋ New from current view
-          </button>
-        </div>
+        <p className="ed-hint">
+          Add and edit waypoints in the <strong>Waypoints</strong> step, using
+          <strong> ＋ Add a waypoint</strong> on the 3D scene.
+        </p>
       </div>
     </div>
   )

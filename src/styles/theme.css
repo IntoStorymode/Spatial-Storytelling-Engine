@@ -1147,6 +1147,17 @@ button.cta {
   line-height: 1.7;
   color: var(--text);
 }
+.hp-add {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1;
+}
+.hp-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
 .hp-lookmode {
   position: absolute;
   top: 12px;

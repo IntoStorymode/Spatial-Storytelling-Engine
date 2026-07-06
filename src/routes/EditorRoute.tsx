@@ -87,6 +87,9 @@ export function EditorRoute() {
   // and a pending delete (confirmed via a dialog that shows its usage).
   const [activeWaypoint, setActiveWaypoint] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  // Walk-through vs orbit in the editor canvas — owned here so the rail's "go to"
+  // (which flies the camera in orbit) and the canvas toggle stay in sync.
+  const [lookMode, setLookMode] = useState<'orbit' | 'firstPerson'>('firstPerson')
   // Rail accordion: each step collapses independently; all open by default.
   const [openSteps, setOpenSteps] = useState({ scene: true, story: true, waypoints: true, publish: true })
   const toggleStep = (k: keyof typeof openSteps) => setOpenSteps((s) => ({ ...s, [k]: !s[k] }))
@@ -172,14 +175,13 @@ export function EditorRoute() {
     setActiveWaypoint(name)
   }
 
-  /** Capture the current view and assign it to a section (the fast per-section path). */
-  function captureForSection(sectionId: string) {
+  /** Fly the editor camera to a named waypoint (rail list + coverage go-to). */
+  function goToWaypoint(name: string) {
     const v = viewerRef.current
-    if (!v) return
-    const name = nextWaypointName(fm.waypoints)
-    setFm((m) => ({ ...m, waypoints: upsertWaypoint(m.waypoints, name, v.getView()) }))
-    patchSection(sectionId, { waypoint: name })
-    setActiveWaypoint(name)
+    const w = (fm.waypoints ?? []).find((x) => x.name === name)
+    if (!v || !w) return
+    setLookMode('orbit')
+    void v.flyToView(w.position, w.target, true)
   }
 
   /** Point a section at a named waypoint (or none). Reuse = pick an existing one. */
@@ -402,7 +404,6 @@ export function EditorRoute() {
                 onUpload={(file) => onMediaUpload(selected.id, file)}
                 uploaded={!!selected.src && !!mediaUploads[selected.src]}
                 onAssignWaypoint={(name) => assignWaypoint(selected.id, name)}
-                onCaptureForSection={() => captureForSection(selected.id)}
               />
             )}
           </AccordionSection>
@@ -416,30 +417,42 @@ export function EditorRoute() {
           >
             <div className="ed-fields">
               <p className="ed-hint">
-                Each section flies to its waypoint in Mode A. The <strong>first section</strong> is the
-                reader's opening view. Capture and edit views in the 3D scene on the right.
+                Frame the 3D scene and use <strong>＋ Add a waypoint</strong> to save a view. Select
+                one to edit it under the canvas.
               </p>
-              <ul className="wp-coverage">
-                {sections.map((s, i) => (
-                  <li
-                    key={s.id}
-                    className={s.id === selectedId ? 'wp-cov-row wp-cov-sel' : 'wp-cov-row'}
-                    onClick={() => {
-                      setSelectedId(s.id)
-                      if (s.waypoint) setActiveWaypoint(s.waypoint)
-                    }}
-                  >
-                    <span className="wp-cov-idx">{i + 1}</span>
-                    <span className="wp-cov-title">
-                      {s.title || <em className="muted">Untitled</em>}
-                      {i === 0 && <span className="muted"> · opening</span>}
-                    </span>
-                    <span className={s.waypoint ? 'wp-cov-set' : 'wp-cov-none'}>
-                      {s.waypoint ?? '— none'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              {(fm.waypoints ?? []).length === 0 ? (
+                <p className="ed-hint">No waypoints yet.</p>
+              ) : (
+                <ul className="wp-list">
+                  {(fm.waypoints ?? []).map((w) => {
+                    const isActive = w.name === activeWaypoint
+                    const uses = countUsage(sections, w.name)
+                    return (
+                      <li
+                        key={w.name}
+                        className={isActive ? 'wp-row wp-row-active' : 'wp-row'}
+                        onClick={() => setActiveWaypoint(isActive ? null : w.name)}
+                      >
+                        <span className="hp-key hp-key-cam">●</span>
+                        <span className="wp-name">{w.name}</span>
+                        <span className="wp-usage" title={`${uses} section(s) use this view`}>
+                          {uses || '—'}
+                        </span>
+                        <button
+                          className="ed-icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            goToWaypoint(w.name)
+                          }}
+                          title="Fly the camera to this view"
+                        >
+                          ↩
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </div>
           </AccordionSection>
 
@@ -472,13 +485,13 @@ export function EditorRoute() {
             previewOrientation={fm.orientation}
             basePath={basePath}
             waypoints={fm.waypoints ?? []}
-            sections={sections}
             activeWaypoint={activeWaypoint}
+            lookMode={lookMode}
+            onLookMode={setLookMode}
             onViewerReady={(v) => {
               viewerRef.current = v
             }}
             onCapture={captureWaypoint}
-            onSelectWaypoint={setActiveWaypoint}
             onRename={renameActiveWaypoint}
             onDelete={setConfirmDelete}
             onEditActive={editActiveCamera}
