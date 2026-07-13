@@ -6,6 +6,9 @@ import { buildSiteZip, fetchManifest, type ExportStory, type Manifest } from '..
 import { collectAssets } from '../publish/collectAssets'
 import { triggerDownload } from '../publish/download'
 import { isPublishedSite } from '../publish/published'
+import { importSite, type Bundle } from '../publish/importSite'
+import { toSavedStory } from '../publish/importSnapshot'
+import { ImportDialog } from '../components/ImportDialog'
 
 interface StoryIndexEntry {
   id: string
@@ -14,6 +17,12 @@ interface StoryIndexEntry {
   location: string
   date: string
   path: string
+}
+
+/** What an import produced, so its warnings are shown rather than swallowed. */
+interface ImportReport {
+  imported: { slug: string; title: string; warnings: string[] }[]
+  error: string | null
 }
 
 /**
@@ -32,6 +41,11 @@ export function HomeRoute() {
 
   const saved = useGalleryStore((s) => s.stories)
   const removeSaved = useGalleryStore((s) => s.remove)
+
+  // Importing an exported story back in (a .zip, or the same site as a folder).
+  const [picking, setPicking] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [report, setReport] = useState<ImportReport | null>(null)
 
   // Export needs the built app shell: undefined = checking, null = dev (no build), else ready.
   const [manifest, setManifest] = useState<Manifest | null | undefined>(undefined)
@@ -77,6 +91,42 @@ export function HomeRoute() {
     navigate(`/edit/${s.slug}`)
   }
 
+  /**
+   * Read an exported story back into the gallery. Its story.md is re-parsed by the
+   * current parser (so an old export arrives upgraded — inline hotspots become named
+   * waypoints) and its assets come back as Files, exactly as if they'd been uploaded.
+   * From there it's an ordinary saved story: Edit, Preview, re-export.
+   */
+  async function runImport(bundle: Bundle) {
+    setImporting(true)
+    setReport(null)
+    try {
+      const gallery = useGalleryStore.getState()
+      const result = await importSite(bundle, { takenSlugs: gallery.stories.map((s) => s.slug) })
+      if (!result.stories.length) {
+        setReport({ imported: [], error: result.warnings[0] ?? 'Nothing to import.' })
+        return
+      }
+      const now = Date.now()
+      for (const story of result.stories) gallery.save(toSavedStory(story, now))
+      setReport({
+        imported: result.stories.map((s) => ({
+          slug: s.slug,
+          title: s.story.frontmatter.title || 'Untitled story',
+          warnings: s.warnings,
+        })),
+        error: null,
+      })
+    } catch (e) {
+      setReport({ imported: [], error: `Could not read that story: ${String(e)}` })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const importedSlugs = new Set(report?.imported.map((i) => i.slug))
+  const justImported = saved.filter((s) => importedSlugs.has(s.slug))
+
   const selectedCount = saved.filter((s) => selected.has(s.slug)).length
   const canExport = !!manifest && selectedCount > 0
 
@@ -114,11 +164,71 @@ export function HomeRoute() {
           the model inline, or an immersive scene you move through. Pick a story to begin.
         </p>
         {!published && (
-          <Link to="/edit/new" className="btn btn-accent home-new">
-            + New story
-          </Link>
+          <div className="home-actions">
+            <Link to="/edit/new" className="btn btn-accent home-new">
+              + New story
+            </Link>
+            <button
+              className="btn"
+              onClick={() => setPicking(true)}
+              title="Open a story you exported earlier — it comes back with its scan, upgraded to the current format"
+            >
+              ⬆ Import story
+            </button>
+          </div>
         )}
       </header>
+
+      {picking && (
+        <ImportDialog
+          busy={importing}
+          onCancel={() => setPicking(false)}
+          onBundle={(bundle) => {
+            setPicking(false)
+            void runImport(bundle)
+          }}
+        />
+      )}
+
+      {report && (
+        <section className={report.error ? 'home-import is-error' : 'home-import'}>
+          <button className="home-import-x" onClick={() => setReport(null)} aria-label="Dismiss">
+            ×
+          </button>
+          {report.error ? (
+            <p>{report.error}</p>
+          ) : (
+            <>
+              <p>
+                Imported {report.imported.length}{' '}
+                {report.imported.length === 1 ? 'story' : 'stories'}:{' '}
+                <strong>{report.imported.map((i) => i.title).join(', ')}</strong>. Imported stories
+                are upgraded to the current story format.
+              </p>
+              {report.imported
+                .filter((i) => i.warnings.length > 0)
+                .map((i) => (
+                  <details key={i.slug}>
+                    <summary>
+                      {i.title} — {i.warnings.length} warning
+                      {i.warnings.length === 1 ? '' : 's'}
+                    </summary>
+                    <ul>
+                      {i.warnings.map((w, n) => (
+                        <li key={n}>{w}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ))}
+              {justImported.length === 1 && (
+                <button className="btn btn-accent" onClick={() => editSaved(justImported[0])}>
+                  Open in editor →
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       {!published && saved.length > 0 && (
         <section className="gallery-mine">

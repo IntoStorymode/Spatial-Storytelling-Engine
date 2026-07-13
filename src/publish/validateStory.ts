@@ -1,16 +1,25 @@
 import type { Story } from '../parser/types'
+import { suggestSlug } from './slug'
 
 /**
- * Readiness checks for a draft. The header status pill turns green ("Ready")
- * only when this returns an empty list; otherwise it shows the count and lists
- * what's missing. Soft — nothing here blocks saving or previewing; it just tells
- * the author what still needs doing before the story is worth sharing.
+ * Readiness checks for a draft. The header status pill turns green ("Ready") only
+ * when this returns an empty list; otherwise it shows the count and lists what's
+ * missing, and Save to gallery is blocked. Previewing is always allowed.
+ *
+ * `exportName` is the story's slug — its folder name in the export. It's derived
+ * from the title, but an all-CJK title yields nothing (see toSlug), so the author
+ * has to supply one.
  */
-export function validateStory(story: Story): string[] {
+export function validateStory(story: Story, exportName: string): string[] {
   const issues: string[] = []
   const { frontmatter: fm, sections } = story
 
   if (!fm.title.trim()) issues.push('Story needs a title.')
+  if (!exportName.trim()) {
+    issues.push(
+      `Publish: give the story an export name — its title has no Latin letters to build one from (e.g. "${suggestSlug(fm.date)}").`,
+    )
+  }
   // The built-in room is a placeholder scene — a real story needs its own scan.
   if (fm.model.startsWith('builtin:')) {
     issues.push('Add your own 3D scan — the built-in room is only a placeholder.')

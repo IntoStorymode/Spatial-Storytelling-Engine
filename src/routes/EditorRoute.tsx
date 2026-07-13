@@ -7,7 +7,7 @@ import type { Upload } from '../store/useDraftStore'
 import { useGalleryStore } from '../store/useGalleryStore'
 import { upsertWaypoint, renameWaypoint, deleteWaypoint, nextWaypointName, countUsage } from '../parser/waypoints'
 import { collectAssets } from '../publish/collectAssets'
-import { slugify } from '../publish/slug'
+import { toSlug, suggestSlug } from '../publish/slug'
 import type { ThreeViewer } from '../three/ThreeViewer'
 import { SceneForm } from '../components/editor/SceneForm'
 import { StoryDetailsForm } from '../components/editor/StoryDetailsForm'
@@ -63,6 +63,7 @@ export function EditorRoute() {
     fm: Frontmatter
     sections: Section[]
     basePath: string
+    slug: string
     uploaded: (Upload & { format: string }) | null
     mediaUploads: Record<string, Upload>
     resumed: boolean
@@ -70,8 +71,8 @@ export function EditorRoute() {
   if (!initRef.current) {
     const snap = useDraftStore.getState().peekResume(routeKey)
     initRef.current = snap
-      ? { fm: snap.fm, sections: snap.sections, basePath: snap.basePath, uploaded: snap.uploaded, mediaUploads: snap.mediaUploads, resumed: true }
-      : { fm: emptyFrontmatter(), sections: [newSection([])], basePath: '', uploaded: null, mediaUploads: {}, resumed: false }
+      ? { fm: snap.fm, sections: snap.sections, basePath: snap.basePath, slug: snap.slug, uploaded: snap.uploaded, mediaUploads: snap.mediaUploads, resumed: true }
+      : { fm: emptyFrontmatter(), sections: [newSection([])], basePath: '', slug: id ?? '', uploaded: null, mediaUploads: {}, resumed: false }
   }
   const init = initRef.current
 
@@ -79,6 +80,10 @@ export function EditorRoute() {
   const [sections, setSections] = useState<Section[]>(init.sections)
   const [selectedId, setSelectedId] = useState<string | null>(init.sections[0]?.id ?? null)
   const [basePath, setBasePath] = useState(init.basePath)
+  // The story's identity + export folder name. Empty = "follow the title" (a new,
+  // never-saved story); once set it sticks, so editing a title can't rename the
+  // exported folder or fork a second gallery card.
+  const [slug, setSlug] = useState(init.slug)
   // An uploaded model previews from a blob URL while exporting an assets/ path.
   const [uploaded, setUploaded] = useState<(Upload & { format: string }) | null>(init.uploaded)
   // Uploaded media, keyed by the assets/ path it will export to.
@@ -294,18 +299,23 @@ export function EditorRoute() {
   // gallery export so both compute the same set).
   const bundleAssets = collectAssets(fm, sections, uploaded, mediaUploads)
 
-  // Readiness for the header status pill (soft — never blocks save/preview).
-  const issues = validateStory({ frontmatter: fm, sections, basePath, warnings: [] })
+  // An unset slug tracks the title, so a new story gets its name for free. A title
+  // with no Latin characters slugifies to nothing — exportSlug is then '', and the
+  // readiness check below asks the author to name the export themselves.
+  const exportSlug = toSlug(slug) || toSlug(fm.title)
+  const slugHint = toSlug(fm.title) || suggestSlug(fm.date)
+
+  // Readiness for the header status pill; a non-empty list also blocks Save to gallery.
+  const issues = validateStory({ frontmatter: fm, sections, basePath, warnings: [] }, exportSlug)
 
   // Finish → hand this draft to the in-session gallery (as an editor snapshot so
   // it re-opens verbatim), then go to the gallery where the author selects and
   // exports. Upsert by slug, so re-saving an edited story updates it in place.
   function saveToGallery() {
-    if (validateStory({ frontmatter: fm, sections, basePath, warnings: [] }).length > 0) return
-    const slug = slugify(fm.title)
+    if (issues.length > 0) return
     useGalleryStore.getState().save({
-      slug,
-      key: slug,
+      slug: exportSlug,
+      key: exportSlug,
       fm,
       sections,
       basePath,
@@ -313,6 +323,7 @@ export function EditorRoute() {
       mediaUploads,
       savedAt: Date.now(),
     })
+    setSlug(exportSlug) // pin it, so a later title edit can't fork a second card
     setSaved(true)
     navigate('/')
   }
@@ -333,7 +344,7 @@ export function EditorRoute() {
     }
     useDraftStore.getState().openPreview(
       { story, modelFormat: previewFormat, returnTo: isNew ? '/edit/new' : `/edit/${id}` },
-      { key: routeKey, fm, sections, basePath, uploaded, mediaUploads },
+      { key: routeKey, slug, fm, sections, basePath, uploaded, mediaUploads },
     )
     navigate('/preview')
   }
@@ -468,6 +479,27 @@ export function EditorRoute() {
           </AccordionSection>
 
           <AccordionSection step={4} title="Publish" open={openSteps.publish} onToggle={() => toggleStep('publish')}>
+            <div className="ed-fields">
+              <label className="ed-field">
+                <span>Export name</span>
+                <input
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value)}
+                  placeholder={slugHint}
+                />
+                {exportSlug ? (
+                  <p className="ed-hint">
+                    The story's folder name — it exports as <code>{exportSlug}-site</code>. Taken
+                    from the title unless you set it here.
+                  </p>
+                ) : (
+                  <p className="ed-hint">
+                    Needed: the title has no Latin letters to build a folder name from. Try{' '}
+                    <code>{slugHint}</code>, or anything that names the place.
+                  </p>
+                )}
+              </label>
+            </div>
             <p className="ed-hint">
               Use <strong>Save to gallery</strong> in the top bar to keep this story and export a
               website. Or grab the raw file:

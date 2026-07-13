@@ -11,6 +11,13 @@ export interface Upload {
 export interface EditSnapshot {
   /** Route identity: the story id, or 'new'. */
   key: string
+  /**
+   * The story's stable identity: its gallery key and its export folder name
+   * (`<slug>-site`). Derived from the title when a story is first written, then
+   * remembered — so re-saving an edited story replaces it instead of forking a
+   * twin, and renaming the story doesn't silently rename the exported folder.
+   */
+  slug: string
   fm: Frontmatter
   sections: Section[]
   basePath: string
