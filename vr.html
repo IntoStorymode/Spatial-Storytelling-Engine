@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VR — Spatial Storytelling</title>
+  </head>
+  <body>
+    <!-- The VR entry is a separate Vite entry, not a route in the SPA: WebXR needs
+         renderer.setAnimationLoop and owns the camera, which the shared ThreeViewer
+         (requestAnimationFrame + camera-controls) cannot give it. See docs/vr-tool-plan.md. -->
+    <div id="vr-root"></div>
+    <script type="module" src="/src/vr/main.ts"></script>
+  </body>
+</html>

@@ -51,6 +51,15 @@ function publishManifest(): Plugin {
 export default defineConfig({
   base: './',
   plugins: [react(), publishManifest()],
+  build: {
+    // A second entry for the VR viewer. It's a separate page, not a route: WebXR
+    // requires setAnimationLoop and owns the camera, neither of which the shared
+    // ThreeViewer can offer. publishManifest() sweeps all of dist/, so vr.html is
+    // carried into every exported site for free — no change to buildSite.ts.
+    rollupOptions: {
+      input: { main: 'index.html', vr: 'vr.html' },
+    },
+  },
   test: {
     environment: 'node',
   },

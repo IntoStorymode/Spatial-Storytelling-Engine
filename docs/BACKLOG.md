@@ -149,7 +149,18 @@ nice-to-have / exploratory.
   so the round-trip — not a browser DB — is how work survives a reload.)* **Remaining:** a
   durable/registered gallery and exporting the repo's own registered stories (not just
   session-saved ones).
-- **[P2] Standalone VR viewer tool (WebXR, GLB-only)** *(plan ready)* — a separate Vite entry (`vr.html` + `src/vr/`) that opens one GLB story in VR (dolly-rig locomotion, teleport-to-waypoint, in-scene caption), fully isolated from the main platform (import-only reuse of `parseStory`/`loadModel`); splats-in-VR and full 3D UI deferred. Full plan: [`vr-tool-plan.md`](./vr-tool-plan.md).
+- **[P2] Standalone VR viewer tool (WebXR)** *(spike built + measured — decision needed)*
+  ✅ `vr.html` + `src/vr/` ships: a second Vite entry (vanilla TS, no new deps) with dolly-rig
+  locomotion, teleport to a section's waypoint, controller nav (trigger/grip/**B-Y to exit**), and an
+  in-headset HUD (caption, section image, fps, splat count). URL-tunable (`?story=`, `?scale=`,
+  `?fov=`, `?alpha=`). It **publishes for free** — `publishManifest()` sweeps all of `dist/`, so
+  `vr.html` is carried into every exported site with no change to `buildSite.ts`. The main platform is
+  untouched.
+  ⚠️ **Measured on a Quest 3: GLB runs at 90 fps; Gaussian splats manage only 25–35 fps** — and it's
+  neither fill-rate nor splat count (both ruled out). The library force-disables its GPU sort in any XR
+  session, and the CPU sort can't be escaped without `SharedArrayBuffer` → COOP/COEP → which would break
+  deploy-anywhere. **Since the real scans are splats, a GLB-only VR tool demos almost none of the actual
+  work — that tension is the open decision.** Full write-up: [`vr-spike-findings.md`](./vr-spike-findings.md).
 
 ---
 

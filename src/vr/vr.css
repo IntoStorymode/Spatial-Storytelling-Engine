@@ -1,0 +1,61 @@
+/* The VR entry's own minimal styles — deliberately not the app's theme.css, so the
+   spike shares no CSS surface with the platform it must not disturb. */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #0f0e0d;
+  color: #e8e4dc;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+#vr-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.vr-head {
+  padding: 22px 24px 14px;
+}
+.vr-eyebrow {
+  margin: 0 0 6px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a8378;
+}
+.vr-head h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.vr-sub,
+.vr-stats,
+.vr-note {
+  margin: 6px 0 0;
+  color: #9a948a;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.vr-stats {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  color: #c9a227;
+}
+.vr-note {
+  max-width: 68ch;
+}
+
+/* The stage hosts whatever renderer we build — and it's also where three's VRButton
+   (or the splat library's) gets appended, so it must be positioned. */
+.vr-stage {
+  position: relative;
+  flex: 1;
+  min-height: 60vh;
+}
+.vr-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
