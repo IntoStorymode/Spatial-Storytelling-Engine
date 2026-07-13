@@ -7,7 +7,7 @@ import type { EditSnapshot } from './useDraftStore'
  * and a save timestamp for ordering.
  */
 export interface SavedStory extends EditSnapshot {
-  slug: string
+  /** `slug` (the gallery key) is inherited from EditSnapshot. */
   savedAt: number
 }
 

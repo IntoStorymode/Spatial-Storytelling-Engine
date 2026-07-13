@@ -748,12 +748,108 @@ a:hover {
 }
 
 /* ── Home: new-story button + card actions ────────────────────────────────── */
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+}
 .home-new {
   display: inline-block;
-  margin-top: 22px;
   font-family: var(--font-mono);
   font-size: 13px;
   letter-spacing: 0.04em;
+}
+
+/* ── Import dialog: drop zone ─────────────────────────────────────────────── */
+.import-drop {
+  margin: 4px 0 14px;
+  padding: 28px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+}
+.import-drop.is-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.import-drop p {
+  margin: 0;
+  font-size: 14px;
+}
+.import-drop-lead {
+  font-weight: 500;
+  margin-bottom: 4px !important;
+}
+.import-error {
+  margin: 0 0 12px;
+  color: #d2694a;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.linkish {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.linkish:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── Home: import report ──────────────────────────────────────────────────── */
+.home-import {
+  position: relative;
+  margin: 0 0 32px;
+  padding: 14px 40px 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 72ch;
+}
+.home-import.is-error {
+  border-left-color: #d2694a;
+}
+.home-import p {
+  margin: 0;
+}
+.home-import details {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.home-import summary {
+  cursor: pointer;
+}
+.home-import ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.home-import .btn {
+  margin-top: 12px;
+}
+.home-import-x {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.home-import-x:hover {
+  color: var(--fg);
 }
 .story-card-actions {
   margin-top: 18px;
