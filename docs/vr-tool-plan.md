@@ -1,5 +1,15 @@
 # M10-VR — Standalone VR viewer tool for a single story (GLB-only spike)
 
+> **Superseded in part — read [`vr-spike-findings.md`](./vr-spike-findings.md) first.**
+> A spike has since been built and measured on a Quest 3. Its separate-entry architecture is
+> **vindicated**; two of its premises are **not**:
+> - "Gaussian splats in VR are experimental" — the library ships `WebXRMode.VR` and splats *do*
+>   render in stereo. They're simply too slow (25–35 fps vs a 90 fps mesh). The GLB-only scope
+>   survives, but for a different reason than this doc gives.
+> - The waypoint model below (an inline hotspot per item) predates named waypoints and **will not
+>   compile** — a section's `waypoint` is a *name*, resolved via `resolveWaypoint()` in
+>   `src/parser/waypoints.ts`. Likewise "items" are now "sections".
+
 ## Context
 
 The user wants VR as a **separate tool**, not a mode bolted into the main viewer. In VR the
