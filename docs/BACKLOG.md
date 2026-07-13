@@ -1,7 +1,7 @@
 # Backlog
 
-Proposed features and improvements beyond the M1–M7 prototype (all merged). Grouped by
-theme and roughly ordered by priority within each. Nothing here is committed work — it's a
+Proposed features and improvements beyond the shipped milestones (M1–M12, all merged). Grouped
+by theme and roughly ordered by priority within each. Nothing here is committed work — it's a
 menu to pull from. See [`DEVLOG.md`](./DEVLOG.md) for what's already done.
 
 Priority key: **P1** = next up / high value · **P2** = valuable, not urgent · **P3** =
@@ -44,12 +44,17 @@ nice-to-have / exploratory.
 ## Editor
 
 - **[P1] Editor onboarding / tutorial** *(noted in memory; waypoint UI confused the user)*
-  A first-run walkthrough or inline coach-marks explaining items vs waypoints, the start
-  camera, and fly/orbit controls.
-- **[P2] Reorder items by drag-and-drop** (currently up/down buttons only).
-- **[P2] Inline validation in the editor**
-  Flag missing model, items without waypoints, broken `src` paths before export.
-- **[P2] Duplicate / templated item** to speed up building longer stories.
+  A first-run walkthrough or inline coach-marks explaining sections vs waypoints, the opening
+  view (= the first section's waypoint), and fly/orbit controls.
+- **[P2] Reorder sections by drag-and-drop** (currently up/down buttons only).
+- **[done] Inline validation in the editor**
+  ✅ `src/publish/validateStory.ts` is the single source of readiness truth: it flags a missing
+  title, the placeholder `builtin:` scan, untitled sections, media sections with no `src`, a
+  first section without a waypoint (the reader's opening view), and a title that yields no
+  export name. Surfaced by the header **status pill** (`StoryStatus`) and a **hard gate** on
+  Save to gallery; Preview is always allowed. **Remaining:** it doesn't yet check that a typed
+  `src` path actually resolves — a broken path is only caught on import (see below).
+- **[P2] Duplicate / templated section** to speed up building longer stories.
 - **[P3] Undo/redo** for editor draft mutations.
 - **[P3] Autosave draft to localStorage** so an accidental tab close doesn't lose work
   (complements the in-memory resume snapshot).
@@ -60,11 +65,14 @@ nice-to-have / exploratory.
   In-app guidance (or a thin wrapper) around the SuperSplat clean/convert step, plus
   clearer messaging on splat formats and recommended `.ksplat` sizes.
 - **[P2] Asset management for uploads** *(done in M8; export path superseded by M10 → M11)*
-  ✅ Per-item media upload lets the author attach files in the editor. The M8 source
+  ✅ Per-section media upload lets the author attach files in the editor. The M8 source
   "Download bundle" was replaced in M10 by an in-editor website export, then reframed in **M11**
   to **💾 Save to gallery → ⬇ Export** (uploaded assets are packaged into the deployable site on
   export; see Platform / distribution below). **Remaining:** media referenced by a *typed* path
-  (not uploaded) still isn't included — the author copies it in by hand.
+  (not uploaded) still isn't bundled — the author copies it in by hand. **M12** made this
+  visible rather than silent: importing a story names every referenced asset whose bytes weren't
+  in the bundle, so you can re-upload it. Catching it *before* export (in `validateStory`) is
+  still open.
 - **[P3] Multiple models / model switching within one story** (exploratory).
 - **[P3] Point-cloud PLY polish** *(after the point-cloud support fix)* — robust percentile framing
   for point clouds (mirror `robustSplatFraming`) if stray outliers balloon the AABB; a soft
@@ -92,6 +100,23 @@ nice-to-have / exploratory.
 
 ## Platform / distribution (post-prototype)
 
+- **[done in M12, PR #27] Import an exported story back into the editor**
+  ✅ The publish pipeline was write-only — a story that left the app could never return, so an
+  old export couldn't be re-edited or pick up newer features. **⬆ Import story** on Home now
+  reads an exported site back in, as the `.zip` **or** as the unzipped folder (a native picker
+  is *either* a file picker or a folder picker, so a drop zone is what unifies them). Both
+  shapes reduce to one `Bundle` (path → lazy bytes) feeding `src/publish/importSite.ts`; reads
+  are lazy, so only story.md and the assets a story references are ever decompressed. An
+  imported story is just an `EditSnapshot` (`basePath: ''`, `assets/…` paths kept, Files behind
+  blob URLs) saved to the gallery — so the editor, viewer, parser and exporter needed **no
+  changes**. Old exports arrive **upgraded**: `parseStory` already migrates inline
+  `hotspot:`/`start:` cameras into named waypoints. Also made the **slug the story's identity**
+  (was recomputed from the title on every save, which forked a duplicate gallery card on re-save
+  and leaked into the export folder name); it's now editable in the Publish step, and a title
+  with no Latin letters is a readiness issue rather than a silent generic `story` slug.
+  **Remaining / future:** loose single files (a bare `story.md` + a separately downloaded scan)
+  aren't accepted — you need the whole exported folder/zip. Re-serialization is lossy by design
+  (hand-authored comments and unmodelled frontmatter keys are dropped).
 - **[done in M11] Save-to-gallery + multi-story website export**
   ✅ Reframed the M10 in-editor export into a gallery flow: **💾 Save to gallery** in the editor →
   on Home, **select** stories and **⬇ Export**. One story → kiosk site (`<slug>-site`); several →
@@ -120,8 +145,10 @@ nice-to-have / exploratory.
   gallery site export (this is single-story "kiosk" only — see below); optional custom-domain
   guidance; the M8 "typed-path media not bundled" caveat still applies to the source story.
 - **[P3] Story registry / gallery** beyond the single `index.json` demo list. *(M11 added a
-  session gallery + multi-story "gallery-first" export.)* **Remaining:** a durable/registered
-  gallery and exporting the repo's own registered stories (not just session-saved ones).
+  session gallery + multi-story "gallery-first" export; M12 made the exported zip re-importable,
+  so the round-trip — not a browser DB — is how work survives a reload.)* **Remaining:** a
+  durable/registered gallery and exporting the repo's own registered stories (not just
+  session-saved ones).
 - **[P2] Standalone VR viewer tool (WebXR, GLB-only)** *(plan ready)* — a separate Vite entry (`vr.html` + `src/vr/`) that opens one GLB story in VR (dolly-rig locomotion, teleport-to-waypoint, in-scene caption), fully isolated from the main platform (import-only reuse of `parseStory`/`loadModel`); splats-in-VR and full 3D UI deferred. Full plan: [`vr-tool-plan.md`](./vr-tool-plan.md).
 
 ---
