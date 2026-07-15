@@ -30,7 +30,7 @@ export function validateStory(story: Story, exportName: string): string[] {
   } else {
     sections.forEach((s, i) => {
       const n = `Section ${i + 1}`
-      if (!s.title.trim()) issues.push(`${n}: needs a title.`)
+      // A section title is optional — it isn't required to save or export.
       if (s.type !== 'text' && !s.src?.trim()) issues.push(`${n}: ${s.type} section has no source path.`)
     })
     // The first section is the reader's opening view, so it must have a waypoint.
