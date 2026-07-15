@@ -93,8 +93,8 @@ export function SectionForm({
           </div>
           {uploaded && (
             <p className="ed-hint">
-              Previewing your uploaded file. Use <strong>Download website</strong> on export to get it
-              packaged at <code>{section.src}</code> automatically.
+              Previewing your uploaded file. It's bundled into the site automatically at{' '}
+              <code>{section.src}</code> when you export — nothing to place by hand.
             </p>
           )}
           <label className="ed-field">
@@ -118,7 +118,7 @@ export function SectionForm({
       </label>
 
       <div className="ed-field">
-        <span>Waypoint — the view Mode A flies to</span>
+        <span>Waypoint — the view the immersive mode flies to</span>
         <select
           value={section.waypoint ?? ''}
           onChange={(e) => onAssignWaypoint(e.target.value || undefined)}

@@ -14,8 +14,8 @@ const crossOriginIsolationHeaders = {
 
 // Emit dist/publish-manifest.json listing every generic app-shell file (all of
 // dist/ EXCEPT the per-story `stories/` data and the manifest itself). The
-// editor's one-click "Download website" fetches this list to re-zip the running
-// app's shell together with a single story — no rebuild, no CLI. Runs on every
+// editor's export flow fetches this list to re-zip the running app's shell
+// together with the selected stories — no rebuild, no CLI. Runs on every
 // `vite build`, so `preview` and `publish:site` get it for free.
 function publishManifest(): Plugin {
   return {

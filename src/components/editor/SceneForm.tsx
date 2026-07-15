@@ -41,10 +41,16 @@ export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }
             }}
           />
         </div>
-        {uploadedModel && (
+        {uploadedModel ? (
           <p className="ed-hint">
-            Previewing your uploaded file. On export, place it at <code>{uploadedModel}</code> in the
-            story folder.
+            Previewing your uploaded scan. It's bundled into the site automatically at{' '}
+            <code>{uploadedModel}</code> when you export — nothing to place by hand.
+          </p>
+        ) : (
+          <p className="ed-hint">
+            No scan yet? Capture one with a 3D-scanning app on your phone and export a{' '}
+            <code>.glb</code> mesh or a <code>.spz</code> / <code>.ply</code> Gaussian splat.
+            Accepts .glb, .gltf, .ply, .splat, .ksplat, .spz.
           </p>
         )}
       </div>
@@ -52,7 +58,7 @@ export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }
       <details className="ed-disclosure">
         <summary>Scene options</summary>
         <label className="ed-field">
-          <span>Reader navigation (Mode A)</span>
+          <span>Reader navigation (immersive view)</span>
           <select
             value={fm.navigation ?? 'orbit'}
             onChange={(e) =>

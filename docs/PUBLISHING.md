@@ -3,7 +3,8 @@
 A published story is a **complete, self-contained website**: one folder you can drop on any
 static host, with no backend, no build step on the host, and no special server configuration.
 Everything is local-first: no account, no upload to us — you stay in control of the files, which
-stay as plain `story.md` + assets you can zip and reuse anywhere.
+stay as plain `story.md` + assets you can zip and reuse anywhere. And because the export *is* those
+plain files, you can [reopen it in the editor](#editing-an-exported-story-again) later to keep working.
 
 There are two ways to produce that website, for two situations:
 
@@ -132,6 +133,23 @@ relative paths and hash-based routing, so it resolves wherever it lives.
 - **GitHub Pages:** commit the folder's contents to your Pages branch/dir; the project-site
   subpath (`username.github.io/repo/`) works as-is.
 - **nginx / Apache / S3:** just serve the files statically. No rewrite rules required.
+
+---
+
+## Editing an exported story again
+
+An export isn't a dead end — it's your source. To make changes later, bring it back into the editor:
+
+1. On the Home page, click **⬆ Import story**.
+2. Drop the exported **`.zip`**, or the unzipped **`<slug>-site`** folder, onto the dialog (or pick
+   it with the file/folder buttons).
+3. The story reappears under **"Your stories"** with its scan and media — **upgraded to the current
+   story format** (an old export made before a feature existed comes back ready to use it). Edit,
+   **▶ Preview**, and **⬇ Export** again as usual.
+
+This closes the loop: **author → export → deploy → import → edit → re-export**, all local-first, with
+the plain `story.md` + `assets/` as the thing that travels. (You can also re-import someone else's
+exported site the same way, since it's just those same plain files.)
 
 ---
 

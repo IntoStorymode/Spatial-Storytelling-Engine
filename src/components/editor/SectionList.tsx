@@ -28,7 +28,7 @@ export function SectionList({ sections, selectedId, onSelect, onAdd, onRemove, o
       </div>
       <p className="ed-hint">
         Each section is a part of your story. Select one, then give it a waypoint in the 3D
-        scene so Mode A flies the camera there.
+        scene so the immersive view flies the camera there.
       </p>
 
       <ul className="ed-items">

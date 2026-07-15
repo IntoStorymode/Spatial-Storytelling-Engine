@@ -17,6 +17,7 @@ import { AccordionSection } from '../components/editor/AccordionSection'
 import { HotspotPlacer } from '../components/editor/HotspotPlacer'
 import { ExportBar } from '../components/editor/ExportBar'
 import { StoryStatus } from '../components/editor/StoryStatus'
+import { GettingStarted } from '../components/editor/GettingStarted'
 import { validateStory } from '../publish/validateStory'
 import { useRailResize } from '../components/editor/useRailResize'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -370,7 +371,7 @@ export function EditorRoute() {
         </button>
         <p className="eyebrow">{isNew ? 'New story' : `Editing ${id}`}</p>
         <div className="editor-topbar-actions">
-          <button className="btn" onClick={goPreview} title="Open this draft in the viewer (Mode A / B)">
+          <button className="btn" onClick={goPreview} title="Open this draft in the viewer (page & immersive views)">
             ▶ Preview
           </button>
           <button
@@ -388,6 +389,8 @@ export function EditorRoute() {
           <StoryStatus issues={issues} />
         </div>
       </div>
+
+      <GettingStarted show={isNew} />
 
       <div
         className={
