@@ -10,7 +10,7 @@ drives two switchable presentation modes — no reload, no backend.
 - **Page view (Mode B):** a scrolling long-form article; the 3D model is one inline element in
   the scroll. *Narrative around the scan.*
 - **Immersive view (Mode A):** a full-screen 3D scene where advancing the story flies the camera
-  to each item's bound waypoint and shows its content as an overlay. *Narrative inside the scan.*
+  to each section's bound waypoint and shows its content as an overlay. *Narrative inside the scan.*
 
 Both modes read the **same** story file; a toggle switches between them live.
 
@@ -40,18 +40,21 @@ The fastest path is the in-app editor (**+ New story** on Home):
 
 ![The story editor](./docs/images/editor.png)
 
-1. Fill in the details and **Upload** your 3D scan — a `.glb` mesh or a `.ply`/`.splat`/
-   `.ksplat`/`.spz` Gaussian splat.
-2. **Add items** (text / image / audio / video) and upload any media inline.
-3. Set the **story start** view and each item's **waypoint** in the 3D scene; hit **▶ Preview**
-   to check both modes.
+1. **Upload** your 3D scan — a `.glb` mesh or a `.ply`/`.splat`/`.ksplat`/`.spz` Gaussian splat.
+   No scan yet? Capture one on a phone with [Scaniverse](https://scaniverse.com/) or Polycam.
+2. Fill in the details and **add sections** (text / image / audio / video), uploading any media inline.
+3. Frame the 3D scene and **add waypoints**, then point each section at one; hit **▶ Preview** to
+   check both modes. (The first section's waypoint is the opening view.)
 4. Click **💾 Save to gallery**, then from Home **select** stories and **⬇ Export** a
    self-contained website.
 
+Already have an exported story? Click **⬆ Import story** on Home to reopen the `.zip` or folder in
+the editor — it comes back upgraded to the current format.
+
 📖 Full walkthrough + the `story.md` format → **[Authoring a story](./docs/AUTHORING.md)**.
 Preparing a scan or a splat that loads upside down →
-**[Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md)**. Hosting the exported site →
-**[Publishing & sharing](./docs/PUBLISHING.md)**.
+**[Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md)**. Hosting (and re-importing) the exported
+site → **[Publishing & sharing](./docs/PUBLISHING.md)**.
 
 ## Documentation
 

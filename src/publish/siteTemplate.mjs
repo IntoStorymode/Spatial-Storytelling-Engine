@@ -2,7 +2,7 @@
 //
 // This module is intentionally plain ESM with NO fs / DOM dependencies so it can
 // be imported by BOTH the Vite-bundled browser code (src/publish/buildSite.ts,
-// the editor's one-click "Download website") and the Node CLI
+// the editor's export flow) and the Node CLI
 // (scripts/publish-site.mjs). Keeping the kiosk redirect, DEPLOY.md text, and the
 // index-entry shape in one place means the two publish paths can never drift.
 
@@ -73,10 +73,15 @@ export function deployMd({ title, siteDir }) {
 
 This zip contains a complete, self-contained website:
 
-    ${siteDir}/   ← the website (open index.html or deploy this folder)
+    ${siteDir}/   ← the website — deploy this folder, or serve it locally
 
-No build step, no backend, no special server configuration, and no special
-headers are required.
+Serve it over http(s) — don't just double-click index.html. The page fetches
+its story data and assets, which browsers block on a file:// URL, so a bare
+file open shows a blank or broken page. No build step, no backend, and no
+special server configuration are required.
+
+(To preview locally without deploying: from inside ${siteDir}/ run
+"python3 -m http.server" and open http://localhost:8000 .)
 
 ## Netlify (easiest — drag & drop)
 
@@ -100,5 +105,11 @@ path because the app uses relative URLs and hash routing.
   (e.g. .../news/spatial/ , not .../news/spatial). Most hosts add it for you.
 - The page loads web fonts from Google Fonts (needs internet); if offline, it
   falls back to system fonts gracefully.
+
+## Keep editing later
+
+This zip is also your source. Reopen it in the editor with **⬆ Import story**
+(drop this zip, or the ${siteDir} folder) to make changes and re-export — it
+comes back with its scan, upgraded to the current story format.
 `
 }

@@ -50,6 +50,9 @@ export function HomeRoute() {
   // Export needs the built app shell: undefined = checking, null = dev (no build), else ready.
   const [manifest, setManifest] = useState<Manifest | null | undefined>(undefined)
   const [building, setBuilding] = useState(false)
+  // Set after a successful export, so a "what next" banner can name the file and
+  // point at deploy + re-import — the loop the app was otherwise silent about.
+  const [exported, setExported] = useState<{ fileName: string } | null>(null)
 
   // Which saved stories are selected for export. New saves default to selected;
   // explicit toggles are preserved; removed stories drop out.
@@ -143,6 +146,7 @@ export function HomeRoute() {
       }))
       const { blob, fileName } = await buildSiteZip({ stories: exportStories, manifest })
       triggerDownload(blob, fileName)
+      setExported({ fileName })
     } finally {
       setBuilding(false)
     }
@@ -158,10 +162,11 @@ export function HomeRoute() {
     <main className="home">
       <header className="home-head">
         <p className="eyebrow">Spatial Storytelling</p>
-        <h1 className="home-title">A scan is shared infrastructure.<br />A story is an act of authorship.</h1>
+        <h1 className="home-title">Every place holds a story.<br />Step inside and tell it.</h1>
         <p className="home-sub">
-          One Markdown file drives two ways to read the same place — a long-form page with
-          the model inline, or an immersive scene you move through. Pick a story to begin.
+          Bring a 3D scan of a real place to life. Your audience can move through the space
+          themselves, or follow it as a guided, illustrated read — the same story, two ways to
+          experience it. Choose one below to begin.
         </p>
         {!published && (
           <div className="home-actions">
@@ -227,6 +232,20 @@ export function HomeRoute() {
               )}
             </>
           )}
+        </section>
+      )}
+
+      {exported && (
+        <section className="home-import">
+          <button className="home-import-x" onClick={() => setExported(null)} aria-label="Dismiss">
+            ×
+          </button>
+          <p>
+            Downloaded <strong>{exported.fileName}</strong>. Unzip it, then drag the folder onto{' '}
+            <strong>Netlify Drop</strong> (app.netlify.com/drop) to get a live URL — the full steps
+            are in the <code>DEPLOY.md</code> inside the zip. Keep the zip: you can reopen it here any
+            time with <strong>⬆ Import story</strong>.
+          </p>
         </section>
       )}
 

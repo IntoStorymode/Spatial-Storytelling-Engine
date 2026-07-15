@@ -19,19 +19,19 @@ Either way, the output is the same `story.md` + `assets/` bundle, and the
 
 From the Home page click **+ New story**.
 
-![The story editor — metadata form, 3D scene, and item list](./images/editor.png)
+![The story editor — metadata form, 3D scene, and section list](./images/editor.png)
 
-1. **Story details** — fill in the title, author, location, and date, then **Upload file…**
-   your 3D model. A [Scaniverse](https://scaniverse.com/) export works well: `.glb` for a mesh,
-   or `.ply` / `.splat` / `.ksplat` / `.spz` for a Gaussian splat. See
-   [Gaussian splats & 3D models](./GAUSSIAN-SPLATS.md) for preparing scans.
-2. **Add items** — each item is a beat in the story: **text**, **image**, **audio**, or
-   **video**. Add as many as you like and **Upload file…** any media inline. Reorder them with
-   the up/down controls.
-3. **Set the views** — this is what makes it spatial:
-   - **Story start** — the opening camera the reader sees first.
-   - **Each item's waypoint** — where the camera flies to when that item is active in the
-     immersive view. Position the camera in the 3D scene and capture it in one click.
+1. **Scene** — **Upload file…** your 3D scan. A [Scaniverse](https://scaniverse.com/) export
+   works well: `.glb` for a mesh, or `.ply` / `.splat` / `.ksplat` / `.spz` for a Gaussian splat.
+   See [Gaussian splats & 3D models](./GAUSSIAN-SPLATS.md) for preparing scans. No scan yet? Capture
+   one on a phone with Scaniverse or Polycam.
+2. **Story** — fill in the title, author, location, and date, then **add sections** — each section
+   is a beat in the story: **text**, **image**, **audio**, or **video**. Add as many as you like and
+   **Upload file…** any media inline. Reorder them with the up/down controls.
+3. **Waypoints** — this is what makes it spatial. Frame the 3D scene and **＋ Add a waypoint** to
+   save that view; then point each section at a waypoint (the picker in the section form). The camera
+   flies there when that section is active in the immersive view. The **first section's waypoint is
+   the opening view** — there's no separate "start" control.
 
    ![Placing a waypoint in the 3D scene](./images/waypoint.png)
 4. **Preview** — hit **▶ Preview** to check both modes live: **Page view** (Mode B, the
@@ -58,7 +58,7 @@ public/stories/my-story/
 ├─ story.md
 └─ assets/
    ├─ scene.glb        # your 3D model
-   ├─ photo.jpg        # any image / audio / video items reference
+   ├─ photo.jpg        # any image / audio / video sections reference
    └─ narration.mp3
 ```
 
@@ -85,7 +85,7 @@ public/stories/my-story/
 
 ## `story.md` format reference
 
-A story file is **YAML frontmatter** (between `---` lines) followed by a sequence of **item
+A story file is **YAML frontmatter** (between `---` lines) followed by a sequence of **section
 blocks** separated by `---`.
 
 ### Frontmatter
@@ -99,9 +99,14 @@ date: "2026-06-01"
 model: "assets/scene.glb"     # or builtin:room for a placeholder
 navigation: "orbit"           # optional — "orbit" (default) or "firstPerson"
 orientation: "flip"           # optional — "flip" or "none" (see splats doc)
-start:                        # optional — the opening camera
-  position: [0.5, 1.2, -2.1]
-  target: [0, 1, 0]
+waypoints:                    # named camera views; sections reference them by name
+  - name: "entrance-hall"
+    position: [0.5, 1.2, -2.1]
+    target: [0, 1, 0]
+  - name: "composing-room"
+    position: [2.1, 0.8, 1.4]
+    target: [0, 0.5, 0]
+start: entrance-hall          # optional — name of the opening view
 ---
 ```
 
@@ -111,12 +116,13 @@ start:                        # optional — the opening camera
 | `model` | yes | Path to the 3D model (relative to the story folder), or `builtin:room` for a generated placeholder. Formats: `.glb`/`.gltf`, `.ply`/`.splat`/`.ksplat`/`.spz`. |
 | `navigation` | no | Reader's default immersive camera: `orbit` or `firstPerson`. Absent = orbit. |
 | `orientation` | no | Splat up-axis override: `flip` (force upright) or `none` (no correction). Absent = auto. See [Gaussian splats](./GAUSSIAN-SPLATS.md#orientation). |
-| `start` | no | Opening camera (`position` + `target` in world coordinates). Absent = auto-framed from the model bounds. |
+| `waypoints` | no | Named camera views (`name` + `position` + `target` in world coordinates). Sections reference them by `name`; several sections can share one. |
+| `start` | no | **Name** of the waypoint used as the opening view. Absent (or the first section's waypoint) = the opening view; unresolved = auto-framed from the model bounds. |
 
-### Item blocks
+### Section blocks
 
-Each item is a heading `## [item-id] Title`, then a `type:` line, optional `src:` / `caption:`,
-freeform body text, and an optional `hotspot:` (the camera waypoint for the immersive view).
+Each section is a heading `## [id] Title`, then a `type:` line, optional `src:` / `caption:` and a
+`waypoint:` (the name of the camera view the immersive mode flies to), and freeform body text.
 
 ```markdown
 ## [item-02] The composing room
@@ -124,29 +130,30 @@ freeform body text, and an optional `hotspot:` (the camera waypoint for the imme
 type: image
 src: assets/entrance.svg
 caption: "The composing room, photographed in 1987."
+waypoint: composing-room
 
 Upstairs, the composing room is where type was set by hand, letter by letter.
-
-hotspot:
-  position: [2.1, 0.8, 1.4]
-  target: [0, 0.5, 0]
 ```
 
 | Part | Required | Notes |
 | --- | --- | --- |
-| `## [id] Title` | yes | A stable `id` (e.g. `item-02`) and a display title. |
+| `## [id] Title` | yes | A stable `id` (e.g. `item-02`) and a display title. The id can be anything unique; the title is optional. |
 | `type` | yes | `text`, `image`, `audio`, or `video`. |
 | `src` | for media | Path to the asset, relative to the story folder (e.g. `assets/photo.jpg`). |
 | `caption` | no | Caption shown under the media. |
+| `waypoint` | no | Name of a frontmatter waypoint the immersive view flies to. Sections without one fall back to default framing. |
 | body | no | Freeform Markdown/plain text. |
-| `hotspot` | no | Camera `position` + `target` the immersive view flies to. Items without one fall back to default framing. |
 
 Coordinates are Cartesian world-space `[x, y, z]`. Getting them right by hand is fiddly —
 the editor's click-to-place is easier.
 
+> **Older stories still load.** A legacy file that inlines a `hotspot:` on a section, or a
+> `start:` camera as `position`/`target`, is migrated on load into a synthesized named waypoint —
+> so old and hand-authored stories keep working. Re-exporting writes them back in the current form.
+
 > **Non-fatal warnings.** The parser never throws on a malformed field; it collects warnings
-> (e.g. an unknown `navigation` value, a bad hotspot) and surfaces them rather than dropping the
-> whole story. A story with warnings still loads.
+> (e.g. an unknown `navigation` value, a waypoint that doesn't resolve) and surfaces them rather
+> than dropping the whole story. A story with warnings still loads.
 
 The TypeScript source of truth for these shapes is
 [`src/parser/types.ts`](../src/parser/types.ts).
