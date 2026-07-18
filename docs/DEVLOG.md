@@ -4,12 +4,15 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-07-05):** M1–M11 complete (M1–M10 merged to `main`, a story published live
-to Vercel); **a mobile pass (collapsible Mode A overlay) in review**. The full authoring loop
-works end to end: create a story → import a model → set a start camera → add items with
-waypoints (with inline media upload) → preview Mode A/B → **💾 Save to gallery** → on Home,
-**select** stories and **Export** a deployable, host-anywhere static site (one → opens into the
-story, several → opens on a gallery). Author-facing how-to: [`PUBLISHING.md`](./PUBLISHING.md).
+**Current state (2026-07-18):** M1–M12 complete and merged to `main` (a story published live to
+Vercel), plus a run of follow-ups: a **WebXR VR spike** (measured, not shipped — see the VR entry),
+an **in-app guidance + copy overhaul**, an **optional section title**, and a **desktop
+splat-performance fix** (request the high-performance GPU). A **mobile pass (collapsible Mode A
+overlay)** remains in review. The full authoring loop works end to end: create a story → import a
+scan → add sections with waypoints (inline media upload) → preview Mode A/B → **💾 Save to gallery**
+→ on Home, **select** stories and **Export** a deployable, host-anywhere static site (one → opens
+into the story, several → opens on a gallery); an exported zip **re-imports** via **⬆ Import story**.
+Author-facing how-to: [`PUBLISHING.md`](./PUBLISHING.md).
 
 ---
 
