@@ -21,6 +21,13 @@ const BTN_B_Y = 5
 /** Reported back to the landing page so the spike's questions get answered with numbers. */
 export interface VRStats {
   fps: number
+  /**
+   * Rolling frame-time in ms (avg + worst over ~the last 90 frames). fps alone hides
+   * stutter — an even 30fps reads smooth while a jittery 60 does not — so the max is the
+   * honest jank signal. (Lesson from the desktop splat-choppiness fix.)
+   */
+  frameMsAvg: number
+  frameMsMax: number
   /** Wall-clock ms from "start loading the model" to "first frame rendered". */
   loadMs: number
   backend: 'splat' | 'mesh'
@@ -99,9 +106,14 @@ export class VRStoryViewer {
   private index = 0
   private frames = 0
   private lastFpsAt = 0
+  private lastFrameAt = 0
+  /** Rolling per-frame ms window; avg/max are folded into stats on each 1s tick. */
+  private readonly frameMsWindow: number[] = []
   private startedAt = 0
+  /** The GPU the browser bound (WEBGL_debug_renderer_info), captured once after load. */
+  private gpu = ''
   private readonly pressed = new Set<string>()
-  private stats: VRStats = { fps: 0, loadMs: 0, backend: 'mesh', splats: 0 }
+  private stats: VRStats = { fps: 0, frameMsAvg: 0, frameMsMax: 0, loadMs: 0, backend: 'mesh', splats: 0 }
 
   constructor(
     private readonly container: HTMLElement,
@@ -115,9 +127,9 @@ export class VRStoryViewer {
     // The caption + FPS readout. This is the spike's instrument: framerate has to be
     // legible INSIDE the headset, because it's the one number nobody can read from a desk.
     this.hudCanvas.width = 1024
-    this.hudCanvas.height = 256
+    this.hudCanvas.height = 384 // taller than the original 256 to fit the perf readout
     this.hud = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.52, 0.13),
+      new THREE.PlaneGeometry(0.52, 0.195), // 0.52 × (384/1024) — keep the canvas aspect
       new THREE.MeshBasicMaterial({
         map: new THREE.CanvasTexture(this.hudCanvas),
         transparent: true,
@@ -154,6 +166,7 @@ export class VRStoryViewer {
     // The splat library resizes its own renderer, but never touches the aspect of a
     // camera we supplied.
     this.onResize()
+    this.captureGpuInfo() // renderer exists now (set by whichever backend loaded)
     window.addEventListener('resize', this.onResize)
 
     if (navigator.xr) {
@@ -350,9 +363,20 @@ export class VRStoryViewer {
   private countFrame(): void {
     const now = performance.now()
     this.frames++
+    // Per-frame delta → rolling window. The worst value in the window is the jank signal.
+    if (this.lastFrameAt) {
+      this.frameMsWindow.push(now - this.lastFrameAt)
+      if (this.frameMsWindow.length > 90) this.frameMsWindow.shift()
+    }
+    this.lastFrameAt = now
     if (!this.lastFpsAt) this.lastFpsAt = now
     if (now - this.lastFpsAt >= 1000) {
       this.stats.fps = Math.round((this.frames * 1000) / (now - this.lastFpsAt))
+      const win = this.frameMsWindow
+      if (win.length) {
+        this.stats.frameMsAvg = Math.round((win.reduce((a, b) => a + b, 0) / win.length) * 10) / 10
+        this.stats.frameMsMax = Math.round(Math.max(...win) * 10) / 10
+      }
       this.frames = 0
       this.lastFpsAt = now
       this.drawHud()
@@ -378,24 +402,45 @@ export class VRStoryViewer {
     ctx.fillStyle = '#c9a227'
     ctx.font = '400 34px "IBM Plex Mono", ui-monospace, monospace'
     const splats = this.stats.splats ? `${(this.stats.splats / 1e6).toFixed(2)}M splats` : 'mesh'
+    // avg/max frame ms sits next to fps: the max is the jank tell that fps alone hides.
+    const frame = this.stats.frameMsAvg ? `${this.stats.frameMsAvg}/${this.stats.frameMsMax} ms` : '— ms'
     ctx.fillText(
-      `${this.index + 1}/${this.story.sections.length}   ${this.stats.fps} fps   ${splats}`,
+      `${this.index + 1}/${this.story.sections.length}   ${this.stats.fps} fps   ${frame}   ${splats}`,
       32,
-      150,
+      140,
     )
 
     ctx.fillStyle = '#8a8378'
     ctx.font = '400 26px "IBM Plex Mono", ui-monospace, monospace'
+    // Eye-buffer resolution (what scale/foveation actually produced) + the bound GPU.
+    ctx.fillText(this.fit(ctx, `eye ${this.bufferSize()}   ·   ${this.gpu || 'gpu ?'}`, w - 64), 32, 196)
     // Show the tuning in-headset, so an A/B can't be confused about which run it's in.
-    ctx.fillText(
-      `scale ${this.tuning.scale} · fov ${this.tuning.fov} · alpha ${this.tuning.alpha}   |   ` +
-        'trigger next · grip back · B/Y exit',
-      32,
-      210,
-    )
+    ctx.fillText(`scale ${this.tuning.scale} · fov ${this.tuning.fov} · alpha ${this.tuning.alpha}`, 32, 248)
+
+    ctx.font = '400 24px "IBM Plex Mono", ui-monospace, monospace'
+    ctx.fillText('trigger next · grip back · B/Y exit', 32, 300)
 
     const map = (this.hud.material as THREE.MeshBasicMaterial).map
     if (map) map.needsUpdate = true
+  }
+
+  /** Combined eye-buffer size — the XR framebuffer while in-session, else the canvas buffer. */
+  private bufferSize(): string {
+    const layer = this.renderer.xr.getSession()?.renderState.baseLayer
+    if (layer?.framebufferWidth) return `${layer.framebufferWidth}×${layer.framebufferHeight}`
+    const gl = this.renderer.getContext()
+    return `${gl.drawingBufferWidth}×${gl.drawingBufferHeight}`
+  }
+
+  /** Read the GPU the browser bound (integrated vs discrete, or software). */
+  private captureGpuInfo(): void {
+    try {
+      const gl = this.renderer.getContext()
+      const ext = gl.getExtension('WEBGL_debug_renderer_info')
+      if (ext) this.gpu = String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL))
+    } catch {
+      /* the extension can be blocked for privacy; leave '' */
+    }
   }
 
   private fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
