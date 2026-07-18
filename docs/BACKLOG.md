@@ -166,7 +166,10 @@ nice-to-have / exploratory.
 - **[P2] Standalone VR viewer tool (WebXR)** *(spike built + measured in PR #28 — decision still open)*
   ✅ `vr.html` + `src/vr/` ships: a second Vite entry (vanilla TS, no new deps) with dolly-rig
   locomotion, teleport to a section's waypoint, controller nav (trigger/grip/**B-Y to exit**), and an
-  in-headset HUD (caption, section image, fps, splat count). URL-tunable (`?story=`, `?scale=`,
+  in-headset HUD (caption, section image, fps, splat count). **PR #32** enriched the HUD into a proper
+  tuning instrument: **frame-time avg/max ms** (the max is the jank tell fps alone hides), the
+  **eye-buffer resolution** (what `scale`/`fov` actually produced), and the **bound GPU** — the same
+  metrics the desktop splat fix used, now legible in-headset. URL-tunable (`?story=`, `?scale=`,
   `?fov=`, `?alpha=`). It **publishes for free** — `publishManifest()` sweeps all of `dist/`, so
   `vr.html` is carried into every exported site with no change to `buildSite.ts`. The main platform is
   untouched.
