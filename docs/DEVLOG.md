@@ -38,6 +38,47 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 
 ## Milestones
 
+### Splat choppiness on desktop — GPU-selection fix (in review)
+Fix: a splat story that was **smooth on iPad Chrome was choppy on desktop Chrome, from the first
+camera move** — counterintuitive, since the desktop has more GPU headroom. We built a temporary,
+flag-gated diagnostic harness (`src/three/debugTuning.ts` + `DebugHud.tsx`, all behind `?debug`) to
+**measure instead of guess**: a live HUD (FPS, frame time, drawing-buffer size, the real GPU the
+browser bound via `WEBGL_debug_renderer_info`, `crossOriginIsolated`) plus URL toggles to isolate
+each hypothesis — `?spin` (auto-orbit for a comparable path), `?dpr=<n>` (force pixel ratio →
+fill-rate), `?alpha=<n>` (drop splats → sort/geometry), `?highpower=0` (browser-default GPU), and
+`?gpusort=1` (GPU sort).
+
+Measured on the real 13 MB Greenwich `.spz`, desktop Chrome vs iPad Chrome:
+
+| Flag | Desktop | iPad | Read |
+| --- | --- | --- | --- |
+| baseline | 70–80 fps, **choppy** | 30–35 fps, smooth | highest fps was the *worst* experience |
+| `highpower` (dedicated GPU) | 16–17 fps, **smooth** | 30–35, smooth | lower fps, but smooth |
+| `dpr=1` / `dpr=0.5` | ~16 fps, unchanged | smooth | **not** fill-rate — fewer pixels didn't help |
+| `alpha=5` / `alpha=20` | choppy (high fps) | smooth | **not** splat count |
+| `gpusort=1` | **black screen** | — | broken path; also needs COOP/COEP |
+
+**Analysis.** The choppy case had the *highest* average FPS — the signature of a **frame-pacing**
+problem, not a throughput one. On a dual-GPU laptop, `powerPreference: 'default'` bound WebGL to the
+**integrated** GPU while the display is driven by the other GPU, so every frame was **copied across
+the GPU boundary** before presentation. The RAF loop isn't blocked by that copy, so the counter
+free-ran to 70–80 while presented frames arrived at irregular intervals → visible stutter. The iPad
+(single GPU, one presentation path) was always evenly paced → always smooth. Average FPS ≠
+smoothness here; **frame-time consistency** is what the eye reads.
+
+**Fix (one line, deploy-anywhere safe):** create the `WebGLRenderer` with
+`powerPreference: 'high-performance'` (`ThreeViewer.ts`), aligning rendering with the display GPU.
+It's a WebGL context attribute — **no COOP/COEP, no secure context, no `vercel.json`** — so it works
+on any static host and every exported kiosk. A no-op on single-GPU machines and the iPad; the only
+cost is marginally more battery on laptops, expected for a 3D viewer. `?highpower=0` reverts to the
+old path to reproduce the bug.
+
+**Left to backlog:** the ~16 fps ceiling on the dedicated GPU was **unchanged by `dpr`** — a fixed
+per-frame cost, i.e. the **CPU depth sort** (the exact finding of the VR spike). Lifting it needs the
+GPU sort, which requires `SharedArrayBuffer` → COOP/COEP → and breaks deploy-anywhere (and
+black-screened here). That stays the open "[P2] GPU-accelerated splat sort" item; 16 fps *evenly
+paced* already reads as smooth. The diagnostic harness is kept (behind `?debug`) for future perf work.
+
 ### On-demand rendering — idle CPU/heat fix (in review)
 Fix: readers reported published splat stories **lagging after 1–2 minutes** with the **fan spinning
 up**; GLB stories stayed cool. Task Manager ruled out a memory leak (flat, modest memory) — the

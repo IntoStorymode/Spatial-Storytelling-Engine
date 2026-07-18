@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import CameraControls from 'camera-controls'
 import { loadModel } from './loadModel'
+import { debugTuning } from './debugTuning'
 
 // camera-controls needs a (subset of) THREE injected once at module load.
 CameraControls.install({ THREE })
@@ -9,6 +10,23 @@ export interface ThreeViewerOptions {
   /** Scene background color (defaults to the app's dark base). */
   background?: number
 }
+
+/** DIAGNOSTIC (diagnostic/splat-perf): live metrics surfaced by the DebugHud. */
+export interface DebugStats {
+  fps: number
+  frameMsAvg: number
+  frameMsMax: number
+  pixelRatio: number
+  bufferW: number
+  bufferH: number
+  cssW: number
+  cssH: number
+  splatCount: number
+  gpu: string
+}
+
+/** DIAGNOSTIC: auto-orbit rate (rad/sec) for the ?spin comparison mode. */
+const SPIN_RATE = 0.4
 
 /** Fly-cam keys: WASD pan/forward, Q/E down/up, Shift to boost. */
 const FLY_MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
@@ -72,6 +90,11 @@ export class ThreeViewer {
   private rafId = 0
   private renderTail = 0 // frames left to render; 0 = idle (on-demand rendering)
   private renderPaused = false // hold the idle render tail (e.g. while a video plays)
+  // DIAGNOSTIC (diagnostic/splat-perf): ?spin auto-orbits + renders every frame;
+  // frameMs is a rolling rAF-delta window the DebugHud reads for FPS/frame-time.
+  private readonly spin: boolean
+  private readonly frameMs: number[] = []
+  private gpuInfo = 'unavailable'
   private currentModel: THREE.Object3D | null = null
   private readonly gizmos: Record<GizmoSlot, Gizmo | null> = { section: null, start: null }
   private disposed = false
@@ -100,10 +123,26 @@ export class ThreeViewer {
     this.camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 1000)
     this.camera.position.set(4, 3, 6)
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const dbg = debugTuning()
+    this.spin = dbg.spin
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      // Ask the browser for the high-performance GPU. On dual-GPU laptops the
+      // 'default' preference often binds the integrated GPU, whose frames are then
+      // copied across the GPU boundary for display — that cross-adapter step is
+      // what made splat navigation stutter on desktop while the iPad (single GPU)
+      // stayed smooth. 'high-performance' aligns rendering with the display GPU.
+      // No headers / no cross-origin isolation needed — deploy-anywhere safe.
+      // Diagnostic override: ?highpower=0 reverts to the browser default to
+      // reproduce the old behaviour (see debugTuning + DebugHud).
+      powerPreference: dbg.highPower ? 'high-performance' : 'default',
+    })
+    // DIAGNOSTIC: ?dpr=<n> forces an exact pixel ratio to isolate fill-rate/
+    // overdraw; otherwise the usual min(devicePixelRatio, 2) cap.
+    this.renderer.setPixelRatio(dbg.dpr != null ? dbg.dpr : Math.min(window.devicePixelRatio, 2))
     this.renderer.setSize(w, h)
     container.appendChild(this.renderer.domElement)
+    this.captureGpuInfo()
 
     this.controls = new CameraControls(this.camera, this.renderer.domElement)
     this.controls.dampingFactor = 0.06
@@ -136,6 +175,12 @@ export class ThreeViewer {
     if (this.disposed) return
     this.rafId = requestAnimationFrame(this.animate)
     const delta = this.clock.getDelta()
+    // DIAGNOSTIC (diagnostic/splat-perf): rolling rAF-delta window for the HUD.
+    this.frameMs.push(delta * 1000)
+    if (this.frameMs.length > 90) this.frameMs.shift()
+    // DIAGNOSTIC: ?spin slowly auto-orbits so both devices run an identical motion
+    // path; the camera change makes controls.update report movement → renders below.
+    if (this.spin) this.controls.rotate(SPIN_RATE * delta, 0, false)
     // These self-invalidate when they actually move the camera.
     this.applyFlyMovement(delta)
     this.applyMoveAccum()
@@ -599,6 +644,49 @@ export class ThreeViewer {
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(w, h)
     this.invalidate()
+  }
+
+  // ── Diagnostic instrumentation (diagnostic/splat-perf) ────────────────────
+  // TEMPORARY: remove with the DebugHud once the splat-choppiness cause is found.
+
+  /** Read the real GPU the browser bound (integrated vs discrete, or software). */
+  private captureGpuInfo(): void {
+    try {
+      const gl = this.renderer.getContext()
+      const ext = gl.getExtension('WEBGL_debug_renderer_info')
+      if (ext) {
+        const vendor = gl.getParameter(ext.UNMASKED_VENDOR_WEBGL)
+        const renderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+        this.gpuInfo = `${vendor} — ${renderer}`
+      }
+    } catch {
+      /* the extension can be blocked for privacy; leave 'unavailable' */
+    }
+  }
+
+  private getSplatCount(): number {
+    const m = this.currentModel as (THREE.Object3D & { splatMesh?: SplatMeshLike }) | null
+    return m?.userData?.isSplat ? (m.splatMesh?.getSplatCount() ?? 0) : 0
+  }
+
+  /** Live metrics for the DebugHud (FPS is meaningful while rendering every frame — use ?spin). */
+  getStats(): DebugStats {
+    const n = this.frameMs.length
+    const avg = n ? this.frameMs.reduce((a, b) => a + b, 0) / n : 0
+    const max = n ? Math.max(...this.frameMs) : 0
+    const canvas = this.renderer.domElement
+    return {
+      fps: avg ? Math.round(1000 / avg) : 0,
+      frameMsAvg: Math.round(avg * 10) / 10,
+      frameMsMax: Math.round(max * 10) / 10,
+      pixelRatio: this.renderer.getPixelRatio(),
+      bufferW: canvas.width,
+      bufferH: canvas.height,
+      cssW: this.container.clientWidth,
+      cssH: this.container.clientHeight,
+      splatCount: this.getSplatCount(),
+      gpu: this.gpuInfo,
+    }
   }
 
   dispose(): void {

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { debugTuning } from './debugTuning'
 
 /**
  * Load a Gaussian-splat scene as a THREE.Object3D (a DropInViewer Group) that
@@ -32,9 +33,15 @@ export async function loadSplat(
   // no SharedArrayBuffer. This renders even on hosts that don't send the COOP/
   // COEP isolation headers, and is plenty fast for prototype-scale scenes. (A
   // very large real scan can opt into gpuAcceleratedSort later.)
+  //
+  // DIAGNOSTIC (diagnostic/splat-perf): ?gpusort=1 flips the GPU sort on, but only
+  // when the page is cross-origin isolated (SharedArrayBuffer available) — else it
+  // would throw. The DebugHud reports whether it actually engaged.
+  const dbg = debugTuning()
+  const gpuSort = dbg.gpusort && window.crossOriginIsolated === true
   const viewer = new GaussianSplats3D.DropInViewer({
-    gpuAcceleratedSort: false,
-    sharedMemoryForWorkers: false,
+    gpuAcceleratedSort: gpuSort,
+    sharedMemoryForWorkers: gpuSort,
   })
 
   const normExt = ext?.toLowerCase()
@@ -44,6 +51,8 @@ export async function loadSplat(
   await viewer.addSplatScene(resolvedUrl, {
     showLoadingUI: false,
     progressiveLoad: false,
+    // DIAGNOSTIC: ?alpha=<n> drops splats at load to isolate sort/geometry cost.
+    ...(dbg.alpha != null ? { splatAlphaRemovalThreshold: dbg.alpha } : {}),
     ...(format !== undefined ? { format } : {}),
   })
 

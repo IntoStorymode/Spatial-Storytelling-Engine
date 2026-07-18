@@ -5,6 +5,8 @@ import type { Story } from '../../parser/types'
 import { resolveWaypoint } from '../../parser/waypoints'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageContext } from './stageContext'
+import { DebugHud } from './DebugHud'
+import { debugTuning } from '../../three/debugTuning'
 
 /** Dwell time at each hotspot during an auto-tour, before advancing. */
 const AUTO_TOUR_DWELL_MS = 3800
@@ -173,6 +175,7 @@ export function ViewerStage({
 
   return (
     <StageContext.Provider value={{ hostEl: hostRef.current, viewer }}>
+      {debugTuning().debug && <DebugHud viewer={viewer} />}
       {loadError && (
         <div className="model-error" role="alert">
           <strong>3D model failed to load.</strong>
