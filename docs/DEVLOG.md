@@ -42,6 +42,17 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 
 ## Milestones
 
+### VR HUD — richer performance metrics (in review)
+The in-headset HUD (`VRStoryViewer.ts`) is the VR viewer's tuning instrument, but it only showed
+fps + splat count. Extended it with the readings the desktop splat-choppiness fix taught us to
+watch: **frame-time avg/max in ms** (the max is the jank tell — fps alone hides stutter, an even
+30 fps reads smooth while a jittery 60 does not), the **eye-buffer resolution** (the XR
+framebuffer while in-session, else the canvas buffer — so you can see what `scale`/`fov` actually
+produced), and the **GPU** the browser bound (`WEBGL_debug_renderer_info`). Frame-time is a rolling
+~90-frame window folded into `VRStats` on each 1 s tick; the HUD canvas grew 256 → 384 px (plane
+aspect kept) to fit. The same avg/max ms is added to the flat landing-page readout (`main.ts`) so
+it's legible on a desk before entering VR. No new deps; the main app is untouched.
+
 ### Splat choppiness on desktop — GPU-selection fix (in review)
 Fix: a splat story that was **smooth on iPad Chrome was choppy on desktop Chrome, from the first
 camera move** — counterintuitive, since the desktop has more GPU headroom. We built a temporary,

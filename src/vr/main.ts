@@ -135,8 +135,9 @@ function showStats(s: VRStats): void {
   const el = document.getElementById('vr-stats')
   if (!el) return
   const splats = s.splats ? `${(s.splats / 1e6).toFixed(2)}M splats · ` : ''
+  const frame = s.frameMsAvg ? `${s.frameMsAvg}/${s.frameMsMax} ms · ` : ''
   el.textContent =
-    `${s.fps} fps · ${s.backend} · ${splats}loaded in ${(s.loadMs / 1000).toFixed(1)}s · ` +
+    `${s.fps} fps · ${frame}${s.backend} · ${splats}loaded in ${(s.loadMs / 1000).toFixed(1)}s · ` +
     `scale ${tuning.scale} · foveation ${tuning.fov} · alpha ${tuning.alpha}`
 }
 
