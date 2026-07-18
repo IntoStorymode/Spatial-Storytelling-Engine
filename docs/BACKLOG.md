@@ -97,6 +97,13 @@ nice-to-have / exploratory.
   rendering quiets the *idle* splat load; this targets the *active-navigation* cost. Try
   `gpuAcceleratedSort: true` in `loadSplat.ts` (moves the per-frame depth sort off the CPU worker)
   and confirm it still renders on the Vercel deploy without COOP/COEP isolation headers.
+  **Note (PR #31):** the desktop-choppiness diagnosis (see the "Splat choppiness on desktop"
+  DEVLOG entry) measured this as the remaining ceiling — a fixed per-frame cost the CPU sort
+  imposes (~16 fps on the Greenwich splat), unchanged by pixel ratio or splat count. The
+  `high-performance` GPU fix cured the *stutter* but not the *rate*; a `?gpusort=1` test
+  **black-screened** and needs COOP/COEP (which breaks deploy-anywhere), so lifting the rate is
+  still open and non-trivial. A header-free option — sort on *position* not head/view rotation —
+  would need a library patch/fork.
 - **[P3] `renderer.forceContextLoss()` on dispose** *(hygiene)* — `ThreeViewer.dispose()` calls
   `renderer.dispose()` but not `forceContextLoss()`, so a WebGL context lingers until GC. Low risk
   today (single long-lived viewer), but worth adding if repeated story-to-story navigation ever
