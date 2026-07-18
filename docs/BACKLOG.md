@@ -156,7 +156,7 @@ nice-to-have / exploratory.
   so the round-trip — not a browser DB — is how work survives a reload.)* **Remaining:** a
   durable/registered gallery and exporting the repo's own registered stories (not just
   session-saved ones).
-- **[P2] Standalone VR viewer tool (WebXR)** *(spike built + measured — decision needed)*
+- **[P2] Standalone VR viewer tool (WebXR)** *(spike built + measured in PR #28 — decision still open)*
   ✅ `vr.html` + `src/vr/` ships: a second Vite entry (vanilla TS, no new deps) with dolly-rig
   locomotion, teleport to a section's waypoint, controller nav (trigger/grip/**B-Y to exit**), and an
   in-headset HUD (caption, section image, fps, splat count). URL-tunable (`?story=`, `?scale=`,
@@ -164,10 +164,19 @@ nice-to-have / exploratory.
   `vr.html` is carried into every exported site with no change to `buildSite.ts`. The main platform is
   untouched.
   ⚠️ **Measured on a Quest 3: GLB runs at 90 fps; Gaussian splats manage only 25–35 fps** — and it's
-  neither fill-rate nor splat count (both ruled out). The library force-disables its GPU sort in any XR
-  session, and the CPU sort can't be escaped without `SharedArrayBuffer` → COOP/COEP → which would break
-  deploy-anywhere. **Since the real scans are splats, a GLB-only VR tool demos almost none of the actual
-  work — that tension is the open decision.** Full write-up: [`vr-spike-findings.md`](./vr-spike-findings.md).
+  neither fill-rate nor splat count (both ruled out). The most likely cause is the library's per-frame
+  CPU depth sort: it **force-disables its GPU sort in any XR session**, and the GPU path can't be
+  restored without `SharedArrayBuffer` → COOP/COEP headers → which **breaks the deploy-anywhere
+  promise**. So the CPU sort is the ceiling this architecture gives us for free, not something to
+  optimise past.
+  **The open decision:** since the real scans are splats, a GLB-only VR tool demos almost none of the
+  actual work. Resolution paths, cheapest first (from the findings doc, none started): **(a)** author a
+  `.glb` mesh alongside the `.spz` so page/immersive get the splat and VR gets the mesh — costs a second
+  asset + a story-format field; **(b)** patch/fork the library to sort on position not head-rotation
+  (needs a fork — not viable today); **(c)** swap in a splat renderer with a header-free GPU sort;
+  **(d)** shelve VR and keep the spike as-is (it costs nothing to carry). Confirming the sort as the
+  culprit was **not run to ground** — a frame profile would settle it. Full write-up:
+  [`vr-spike-findings.md`](./vr-spike-findings.md).
 
 ---
 
