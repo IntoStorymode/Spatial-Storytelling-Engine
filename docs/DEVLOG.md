@@ -5,9 +5,10 @@ Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
 **Current state (2026-07-18):** M1–M12 complete and merged to `main` (a story published live to
-Vercel), plus a run of follow-ups: a **WebXR VR spike** (measured, not shipped — see the VR entry),
-an **in-app guidance + copy overhaul**, an **optional section title**, and a **desktop
-splat-performance fix** (request the high-performance GPU). A **mobile pass (collapsible Mode A
+Vercel), plus a run of follow-ups: a **WebXR VR viewer** that ships in every export (`vr.html`,
+carried by `publishManifest`) — its UI promotion and splat-performance direction are the open calls,
+not its availability — an **in-app guidance + copy overhaul**, an **optional section title**, and a
+**desktop splat-performance fix** (request the high-performance GPU). A **mobile pass (collapsible Mode A
 overlay)** remains in review. The full authoring loop works end to end: create a story → import a
 scan → add sections with waypoints (inline media upload) → preview Mode A/B → **💾 Save to gallery**
 → on Home, **select** stories and **Export** a deployable, host-anywhere static site (one → opens
