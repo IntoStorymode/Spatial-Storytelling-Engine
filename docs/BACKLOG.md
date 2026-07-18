@@ -43,17 +43,24 @@ nice-to-have / exploratory.
 
 ## Editor
 
-- **[P1] Editor onboarding / tutorial** *(noted in memory; waypoint UI confused the user)*
-  A first-run walkthrough or inline coach-marks explaining sections vs waypoints, the opening
-  view (= the first section's waypoint), and fly/orbit controls.
+- **[mostly done, PR #30] Editor onboarding / tutorial** *(noted in memory; waypoint UI confused the user)*
+  ✅ A session-scoped **Getting started** card (`GettingStarted.tsx`) now appears once on first
+  entry to a new story, laying out the four accordion steps (Scene → Story → Waypoints → Publish).
+  The copy overhaul also fixed stale in-app hints, named how to capture a scan at the upload step,
+  and added a post-export "what next" banner (unzip → Netlify Drop → re-import). All guidance is
+  inline `.ed-hint`/banner text — no external links, so it survives a deploy-anywhere export.
+  **Remaining:** anchored coach-marks tying the card's steps to the live rail were deliberately
+  skipped (the resizable/collapsible rail makes DOM-anchoring brittle); revisit only if the plain
+  card proves insufficient.
 - **[P2] Reorder sections by drag-and-drop** (currently up/down buttons only).
 - **[done] Inline validation in the editor**
   ✅ `src/publish/validateStory.ts` is the single source of readiness truth: it flags a missing
-  title, the placeholder `builtin:` scan, untitled sections, media sections with no `src`, a
-  first section without a waypoint (the reader's opening view), and a title that yields no
-  export name. Surfaced by the header **status pill** (`StoryStatus`) and a **hard gate** on
-  Save to gallery; Preview is always allowed. **Remaining:** it doesn't yet check that a typed
-  `src` path actually resolves — a broken path is only caught on import (see below).
+  title, the placeholder `builtin:` scan, media sections with no `src`, a first section without a
+  waypoint (the reader's opening view), and a title that yields no export name. Surfaced by the
+  header **status pill** (`StoryStatus`) and a **hard gate** on Save to gallery; Preview is always
+  allowed. **PR #29** removed the per-section-title requirement — a section title is optional and
+  no longer blocks Save or export. **Remaining:** it doesn't yet check that a typed `src` path
+  actually resolves — a broken path is only caught on import (see below).
 - **[P2] Duplicate / templated section** to speed up building longer stories.
 - **[P3] Undo/redo** for editor draft mutations.
 - **[P3] Autosave draft to localStorage** so an accidental tab close doesn't lose work
@@ -169,4 +176,4 @@ nice-to-have / exploratory.
 | Item | Origin | Priority |
 | --- | --- | --- |
 | Responsive Mode A/B mobile viewing | M7 (deferred) | P1 |
-| Editor onboarding / tutorial | noted during M6 | P1 |
+| Editor onboarding / tutorial | noted during M6 | mostly done (PR #30) |
