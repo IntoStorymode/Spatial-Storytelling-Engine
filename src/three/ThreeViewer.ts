@@ -40,6 +40,16 @@ const FLY_MOVE_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE'])
  */
 const RENDER_TAIL_FRAMES = 60
 
+/**
+ * Cap on the per-frame delta that drives camera MOTION. A frame hitch (a splat
+ * sort spike, GC, a tab refocus) can hand us a 200–400ms delta; since a fly step
+ * is `flySpeed * delta`, that one long frame would launch the camera many times
+ * the normal distance — read as "WASD didn't respond, then lurched too far." At
+ * ~1/20s the worst-case step is bounded while normal frames pass through
+ * untouched. The HUD still records the TRUE (unclamped) frame time.
+ */
+const MAX_STEP_DELTA = 0.05
+
 type GizmoSlot = 'section' | 'start'
 type GizmoSpot = { position: [number, number, number]; target: [number, number, number] }
 interface Gizmo {
@@ -103,6 +113,7 @@ export class ThreeViewer {
   private flyEnabled = false
   private flyBoost = false
   private flySpeed = 2 // world units/sec; rescaled to the model in frameObject
+  private moveScale = 4 // robust world-space extent; scales fly + touch-walk speed
   private readonly heldKeys = new Set<string>()
   private lookMode: 'orbit' | 'firstPerson' = 'orbit'
   private fpsPivot = 0.05 // tiny orbit radius that makes left-drag a look-in-place
@@ -145,8 +156,12 @@ export class ThreeViewer {
     this.captureGpuInfo()
 
     this.controls = new CameraControls(this.camera, this.renderer.domElement)
-    this.controls.dampingFactor = 0.06
-    this.controls.draggingDampingFactor = 0.12
+    // camera-controls 2.x smooths with smoothTime (seconds); the old
+    // dampingFactor is a deprecated no-op that only console.warns. Set slightly
+    // crisper than the 0.25 / 0.125 defaults so looking and waypoint arrivals
+    // feel prompt rather than floaty.
+    this.controls.smoothTime = 0.15
+    this.controls.draggingSmoothTime = 0.08
 
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x2a2620, 1.1))
     const key = new THREE.DirectionalLight(0xffffff, 1.3)
@@ -174,10 +189,14 @@ export class ThreeViewer {
   private animate = (): void => {
     if (this.disposed) return
     this.rafId = requestAnimationFrame(this.animate)
-    const delta = this.clock.getDelta()
-    // DIAGNOSTIC (diagnostic/splat-perf): rolling rAF-delta window for the HUD.
-    this.frameMs.push(delta * 1000)
+    const rawDelta = this.clock.getDelta()
+    // DIAGNOSTIC (diagnostic/splat-perf): rolling rAF-delta window for the HUD —
+    // the TRUE frame time, recorded before the movement clamp below.
+    this.frameMs.push(rawDelta * 1000)
     if (this.frameMs.length > 90) this.frameMs.shift()
+    // Clamp the delta used for camera motion (see MAX_STEP_DELTA) so a single
+    // long frame can't turn into an oversized jump.
+    const delta = Math.min(rawDelta, MAX_STEP_DELTA)
     // DIAGNOSTIC: ?spin slowly auto-orbits so both devices run an identical motion
     // path; the camera change makes controls.update report movement → renders below.
     if (this.spin) this.controls.rotate(SPIN_RATE * delta, 0, false)
@@ -260,7 +279,9 @@ export class ThreeViewer {
    * centres in world space and take a robust median/percentile. Returns null when
    * there's nothing measurable (camera keeps its current framing).
    */
-  private modelFraming(obj: THREE.Object3D): { center: THREE.Vector3; diameter: number } | null {
+  private modelFraming(
+    obj: THREE.Object3D,
+  ): { center: THREE.Vector3; diameter: number; core?: number } | null {
     const splatMesh = obj.userData?.isSplat ? (obj as unknown as { splatMesh?: SplatMeshLike }).splatMesh : undefined
     if (splatMesh) {
       const robust = robustSplatFraming(splatMesh, obj)
@@ -277,8 +298,14 @@ export class ThreeViewer {
     const framing = this.modelFraming(obj)
     if (!framing) return
     this.invalidate()
-    const { center, diameter } = framing
-    this.flySpeed = diameter * 0.6 // a held key crosses the model in ~1.5s
+    const { center, diameter, core } = framing
+    // Movement speed tracks a ROBUST extent, not the raw diameter. A splat scan
+    // with a sparse far-flung background inflates the 90th-percentile diameter,
+    // which made WASD/touch far too fast in some scenes. `core` (the median splat
+    // distance ×2) ignores the outer half of the cloud entirely, so speed
+    // matches the walkable space. Meshes have no `core` → diameter as before.
+    this.moveScale = core != null ? core * 2 : diameter
+    this.flySpeed = this.moveScale * 0.6 // a held key crosses the space in ~1.5s
     this.fpsPivot = Math.min(Math.max(diameter * 0.01, 0.02), 0.5)
     this.captureDist = Math.max(diameter * 0.5, 0.5)
 
@@ -562,7 +589,7 @@ export class ThreeViewer {
     const a = this.moveAccum
     if (!a.truck && !a.elevate && !a.forward) return
     this.invalidate()
-    const k = this.captureDist / 200 // pixels → world units, scaled to the model
+    const k = this.moveScale / 400 // pixels → world units, scaled to the model
     if (a.truck) this.controls.truck(a.truck * k, 0, false) // drag right → strafe right
     if (a.elevate) this.controls.elevate(a.elevate * k, false) // drag up → move up
     if (a.forward) this.controls.forward(a.forward * k, false) // spread → forward
@@ -710,16 +737,21 @@ interface SplatMeshLike {
 }
 
 /**
- * Robust centre + diameter for a splat scene. Samples up to ~30k splat centres,
+ * Robust centre + extents for a splat scene. Samples up to ~30k splat centres,
  * transforms them into world space (so any model rotation/offset — e.g. the .ply
  * upright flip — is honoured), then uses the per-axis median for the centre and
- * the 90th-percentile distance for the radius. Median + percentile shrug off the
- * stray far-flung splats that would otherwise blow up an axis-aligned box.
+ * distance percentiles for the radii. Median + percentile shrug off the stray
+ * far-flung splats that would otherwise blow up an axis-aligned box.
+ *
+ * Returns two radii: `diameter` (90th-percentile ×2) for camera FRAMING, and
+ * `core` (median distance) for movement SPEED. Speed uses the tighter, fully
+ * outlier-proof median so a scan with a sparse distant background doesn't walk
+ * the reader far too fast; framing keeps the roomier 90th percentile.
  */
 function robustSplatFraming(
   splatMesh: SplatMeshLike,
   obj: THREE.Object3D,
-): { center: THREE.Vector3; diameter: number } | null {
+): { center: THREE.Vector3; diameter: number; core: number } | null {
   const total = splatMesh.getSplatCount()
   if (!total) return null
   obj.updateWorldMatrix(true, false)
@@ -744,7 +776,8 @@ function robustSplatFraming(
   const dists = xs.map((x, i) => Math.hypot(x - center.x, ys[i] - center.y, zs[i] - center.z))
   dists.sort((a, b) => a - b)
   const r90 = dists[Math.floor(dists.length * 0.9)] || dists[dists.length - 1] || 1
-  return { center, diameter: Math.max(r90 * 2, 1e-3) }
+  const r50 = dists[Math.floor(dists.length * 0.5)] || r90
+  return { center, diameter: Math.max(r90 * 2, 1e-3), core: Math.max(r50, 1e-3) }
 }
 
 function median(values: number[]): number {

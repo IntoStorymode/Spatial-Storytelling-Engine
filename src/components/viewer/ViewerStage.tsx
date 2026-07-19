@@ -33,6 +33,11 @@ export function ViewerStage({
   const { sections, basePath, frontmatter } = story
   // The opening view — resolve the named waypoint `start` references.
   const start = resolveWaypoint(frontmatter, frontmatter.start)
+  // What the page view opens on: the FIRST SECTION's starting point (its
+  // waypoint), so a story — especially a 3DGS scene, whose default bounding-box
+  // framing is the whole point cloud from far off — lands exactly where the
+  // story begins. Fall back to the story-level start, then to default framing.
+  const opening = resolveWaypoint(frontmatter, sections[0]?.waypoint) ?? start
   const [viewer, setViewer] = useState<ThreeViewer | null>(null)
 
   // One stable host div; the viewer renders into it for the component's life.
@@ -58,7 +63,7 @@ export function ViewerStage({
   // re-seeding. Keyed on the frontmatter identity so each story/preview re-seeds
   // even if two stories share the same value.
   useEffect(() => {
-    setNavMode(frontmatter.navigation ?? 'orbit')
+    setNavMode(frontmatter.navigation ?? 'firstPerson')
   }, [frontmatter, setNavMode])
 
   const reducedMotion = useMemo(
@@ -78,8 +83,8 @@ export function ViewerStage({
   // Whether Mode A has shown its opening frame yet (resets when leaving immersive).
   const openedRef = useRef(false)
 
-  // Load (or swap) the model. After it frames, honor the story's start camera
-  // (the author-defined opening view) over the default bounding-box framing.
+  // Load (or swap) the model. After it frames, snap to the opening view (the
+  // first section's starting point) over the default bounding-box framing.
   useEffect(() => {
     if (!viewer) return
     setLoadError(null)
@@ -87,14 +92,14 @@ export function ViewerStage({
     viewer
       .setModel(frontmatter.model, basePath, modelFormat, frontmatter.orientation)
       .then(() => {
-        if (start) viewer.flyTo(start.position, start.target, false)
+        if (opening) viewer.flyTo(opening.position, opening.target, false)
       })
       .catch((e) => {
         console.error('Model load failed:', e)
         setLoadError(e instanceof Error ? e.message : String(e))
       })
       .finally(() => setLoading(false))
-  }, [viewer, frontmatter.model, basePath, modelFormat, frontmatter.orientation, start])
+  }, [viewer, frontmatter.model, basePath, modelFormat, frontmatter.orientation, opening])
 
   // A fresh entry into Mode A should open on the story start view, not jump
   // straight to section 1's waypoint — so reset the "opened" latch in Mode B.

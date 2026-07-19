@@ -60,13 +60,13 @@ export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }
         <label className="ed-field">
           <span>Reader navigation (immersive view)</span>
           <select
-            value={fm.navigation ?? 'orbit'}
+            value={fm.navigation ?? 'firstPerson'}
             onChange={(e) =>
-              onChange({ navigation: e.target.value === 'firstPerson' ? 'firstPerson' : undefined })
+              onChange({ navigation: e.target.value === 'orbit' ? 'orbit' : undefined })
             }
           >
-            <option value="orbit">Orbit — circle the model</option>
             <option value="firstPerson">First-person — look around &amp; walk</option>
+            <option value="orbit">Orbit — circle the model</option>
           </select>
           <p className="ed-hint">The reader can still switch live in the viewer.</p>
         </label>

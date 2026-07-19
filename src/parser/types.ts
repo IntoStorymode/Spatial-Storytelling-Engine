@@ -32,6 +32,13 @@ export interface Section {
    * Optional — sections without a waypoint fall back to default framing.
    */
   waypoint?: string
+  /**
+   * Auto-play this section's clip in the immersive view (Mode A) as the reader
+   * arrives at it. Applies to `audio`/`video` sections only; absent/false = the
+   * reader presses play. Page view (Mode B) never auto-plays. Browsers may still
+   * block audible autoplay until the reader has interacted; controls stay shown.
+   */
+  autoplay?: boolean
 }
 
 export interface Frontmatter {
@@ -54,7 +61,7 @@ export interface Frontmatter {
   start?: string
   /**
    * The reader's *default* Mode A camera navigation: `orbit` circles the model,
-   * `firstPerson` looks around in place (+ WASD walk on desktop). Absent = orbit.
+   * `firstPerson` looks around in place (+ WASD walk on desktop). Absent = firstPerson.
    * The reader can still switch live via the in-viewer toggle.
    */
   navigation?: 'orbit' | 'firstPerson'

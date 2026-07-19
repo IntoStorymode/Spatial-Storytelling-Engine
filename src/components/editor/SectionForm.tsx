@@ -33,6 +33,7 @@ export function SectionForm({
   onAssignWaypoint,
 }: Props) {
   const isMedia = section.type !== 'text'
+  const isPlayable = section.type === 'audio' || section.type === 'video'
   const fileRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -104,6 +105,21 @@ export function SectionForm({
               onChange={(e) => onChange({ caption: e.target.value })}
             />
           </label>
+          {isPlayable && (
+            <>
+              <label className="ed-field ed-field-checkbox">
+                <input
+                  type="checkbox"
+                  checked={section.autoplay ?? false}
+                  onChange={(e) => onChange({ autoplay: e.target.checked || undefined })}
+                />
+                <span>Auto-play in immersive view</span>
+              </label>
+              <p className="ed-hint">
+                Plays as the reader arrives at this section. Page view always waits for play.
+              </p>
+            </>
+          )}
         </>
       )}
 

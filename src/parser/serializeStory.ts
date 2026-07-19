@@ -48,6 +48,7 @@ function serializeSection(section: Section): string {
   const lines: string[] = [`## [${section.id}] ${section.title}`, '', `type: ${section.type}`]
   if (section.src) lines.push(`src: ${section.src}`)
   if (section.caption) lines.push(`caption: ${section.caption}`)
+  if (section.autoplay) lines.push('autoplay: true')
   if (section.waypoint) lines.push(`waypoint: ${section.waypoint}`)
   if (section.body) {
     lines.push('', section.body)

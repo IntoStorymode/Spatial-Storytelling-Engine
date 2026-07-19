@@ -1141,6 +1141,25 @@ button.cta {
 .ed-row .ed-field {
   flex: 1;
 }
+/* Inline checkbox row: box beside a normal-case label (not the uppercase caption). */
+.ed-field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ed-field-checkbox > input[type='checkbox'] {
+  width: auto;
+  flex: none;
+  margin: 0;
+}
+.ed-field-checkbox > span {
+  margin-bottom: 0;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+}
 .editor input,
 .editor textarea,
 .editor select {

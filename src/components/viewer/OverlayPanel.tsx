@@ -38,7 +38,7 @@ export function OverlayPanel({ story }: { story: Story }) {
             {String(story.sections.length).padStart(2, '0')}
           </p>
           <h2 className="item-title">{section.title}</h2>
-          <SectionContent section={section} basePath={story.basePath} />
+          <SectionContent section={section} basePath={story.basePath} immersive />
         </div>
       </div>
 

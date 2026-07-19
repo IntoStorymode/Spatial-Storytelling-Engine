@@ -2,7 +2,7 @@ import yaml from 'js-yaml'
 import type { Frontmatter, Hotspot, SectionType, Story, Section, Waypoint } from './types'
 
 const SECTION_TYPES: readonly string[] = ['text', 'image', 'audio', 'video']
-const META_RE = /^(type|src|caption|waypoint):\s*(.*)$/
+const META_RE = /^(type|src|caption|waypoint|autoplay):\s*(.*)$/
 const HEADING_RE = /^##\s*\[([^\]]+)\]\s*(.*)$/
 const HOTSPOT_RE = /^hotspot:\s*$/
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?/
@@ -188,6 +188,10 @@ function parseSection(chunk: string, warnings: string[], waypoints: Waypoint[]):
   const section: Section = { id, title, type, body: itemBody }
   if (meta.src) section.src = meta.src
   if (meta.caption) section.caption = meta.caption
+  if (meta.autoplay !== undefined) {
+    if (meta.autoplay === 'true' || meta.autoplay === 'false') section.autoplay = meta.autoplay === 'true'
+    else warnings.push(`Section ${id}: autoplay expected true or false, got "${meta.autoplay}"`)
+  }
 
   if (meta.waypoint) {
     // New format: an explicit reference to a named waypoint.

@@ -25,6 +25,13 @@ nice-to-have / exploratory.
   **touch** a gesture scheme (one-finger look, two-finger drag = strafe/rise, pinch = walk) with
   a one-time hint. **Remaining/future:** on-screen joystick alternative for touch; a formal
   metric-based A/B would need analytics (not in the local-first prototype).
+- **[P2] Reader-adjustable movement speed** *(deferred from the WASD-feel fix, `fix/misc-viewer-features`)*
+  That fix made WASD/touch speed auto-scale to a **robust** model extent (median splat distance,
+  outlier-proof) and clamped the per-frame delta so a frame hitch can't produce an oversized
+  lurch — so speed is now scene-matched automatically. Still wanted: a **live reader speed
+  control** in immersive view (e.g. `[` / `]` + an on-screen stepper) so anyone can tune walk
+  speed to taste, and an **author `moveSpeed` frontmatter option** (editor field) to ship a tuned
+  per-story default. Shift-boost (×3) already exists as the only manual control today.
 - **[P2] Mode B wheel "scroll trap"** *(noted during the reader-nav review)*
   In Mode B, scrolling the wheel over the inline 3D model zooms it (`setWheelDolly(true)`,
   caption "scroll to zoom") instead of continuing the page scroll — the article scroll stalls
