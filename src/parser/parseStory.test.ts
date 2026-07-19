@@ -202,7 +202,7 @@ describe('story parser — reader navigation', () => {
     expect(story.frontmatter.navigation).toBe('firstPerson')
   })
 
-  it('omits navigation when absent (defaults to orbit at read time)', () => {
+  it('omits navigation when absent (defaults to first-person at read time)', () => {
     const story = parseStory('---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n', BASE)
     expect(story.frontmatter.navigation).toBeUndefined()
   })
@@ -219,6 +219,41 @@ describe('story parser — reader navigation', () => {
     const story = parseStory(md, BASE)
     expect(story.frontmatter.navigation).toBeUndefined()
     expect(story.warnings.some((w) => w.includes('navigation'))).toBe(true)
+  })
+})
+
+describe('story parser — per-section media autoplay', () => {
+  const withAutoplay =
+    '---\ntitle: "x"\nmodel: "builtin:room"\n---\n\n' +
+    '## [a] A\n\ntype: audio\nsrc: assets/n.wav\nautoplay: true\n\nBody\n'
+
+  it('parses a section autoplay: true', () => {
+    const story = parseStory(withAutoplay, BASE)
+    expect(story.warnings).toEqual([])
+    expect(story.sections[0].autoplay).toBe(true)
+  })
+
+  it('omits autoplay when absent (reader presses play)', () => {
+    const story = parseStory(
+      '---\ntitle: "x"\n---\n\n## [a] A\n\ntype: audio\nsrc: assets/n.wav\n\nBody\n',
+      BASE,
+    )
+    expect(story.sections[0].autoplay).toBeUndefined()
+  })
+
+  it('round-trips a section with autoplay on', () => {
+    const s1 = parseStory(withAutoplay, BASE)
+    const s2 = parseStory(serializeStory(s1), BASE)
+    expect(s2.sections).toEqual(s1.sections)
+    expect(s2.warnings).toEqual([])
+  })
+
+  it('warns on a non-boolean autoplay value', () => {
+    const md =
+      '---\ntitle: "x"\n---\n\n## [a] A\n\ntype: video\nsrc: assets/v.mp4\nautoplay: yes\n\nBody\n'
+    const story = parseStory(md, BASE)
+    expect(story.sections[0].autoplay).toBeUndefined()
+    expect(story.warnings.some((w) => w.includes('autoplay'))).toBe(true)
   })
 })
 

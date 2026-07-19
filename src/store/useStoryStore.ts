@@ -50,7 +50,7 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   activeIndex: 0,
   autoTour: false,
   sectionCount: 0,
-  navMode: 'orbit',
+  navMode: 'firstPerson',
   videoPlaying: false,
 
   setMode: (mode) => set({ mode, autoTour: mode === 'page' ? false : get().autoTour }),
