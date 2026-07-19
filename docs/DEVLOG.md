@@ -4,12 +4,14 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-07-18):** M1–M12 complete and merged to `main` (a story published live to
+**Current state (2026-07-19):** M1–M12 complete and merged to `main` (a story published live to
 Vercel), plus a run of follow-ups: a **WebXR VR viewer** that ships in every export (`vr.html`,
 carried by `publishManifest`) — its UI promotion and splat-performance direction are the open calls,
-not its availability — an **in-app guidance + copy overhaul**, an **optional section title**, and a
-**desktop splat-performance fix** (request the high-performance GPU). A **mobile pass (collapsible Mode A
-overlay)** remains in review. The full authoring loop works end to end: create a story → import a
+not its availability — an **in-app guidance + copy overhaul**, an **optional section title**, a
+**desktop splat-performance fix** (request the high-performance GPU), and a **round of misc viewer
+fixes** (PR #33: page view opens at the first section's waypoint, first-person is the immersive
+default, per-section media autoplay, and a WASD-feel fix — delta clamp + real smoothing + robust
+model-scaled speed). A **mobile pass (collapsible Mode A overlay)** remains in review. The full authoring loop works end to end: create a story → import a
 scan → add sections with waypoints (inline media upload) → preview Mode A/B → **💾 Save to gallery**
 → on Home, **select** stories and **Export** a deployable, host-anywhere static site (one → opens
 into the story, several → opens on a gallery); an exported zip **re-imports** via **⬆ Import story**.
@@ -41,6 +43,35 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 ---
 
 ## Milestones
+
+### Misc viewer fixes — opening view, first-person default, per-section autoplay, WASD feel (PR #33)
+Four small reader/editor fixes bundled together (`fix/misc-viewer-features`):
+
+- **Page view opens at the first section's starting point.** Mode B applied only the story-level
+  `start` and otherwise sat on the default bounding-box framing — which for a Gaussian splat is the
+  whole point cloud seen from far off. The opening camera now resolves to the **first section's
+  waypoint**, falling back to `start`, then framing (`ViewerStage.tsx`). Existing stories set
+  `start` == section 1, so no visible regression; splat stories now land where the story begins.
+- **Immersive default navigation is first-person, not orbit.** Rather than let the editor selector
+  and reader behaviour drift, this flips the read-time meaning of an **absent `navigation:`** field
+  from orbit → first-person everywhere it's read (reader seed, store initial, editor selector default
+  + option order, type doc). The parser still leaves an absent field unserialized.
+- **Per-section media autoplay (immersive only).** Moved autoplay from a story-wide scene option to a
+  per-section `autoplay` field so each clip opts in independently — parsed/serialized/round-tripped
+  (`META_RE` widened to allow the key, or the line would fall into the body). Threaded through
+  `SectionContent` to the audio/video blocks, which `play()` on mount and swallow the browser
+  autoplay-policy rejection (controls stay). Editor exposes it as a per-section checkbox on
+  audio/video sections; page view never auto-plays.
+- **WASD feel — "sometimes unresponsive / sometimes too big a step."** The intermittency was the
+  tell. In `ThreeViewer`: **clamp the per-frame motion delta** (`MAX_STEP_DELTA = 1/20 s`) so a frame
+  hitch (splat-sort spike, GC) can't turn one long frame into a 10–20× jump — the stall *and* the
+  lurch after it; replace the **deprecated no-op `dampingFactor`** (camera-controls 2.10.1 only
+  `console.warn`s it) with real `smoothTime` / `draggingSmoothTime`; and scale fly + touch-walk speed
+  to a **robust median-based extent** (`core`) instead of the 90th-percentile diameter a sparse
+  distant background can inflate. Meshes unchanged.
+
+Deferred to [`BACKLOG.md`](./BACKLOG.md): a **live reader speed control** and an author **`moveSpeed`**
+frontmatter option. Per-section autoplay coverage added to the parser tests; 75 pass, build clean.
 
 ### VR HUD — richer performance metrics (in review)
 The in-headset HUD (`VRStoryViewer.ts`) is the VR viewer's tuning instrument, but it only showed
