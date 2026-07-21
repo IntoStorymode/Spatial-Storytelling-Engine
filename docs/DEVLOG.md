@@ -4,7 +4,8 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-07-19):** M1–M12 complete and merged to `main` (a story published live to
+**Current state (2026-07-21):** The project is **MIT licensed** and named the **Spatial Storytelling
+Engine** (PR #34) — see the milestone below for why MIT rather than AGPL. M1–M12 complete and merged to `main` (a story published live to
 Vercel), plus a run of follow-ups: a **WebXR VR viewer** that ships in every export (`vr.html`,
 carried by `publishManifest`) — its UI promotion and splat-performance direction are the open calls,
 not its availability — an **in-app guidance + copy overhaul**, an **optional section title**, a
@@ -43,6 +44,39 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 ---
 
 ## Milestones
+
+### MIT licence + rename to "Spatial Storytelling Engine" (PR #34)
+The first non-code milestone: the project became legally usable and got its public name
+(`chore/mit-license-and-rename`).
+
+- **MIT, `Copyright (c) 2026 Into Storymode`.** Until this landed there was no `LICENSE` file and no
+  `license` field in `package.json`, so the project was "all rights reserved" by default — nobody
+  could legally use it. AGPL was the earlier instinct, to stop others commercialising the work, and
+  was rejected for three reasons: the **code is not the moat** (the engine is built from open-source
+  libraries and is realistically rebuildable); **monetisation is service-led**, which makes adoption
+  the priority and makes AGPL a source of hesitation for exactly the institutional reviewers we want;
+  and the real fear — a closed service **trapping authors' stories** — is a product/data-portability
+  problem that AGPL cannot touch, since it compels publishing modified *source*, never data export.
+  Lock-in is defended by architecture (`story.md` + plain assets) and brand, not by the licence field.
+- **Contributions closed for now** (`CONTRIBUTING.md`): sole copyright holder, zero legal setup,
+  reopenable later with a CLA. Issues and forks welcome.
+- **Renamed to "Spatial Storytelling Engine"** — naming the core's actual role and separating the free
+  core from the business (Into Storymode). 12 references across 7 files, plus the GitHub repo and
+  remote (GitHub auto-redirects the old URL). The word never appeared in the in-app UI; the browser
+  tab title was the sole user-visible occurrence — and it is load-bearing, because
+  `src/publish/buildSite.ts` copies the built `index.html` verbatim into **every exported site**.
+  Sites published before this still carry the old title until re-exported.
+- **Third-party attribution** (`scripts/gen-notices.mjs` → `public/THIRD-PARTY-NOTICES.txt`, 28
+  packages). Vite strips comments at build, so bundled MIT/ISC/Zlib notices must be reproduced
+  separately. Writing into `public/` is the trick: Vite copies it into `dist/` and `publishManifest()`
+  then lists it, so the notices reach published sites through **both** export paths — the in-browser
+  editor export and the CLI export — with no change to either. No new dependencies; it reads
+  `node_modules` directly. `jszip`'s dual licence elects MIT explicitly, `argparse`'s Python-2.0 (PSF)
+  text is reproduced in full, and two fallbacks proved necessary in practice — `LICENSE.markdown`
+  (jszip) and a README licence section (isarray ships no licence file at all).
+
+No behavioural change — parser, serializer, store, router, viewer and `src/vr/*` untouched. 75 tests
+pass, build clean, and an exported demo site was verified to carry both the notices and the new title.
 
 ### Misc viewer fixes — opening view, first-person default, per-section autoplay, WASD feel (PR #33)
 Four small reader/editor fixes bundled together (`fix/misc-viewer-features`):
