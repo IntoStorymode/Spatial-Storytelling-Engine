@@ -87,6 +87,25 @@ nice-to-have / exploratory.
   visible rather than silent: importing a story names every referenced asset whose bytes weren't
   in the bundle, so you can re-upload it. Catching it *before* export (in `validateStory`) is
   still open.
+- **[P3] SOG splat format support** *(investigated 2026-07-21, not started)*
+  SOG (Spatially Ordered Gaussians, PlayCanvas/SuperSplat) packs splats into WebP planes — roughly
+  **10–20× smaller than `.ply`** and smaller than `.spz`, with fast native WebP decode. Two blockers:
+  (1) `@mkkellogg/gaussian-splats-3d` is **stale upstream** — `0.4.7`, published 2025-01-25, with
+  `SceneFormat` hardcoded to `Splat|KSplat|Ply|Spz` — so there is no version to upgrade to;
+  (2) SOG's directory form (`meta.json` + several `.webp`) **fights the single-model-file assumption**
+  baked into `frontmatter.model`, editor upload, zip bundling and static export.
+  A decoder is feasible *without* swapping engines: the library exports `SplatBuffer` /
+  `SplatBufferGenerator`, and `SplatBuffer.generateFromUncompressedSplatArrays()` takes an
+  `UncompressedSplatArray` — so fetch → unzip → `createImageBitmap` per WebP → un-quantize →
+  `addSplatBuffers()`. `loadSplat.ts` already threads an explicit `ext`, so dispatch is one branch.
+  Estimate **~2–4 days, ~300–500 lines**, with real risk: `UncompressedSplatArray` is **not an
+  exported symbol**, so this depends on internals of an unmaintained library. A first pass could drop
+  to SH degree 0 (no view-dependent sheen) and roughly halve the work.
+  **Before starting, confirm SuperSplat's default export is the single-file `.sog`** — if it is
+  directory-only, the packaging work swamps the decoding work and the trade-off changes. Note SOG only
+  speeds *download*; it does nothing for the per-frame sort ceiling (see **GPU-accelerated splat sort
+  A/B** under Robustness & quality), which is what readers actually feel. Interim with zero code:
+  convert offline via PlayCanvas `splat-transform`, or export `.ply`/`.splat` from SuperSplat.
 - **[P3] Multiple models / model switching within one story** (exploratory).
 - **[P3] Point-cloud PLY polish** *(after the point-cloud support fix)* — robust percentile framing
   for point clouds (mirror `robustSplatFraming`) if stray outliers balloon the AABB; a soft
