@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Section } from '../../parser/types'
-import { resolveUrl } from '../../three/loadModel'
+import { resolveUrl } from '../../lib/resolveUrl'
 import { TextBlock } from './TextBlock'
 
 /** Audio section: a native player, an optional caption, then any body prose. */

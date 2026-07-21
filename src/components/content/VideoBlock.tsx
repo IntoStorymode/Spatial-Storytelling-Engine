@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Section } from '../../parser/types'
-import { resolveUrl } from '../../three/loadModel'
+import { resolveUrl } from '../../lib/resolveUrl'
 import { useStoryStore } from '../../store/useStoryStore'
 import { TextBlock } from './TextBlock'
 

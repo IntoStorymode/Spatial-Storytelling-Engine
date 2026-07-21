@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import CameraControls from 'camera-controls'
 import { loadModel } from './loadModel'
 import { debugTuning } from './debugTuning'
+import { samplingStride, splatFramingFromSamples } from './splatFraming'
 
 // camera-controls needs a (subset of) THREE injected once at module load.
 CameraControls.install({ THREE })
@@ -265,7 +266,7 @@ export class ThreeViewer {
     }
     this.scene.add(obj)
     this.currentModel = obj
-    this.frameObject(obj, false)
+    this.frameObject(false)
     this.invalidate() // ensure the loaded model (and a splat's first sort) draws
     return obj
   }
@@ -293,9 +294,14 @@ export class ThreeViewer {
     return { center: box.getCenter(new THREE.Vector3()), diameter: Math.max(size.x, size.y, size.z) || 1 }
   }
 
-  /** Default framing from a model's bounds (fallback when an section has no hotspot). */
-  frameObject(obj: THREE.Object3D, animate = true): void {
-    const framing = this.modelFraming(obj)
+  /**
+   * Default framing from the loaded model's bounds (the fallback when a section
+   * has no hotspot). Takes no argument on purpose: it always frames
+   * `currentModel`, which keeps every Three.js type inside this class.
+   */
+  frameObject(animate = true): void {
+    if (!this.currentModel) return
+    const framing = this.modelFraming(this.currentModel)
     if (!framing) return
     this.invalidate()
     const { center, diameter, core } = framing
@@ -456,37 +462,6 @@ export class ThreeViewer {
       return { position: [p.x, p.y, p.z], target: [far.x, far.y, far.z] }
     }
     return { position: [p.x, p.y, p.z], target: [t.x, t.y, t.z] }
-  }
-
-  /**
-   * Convert a normalized device coordinate (−1..1) into a world point for
-   * click-to-place. Hits the loaded mesh first; for splats (or a miss) falls
-   * back to a horizontal plane through the look target, then a fixed distance.
-   */
-  raycastToWorld(ndcX: number, ndcY: number): [number, number, number] {
-    const ray = new THREE.Raycaster()
-    ray.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera)
-
-    if (this.currentModel && !this.currentModel.userData?.isSplat) {
-      const hits = ray.intersectObject(this.currentModel, true)
-      if (hits.length) {
-        const p = hits[0].point
-        return [p.x, p.y, p.z]
-      }
-    }
-
-    const target = this.controls.getTarget(new THREE.Vector3())
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -target.y)
-    const hit = new THREE.Vector3()
-    if (ray.ray.intersectPlane(plane, hit)) return [hit.x, hit.y, hit.z]
-
-    const fallback = ray.ray.at(5, new THREE.Vector3())
-    return [fallback.x, fallback.y, fallback.z]
-  }
-
-  /** Enable/disable orbit controls (off while placing a hotspot by click). */
-  setControlsEnabled(enabled: boolean): void {
-    this.controls.enabled = enabled
   }
 
   /**
@@ -756,34 +731,30 @@ function robustSplatFraming(
   if (!total) return null
   obj.updateWorldMatrix(true, false)
   const toWorld = obj.matrixWorld
-  const stride = Math.max(1, Math.floor(total / 30000))
+  const stride = samplingStride(total)
 
+  // Sample into plain arrays, then hand off to splatFraming.ts. The split is
+  // deliberate: this half is the only part tied to the splat library's API, so
+  // a renderer swap rewrites the loop below and nothing else.
   const xs: number[] = []
   const ys: number[] = []
   const zs: number[] = []
   const c = new THREE.Vector3()
   for (let i = 0; i < total; i += stride) {
     splatMesh.getSplatCenter(i, c, true)
+    // Centres come out in the model's own space; this is what honours any
+    // rotation/offset applied to it (e.g. the .ply upright flip).
     c.applyMatrix4(toWorld)
     if (!Number.isFinite(c.x) || !Number.isFinite(c.y) || !Number.isFinite(c.z)) continue
     xs.push(c.x)
     ys.push(c.y)
     zs.push(c.z)
   }
-  if (!xs.length) return null
 
-  const center = new THREE.Vector3(median(xs), median(ys), median(zs))
-  const dists = xs.map((x, i) => Math.hypot(x - center.x, ys[i] - center.y, zs[i] - center.z))
-  dists.sort((a, b) => a - b)
-  const r90 = dists[Math.floor(dists.length * 0.9)] || dists[dists.length - 1] || 1
-  const r50 = dists[Math.floor(dists.length * 0.5)] || r90
-  return { center, diameter: Math.max(r90 * 2, 1e-3), core: Math.max(r50, 1e-3) }
-}
-
-function median(values: number[]): number {
-  const a = values.slice().sort((x, y) => x - y)
-  const m = a.length >> 1
-  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2
+  const framing = splatFramingFromSamples(xs, ys, zs)
+  if (!framing) return null
+  const [x, y, z] = framing.center
+  return { center: new THREE.Vector3(x, y, z), diameter: framing.diameter, core: framing.core }
 }
 
 /** A soft round marker texture: a filled disc, or a ring with a centre dot. */

@@ -49,7 +49,7 @@ export async function plyIsSplat(url: string): Promise<boolean> {
 }
 
 /** Gaussian-splat PLYs carry SH/opacity/scale/rot props or compressed-format markers. */
-function headerLooksLikeSplat(header: string): boolean {
+export function headerLooksLikeSplat(header: string): boolean {
   const h = header.toLowerCase()
   if (h.includes('f_dc_0')) return true // INRIA V1 spherical-harmonics colour
   if (h.includes('scale_0') && h.includes('rot_0')) return true // gaussian scale + rotation

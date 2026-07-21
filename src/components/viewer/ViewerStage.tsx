@@ -158,7 +158,7 @@ export function ViewerStage({
     const hotspot = resolveWaypoint(frontmatter, sections[activeIndex]?.waypoint)
     if (hotspot) place(hotspot.position, hotspot.target)
     else if (start) place(start.position, start.target)
-    else viewer.frameObject(viewer.scene, animate)
+    else viewer.frameObject(animate)
   }, [viewer, mode, activeIndex, sections, reducedMotion, start, navMode, frontmatter])
 
   // Auto-tour: schedule the next advance after the dwell. Reschedules on each
