@@ -1,6 +1,6 @@
-# Spatial Storytelling Platform
+# Spatial Storytelling Engine
 
-A local-first web app for telling stories **inside** a 3D scan. One Markdown `story.md` file
+A local-first web engine for telling stories **inside** a 3D scan. One Markdown `story.md` file
 drives two switchable presentation modes — no reload, no backend.
 
 > The scan is shared infrastructure; the story is the act of authorship.
@@ -21,8 +21,8 @@ Both modes read the **same** story file; a toggle switches between them live.
 **Prerequisites:** Node.js 18+ and npm. (With `nvm`: `nvm use 20`.)
 
 ```bash
-git clone https://github.com/WWStoryMode/Spatial-Storytelling-Platform
-cd Spatial-Storytelling-Platform
+git clone https://github.com/WWStoryMode/Spatial-Storytelling-Engine
+cd Spatial-Storytelling-Engine
 npm install
 npm run dev        # → http://localhost:5173
 ```
@@ -86,4 +86,10 @@ Working prototype (milestones M1–M11 merged). Next steps are tracked in the
 
 ## License
 
-TBD — the project intent is open source (see `References/`).
+MIT — see [LICENSE](./LICENSE). Use it, fork it, build a product on it; no permission needed.
+
+The bundled third-party dependencies keep their own licences, reproduced in
+`THIRD-PARTY-NOTICES.txt` (generated at build time and included in every published site).
+
+Pull requests are not currently accepted — see [CONTRIBUTING.md](./CONTRIBUTING.md). Issues and
+forks are welcome.

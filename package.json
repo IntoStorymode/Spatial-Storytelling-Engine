@@ -1,12 +1,20 @@
 {
-  "name": "spatial-storytelling-platform",
+  "name": "spatial-storytelling-engine",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "A local-first web engine for telling stories inside a 3D scan. One Markdown story.md drives two switchable presentation modes — no reload, no backend.",
+  "license": "MIT",
+  "author": "Into Storymode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WWStoryMode/Spatial-Storytelling-Engine"
+  },
   "scripts": {
     "gen:assets": "node scripts/gen-assets.mjs",
-    "predev": "node scripts/gen-assets.mjs",
-    "prebuild": "node scripts/gen-assets.mjs",
+    "gen:notices": "node scripts/gen-notices.mjs",
+    "predev": "node scripts/gen-assets.mjs && node scripts/gen-notices.mjs",
+    "prebuild": "node scripts/gen-assets.mjs && node scripts/gen-notices.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "publish:site": "node scripts/publish-site.mjs",

@@ -1,4 +1,4 @@
-# Spatial Storytelling Platform — Prototype Implementation Plan
+# Spatial Storytelling Engine — Prototype Implementation Plan
 
 ## Context
 
@@ -55,7 +55,7 @@ It must run out of the box with `npm run dev`, and a person with a Scaniverse ex
 ## Directory structure
 
 ```
-Spatial-Storytelling-Platform/
+Spatial-Storytelling-Engine/
 ├─ index.html
 ├─ package.json                    # scripts incl. predev gen:assets
 ├─ vite.config.ts                  # COOP/COEP headers, base: './'
