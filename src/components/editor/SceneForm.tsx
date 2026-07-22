@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import type { Frontmatter } from '../../parser/types'
+import { MODEL_ACCEPT, MODEL_EXTS } from '../../lib/modelFormats'
 
 interface Props {
   fm: Frontmatter
@@ -9,8 +10,6 @@ interface Props {
   onModelPath: (value: string) => void
   onUpload: (file: File) => void
 }
-
-const MODEL_ACCEPT = '.glb,.gltf,.ply,.splat,.ksplat,.spz'
 
 /** The scan: 3D model source + reader/orientation options (tucked in a disclosure). */
 export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }: Props) {
@@ -49,8 +48,8 @@ export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }
         ) : (
           <p className="ed-hint">
             No scan yet? Capture one with a 3D-scanning app on your phone and export a{' '}
-            <code>.glb</code> mesh or a <code>.spz</code> / <code>.ply</code> Gaussian splat.
-            Accepts .glb, .gltf, .ply, .splat, .ksplat, .spz.
+            <code>.glb</code> mesh or a <code>.sog</code> / <code>.spz</code> / <code>.ply</code>{' '}
+            Gaussian splat. Accepts {MODEL_EXTS.map((e) => `.${e}`).join(', ')}.
           </p>
         )}
       </div>

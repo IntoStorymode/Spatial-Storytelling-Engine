@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FILE_TYPE_BY_EXT } from './loadSplat'
+import { SPLAT_EXTS } from '../lib/modelFormats'
 
 /**
  * The extension → Spark `SplatFileType` map. These strings are passed straight to
@@ -16,11 +17,13 @@ describe('FILE_TYPE_BY_EXT', () => {
     expect(FILE_TYPE_BY_EXT.sog).not.toBe('pcsogs')
   })
 
-  it('covers every extension loadModel routes to the splat loader', () => {
-    // Must stay in step with SPLAT_EXTS in loadModel.ts: an extension that routes
-    // here without a mapping loads with no explicit fileType, which is fine for a
-    // normal URL but fails for an extension-less blob: upload.
-    expect(Object.keys(FILE_TYPE_BY_EXT).sort()).toEqual(['ksplat', 'ply', 'sog', 'splat', 'spz'])
+  it('covers every extension the engine accepts as a splat', () => {
+    // Checked against the shared list rather than a copy of it. An accepted
+    // extension with no mapping loads with no explicit fileType — fine for a
+    // normal URL, but it FAILS for an extension-less blob: upload, which is
+    // exactly what the editor produces. So this asymmetry is a real bug class,
+    // not a tidiness rule.
+    expect(Object.keys(FILE_TYPE_BY_EXT).sort()).toEqual([...SPLAT_EXTS].sort())
   })
 
   it('uses Spark’s own lowercase enum values', () => {

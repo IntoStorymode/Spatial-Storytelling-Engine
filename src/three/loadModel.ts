@@ -4,8 +4,7 @@ import { buildPrimitive } from './primitives'
 import { loadSplat, type SplatContext } from './loadSplat'
 import { loadPly, plyIsSplat } from './loadPly'
 import { resolveUrl } from '../lib/resolveUrl'
-
-const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz', 'sog'])
+import { isMeshExt, isSplatExt } from '../lib/modelFormats'
 
 /**
  * Load a story's 3D model into a Three.js Object3D, dispatching by source:
@@ -33,13 +32,13 @@ export async function loadModel(
   const ext = (formatHint ?? url.split('.').pop() ?? '').toLowerCase()
   const resolved = resolveUrl(url, basePath)
 
-  if (ext === 'glb' || ext === 'gltf') {
+  if (isMeshExt(ext)) {
     const gltf = await new GLTFLoader().loadAsync(resolved)
     gltf.scene.name = 'gltf-model'
     return gltf.scene
   }
 
-  if (SPLAT_EXTS.has(ext)) {
+  if (isSplatExt(ext)) {
     // Two file types share `.ply` — a Gaussian-splat PLY vs an ordinary point
     // cloud / mesh. Sniff the header so a non-splat PLY renders as coloured
     // points instead of being culled to nothing by the splat loader.
