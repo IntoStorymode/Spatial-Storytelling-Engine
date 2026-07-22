@@ -23,6 +23,12 @@ dist-ssr/
 *:Zone.Identifier
 *.Zone.Identifier
 
+# Local reference archive — the original research documents plus the internal
+# planning/development records (PLAN, DEVLOG, BACKLOG, VR spike notes). Kept on
+# disk for reference, deliberately not published: the durable content from them
+# now lives in docs/VISION.md and docs/ENGINEERING-NOTES.md.
+/References/
+
 # Story content — whitelist: only the canonical demo stories are tracked. Any
 # other story folder (test/preview/author uploads, e.g. tokwawan-tak-shun-mall)
 # is ignored so it never gets pushed to the remote.
