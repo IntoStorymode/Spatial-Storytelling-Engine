@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { buildPrimitive } from './primitives'
 import { loadSplat } from './loadSplat'
 import { loadPly, plyIsSplat } from './loadPly'
+import { resolveUrl } from '../lib/resolveUrl'
 
 const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
 
@@ -44,10 +45,4 @@ export async function loadModel(
   }
 
   throw new Error(`Unsupported model format: "${url}"`)
-}
-
-/** Resolve a story-relative asset path against the story's basePath. */
-export function resolveUrl(url: string, basePath: string): string {
-  if (/^(https?|blob|data):/.test(url) || url.startsWith('/')) return url
-  return basePath.replace(/\/?$/, '/') + url
 }

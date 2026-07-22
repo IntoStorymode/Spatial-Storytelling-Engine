@@ -2,7 +2,8 @@ import * as THREE from 'three'
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js'
 import type { Story, Waypoint } from '../parser/types'
 import { resolveWaypoint } from '../parser/waypoints'
-import { loadModel, resolveUrl } from '../three/loadModel'
+import { loadModel } from '../three/loadModel'
+import { resolveUrl } from '../lib/resolveUrl'
 
 const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
 const SCENE_FORMAT_BY_EXT: Record<string, 'Ply' | 'Splat' | 'KSplat' | 'Spz'> = {
