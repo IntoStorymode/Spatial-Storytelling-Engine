@@ -47,6 +47,7 @@ public/stories/splat-example/assets/scene.splat
 *.ply
 *.spz
 *.glb
+*.sog
 
 # Logs
 logs/

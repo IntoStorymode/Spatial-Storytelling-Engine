@@ -28,9 +28,9 @@ describe('debugTuning', () => {
       debug: false,
       spin: false,
       dpr: null,
-      alpha: null,
       highPower: true,
-      gpusort: false,
+      sortMs: null,
+      aa: true,
     })
   })
 
@@ -72,18 +72,32 @@ describe('debugTuning', () => {
   })
 
   it('ignores non-numeric numeric flags rather than yielding NaN', async () => {
-    const t = await tuningFor('?dpr=abc&alpha=xyz')
+    const t = await tuningFor('?dpr=abc&sortms=xyz')
     expect(t.dpr).toBeNull()
-    expect(t.alpha).toBeNull()
+    expect(t.sortMs).toBeNull()
   })
 
   it('reads a bare `?dpr=` as 0, not null (Number("") === 0)', async () => {
     // Recording current behaviour, not endorsing it: `?dpr=` would reach
     // renderer.setPixelRatio(0). Only reachable by typing the flag with an
     // empty value, so it is left alone here — this PR changes no behaviour.
-    const t = await tuningFor('?dpr=&alpha=')
+    const t = await tuningFor('?dpr=&sortms=')
     expect(t.dpr).toBe(0)
-    expect(t.alpha).toBe(0)
+    expect(t.sortMs).toBe(0)
+  })
+
+  it('reads ?sortms as Spark’s minimum re-sort interval', async () => {
+    expect((await tuningFor('?sortms=32')).sortMs).toBe(32)
+    expect((await tuningFor('')).sortMs).toBeNull()
+  })
+
+  it('is tri-state for aa: absent defaults ON, =0 turns antialiasing off', async () => {
+    // Deliberately NOT defaulted off. Spark wants AA off for splats, but the
+    // renderer is built before the story's format is known and meshes benefit.
+    expect((await tuningFor('')).aa).toBe(true)
+    expect((await tuningFor('?aa=0')).aa).toBe(false)
+    expect((await tuningFor('?aa=false')).aa).toBe(false)
+    expect((await tuningFor('?aa=1')).aa).toBe(true)
   })
 
   it('caches — a second call does not re-read the URL', async () => {

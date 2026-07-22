@@ -5,13 +5,6 @@ import { readdirSync, statSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, relative, sep } from 'node:path'
 
-// COOP/COEP headers are required later (M5) for the Gaussian-splat renderer's
-// SharedArrayBuffer-based GPU sort. Set now so the dev/preview env is stable.
-const crossOriginIsolationHeaders = {
-  'Cross-Origin-Opener-Policy': 'same-origin',
-  'Cross-Origin-Embedder-Policy': 'require-corp',
-}
-
 // Emit dist/publish-manifest.json listing every generic app-shell file (all of
 // dist/ EXCEPT the per-story `stories/` data and the manifest itself). The
 // editor's export flow fetches this list to re-zip the running app's shell
@@ -62,11 +55,5 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-  },
-  server: {
-    headers: crossOriginIsolationHeaders,
-  },
-  preview: {
-    headers: crossOriginIsolationHeaders,
   },
 })

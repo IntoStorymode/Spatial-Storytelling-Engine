@@ -1,23 +1,28 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { buildPrimitive } from './primitives'
-import { loadSplat } from './loadSplat'
+import { loadSplat, type SplatContext } from './loadSplat'
 import { loadPly, plyIsSplat } from './loadPly'
 import { resolveUrl } from '../lib/resolveUrl'
 
-const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz'])
+const SPLAT_EXTS = new Set(['ply', 'splat', 'ksplat', 'spz', 'sog'])
 
 /**
  * Load a story's 3D model into a Three.js Object3D, dispatching by source:
  *  - `builtin:<kind>` → generated placeholder geometry (no asset needed)
  *  - `.glb` / `.gltf` → GLTFLoader
- *  - splat formats     → Gaussian-splat DropInViewer (lazy-loaded)
+ *  - splat formats     → Spark SplatMesh (lazy-loaded)
+ *
+ * `splatContext` is what lets a splat wire itself into the caller's render loop
+ * (Spark needs the WebGLRenderer and a redraw callback). It is optional because
+ * the VR viewer calls this for MESHES only — it still has its own splat path.
  */
 export async function loadModel(
   url: string,
   basePath = '',
   formatHint?: string,
   orientation?: 'flip' | 'none',
+  splatContext?: SplatContext,
 ): Promise<THREE.Object3D> {
   if (url.startsWith('builtin:')) {
     return buildPrimitive(url.slice('builtin:'.length))
@@ -41,7 +46,7 @@ export async function loadModel(
     if (ext === 'ply' && !(await plyIsSplat(resolved))) {
       return loadPly(resolved)
     }
-    return loadSplat(resolved, ext, orientation)
+    return loadSplat(resolved, ext, orientation, splatContext)
   }
 
   throw new Error(`Unsupported model format: "${url}"`)

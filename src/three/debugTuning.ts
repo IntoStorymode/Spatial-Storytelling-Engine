@@ -13,24 +13,35 @@
  *   ?spin=1       force continuous rendering + a slow auto-orbit (identical motion
  *                 on both devices → comparable steady-state FPS)
  *   ?dpr=<n>      force an exact renderer pixel ratio (isolates fill-rate/overdraw)
- *   ?alpha=<n>    splatAlphaRemovalThreshold (drops splats at load → isolates sort)
  *   ?highpower=0  force WebGLRenderer powerPreference back to the browser default —
  *                 reproduces the pre-fix choppiness. The viewer now defaults to
  *                 'high-performance' (highPower true unless ?highpower=0 is set).
- *   ?gpusort=1    gpuAcceleratedSort + sharedMemoryForWorkers (needs isolation)
+ *   ?sortms=<n>   Spark's minSortIntervalMs — floor on how often the splat depth
+ *                 sort re-runs. Decouples sort rate from frame rate, a lever the
+ *                 previous library had no equivalent for.
+ *   ?aa=0         turn WebGL antialiasing off. Spark recommends AA off for splats
+ *                 (it does nothing for them and costs real fill rate), but the
+ *                 renderer is built before we know the story's format and meshes
+ *                 DO benefit — so AA stays on by default and this flag A/Bs it.
  *
  * The diagnosis (2026-07): desktop choppiness was frame-pacing from Chrome binding
  * the integrated GPU. The fix — 'high-performance' by default — ships in
  * ThreeViewer; this harness stays for future perf work.
+ *
+ * Removed with the Spark migration: ?alpha (Spark has no splatAlphaRemovalThreshold)
+ * and ?gpusort (Spark's WASM counting sort has no SharedArrayBuffer fast path to
+ * opt into — that whole class of flag is gone).
  */
 export interface DebugTuning {
   debug: boolean
   spin: boolean
   dpr: number | null
-  alpha: number | null
   /** Renderer powerPreference: true → 'high-performance' (default), false → 'default'. */
   highPower: boolean
-  gpusort: boolean
+  /** Floor on Spark's splat re-sort interval, in ms. null → Spark's own default. */
+  sortMs: number | null
+  /** WebGL antialiasing: on by default; ?aa=0 turns it off to A/B splat fill rate. */
+  aa: boolean
 }
 
 function readParams(): URLSearchParams {
@@ -72,9 +83,9 @@ export function debugTuning(): DebugTuning {
     debug: p.has('debug'),
     spin: isOn(p, 'spin'),
     dpr: num(p, 'dpr'),
-    alpha: num(p, 'alpha'),
     highPower: boolOr(p, 'highpower', true),
-    gpusort: isOn(p, 'gpusort'),
+    sortMs: num(p, 'sortms'),
+    aa: boolOr(p, 'aa', true),
   }
   return cached
 }

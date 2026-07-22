@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { median, samplingStride, splatFramingFromSamples } from './splatFraming'
+import { median, sampleSplatCenters, samplingStride, splatFramingFromSamples } from './splatFraming'
 
 /**
  * Characterisation tests: these pin the CURRENT framing behaviour so that
@@ -117,5 +117,85 @@ describe('splatFramingFromSamples', () => {
     )!
     expect(big.diameter).toBeCloseTo(small.diameter * 10, 6)
     expect(big.core).toBeCloseTo(small.core * 10, 6)
+  })
+})
+
+/**
+ * Spark's getSplat() returns a MODULE-LEVEL singleton whose center vector is
+ * overwritten on the next call — a deliberate no-allocation trade, but one the
+ * type signature hides completely. Retaining the returned vector yields N
+ * references to one object, all holding the last splat's position, and it fails
+ * SILENTLY: no throw, just a collapsed extent and a camera framing nothing.
+ *
+ * This stub reproduces that exact behaviour. To be clear about what these tests
+ * do and do not buy: they do NOT detect a missing copy, because sampleSplatCenters
+ * returns plain numbers and so cannot alias in the first place — that guarantee is
+ * structural, from the return type. What they pin is that the function stays
+ * correct when fed a source with these reuse semantics, so a future refactor
+ * toward returning vectors has to break a test to get there.
+ */
+function aliasingSource(centers: Array<[number, number, number]>) {
+  const shared = { x: 0, y: 0, z: 0 } // ONE object, reused — exactly like Spark
+  return {
+    numSplats: centers.length,
+    packedSplats: {
+      getSplat(index: number) {
+        const [x, y, z] = centers[index]
+        shared.x = x
+        shared.y = y
+        shared.z = z
+        return { center: shared }
+      },
+    },
+  }
+}
+
+describe('sampleSplatCenters', () => {
+  it('reads correct values from a source that reuses one object', () => {
+    const src = aliasingSource([
+      [0, 0, 0],
+      [1, 2, 3],
+      [4, 5, 6],
+    ])
+    const s = sampleSplatCenters(src)!
+    // Without the copy every entry would read [4,5,6] — the last splat sampled.
+    expect(s.xs).toEqual([0, 1, 4])
+    expect(s.ys).toEqual([0, 2, 5])
+    expect(s.zs).toEqual([0, 3, 6])
+  })
+
+  it('produces a real extent from a reusing source, not a degenerate point', () => {
+    // The symptom aliasing would produce, pinned end to end: collapsed centres
+    // mean diameter hits the 1e-3 floor and the camera frames nothing.
+    const centers: Array<[number, number, number]> = []
+    for (let i = 0; i < 100; i++) centers.push([i, i * 2, i * 3])
+    const s = sampleSplatCenters(aliasingSource(centers))!
+    const framing = splatFramingFromSamples(s.xs, s.ys, s.zs)!
+    expect(framing.diameter).toBeGreaterThan(1)
+    expect(new Set(s.xs).size).toBe(100)
+  })
+
+  it('applies the transform, which is the sole source of the world matrix', () => {
+    const s = sampleSplatCenters(aliasingSource([[1, 1, 1]]), (x, y, z) => [x * 2, y + 10, -z])!
+    expect(s.xs).toEqual([2])
+    expect(s.ys).toEqual([11])
+    expect(s.zs).toEqual([-1])
+  })
+
+  it('drops non-finite centres rather than poisoning the median', () => {
+    const s = sampleSplatCenters(
+      aliasingSource([
+        [1, 1, 1],
+        [NaN, 0, 0],
+        [Infinity, 0, 0],
+        [2, 2, 2],
+      ]),
+    )!
+    expect(s.xs).toEqual([1, 2])
+  })
+
+  it('returns null when there is nothing to sample', () => {
+    expect(sampleSplatCenters({ numSplats: 0 })).toBeNull()
+    expect(sampleSplatCenters({ numSplats: 10 })).toBeNull() // no packedSplats yet
   })
 })

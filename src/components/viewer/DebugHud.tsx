@@ -52,9 +52,9 @@ export function DebugHud({ viewer }: { viewer: ThreeViewer | null }) {
   const flags = [
     t.spin && 'spin',
     t.dpr != null && `dpr=${t.dpr}`,
-    t.alpha != null && `alpha=${t.alpha}`,
     `power=${t.highPower ? 'high' : 'default'}`,
-    t.gpusort && (isolated ? 'gpusort✓' : 'gpusort✗(no-isolation)'),
+    t.sortMs != null && `sortms=${t.sortMs}`,
+    !t.aa && 'aa=off',
   ].filter(Boolean)
 
   return (
@@ -77,6 +77,9 @@ export function DebugHud({ viewer }: { viewer: ThreeViewer | null }) {
         <div style={dim}>waiting for viewer…</div>
       )}
       <div style={{ marginTop: 4 }}>
+        {/* Spark's WASM sort needs neither, so these should read false in
+            production and nothing should regress. Kept as a standing check that
+            we have not re-acquired a cross-origin-isolation dependency. */}
         <Line k="crossOriginIsolated" v={String(isolated)} />
         <Line k="SharedArrayBuffer" v={String(sab)} />
       </div>
