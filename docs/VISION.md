@@ -20,9 +20,13 @@ archives never capture: the texture of a building, the way light enters a partic
 memory of who lived there and what happened. This knowledge is fragile. It exists in people, not in
 systems, and it disappears when people leave or when buildings come down.
 
-The platforms that exist for 3D capture — Matterport, Scaniverse, Polycam — are built around **the
-scan as a deliverable**. They solve a professional documentation problem. They do not solve a
-storytelling problem; the story is an afterthought, if it exists at all.
+The tools for capturing a place are now excellent and in everyone's pocket — Scaniverse, Polycam and
+Matterport all turn a phone into a scanner in minutes. What none of them is built for is what
+happens next. They treat the scan as **the deliverable**: the output is a model, and the story about
+it, if there is one, lives somewhere else entirely.
+
+That is not a criticism of those tools. Capture is a hard problem and they have largely solved it —
+which is exactly why this engine does not try to. It starts where they stop.
 
 Community-led heritage projects run in the opposite direction: rich in narrative, thin on spatial
 capture. Oral history archives, local documentation groups and independent journalists are recording
@@ -155,6 +159,11 @@ spatial storytelling projects and may offer hosted services in future. **The eng
 and stays that way.** It is not a trial version of something else, and it has no features withheld
 to sell you a tier. If a hosted layer ever exists, it will be for people who want someone else to
 run the servers — not for people who want the tool to work.
+
+---
+
+*Product and company names mentioned here are trademarks of their respective owners, referred to
+only to describe what those tools do. No affiliation or endorsement is implied in either direction.*
 
 ---
 

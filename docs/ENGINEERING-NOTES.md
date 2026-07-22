@@ -44,13 +44,16 @@ The engine originally rendered splats with `@mkkellogg/gaussian-splats-3d` and n
 **Ask whether the library can render into a `WebGLRenderer` you already own.** This single question
 separates libraries that drop into an existing scene from ones that demand to *be* the application.
 
-PlayCanvas — the obvious candidate, given it authors the SOG format — fails it. Every documented
+PlayCanvas — the obvious candidate, given it authors the SOG format — does not fit. Every documented
 path constructs a `pc.Application(canvas)` that owns the canvas, the graphics device and the
 `requestAnimationFrame` loop, with no supported API for rendering into an externally-managed
-renderer. Adopting it would have meant rewriting the viewer, the loaders, the primitives and the VR
-viewer: roughly 1,780 lines, none of it covered by tests.
+renderer. That is a deliberate design: PlayCanvas is a complete engine, and owning the frame loop is
+what lets it manage scenes, assets and physics coherently. It is the right choice for building an
+application *on* PlayCanvas, and the wrong shape for embedding inside one you already have. Adopting
+it here would have meant rewriting the viewer, the loaders, the primitives and the VR viewer:
+roughly 1,780 lines, none of it covered by tests.
 
-Spark passes it. `SplatMesh extends THREE.Object3D`, and `SparkRenderer` does its sorting from
+Spark fits. `SplatMesh extends THREE.Object3D`, and `SparkRenderer` does its sorting from
 `onBeforeRender` — so an ordinary `renderer.render(scene, camera)` is sufficient. That is
 architecturally the same trick the previous library's `DropInViewer` used, which is precisely why
 swapping one for the other was a loader change rather than an engine rewrite.
