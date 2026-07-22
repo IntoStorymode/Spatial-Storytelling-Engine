@@ -48,7 +48,7 @@ React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 
 ## Milestones
 
-### Splat renderer migrated to Spark, + SOG support (PRs #35, #36, #37)
+### Splat renderer migrated to Spark, + SOG support (PRs #35, #36, #37, #38)
 The splat renderer moved from `@mkkellogg/gaussian-splats-3d` to **`@sparkjsdev/spark`**, closing
 **[P3] SOG splat format support** and lifting a frame-rate ceiling that three earlier attempts had
 failed to move. **17 fps → 35 fps** on the Greenwich `.spz`, same machine, same `?debug&spin=1` flags.
@@ -103,6 +103,15 @@ failed to move. **17 fps → 35 fps** on the Greenwich `.spz`, same machine, sam
   the old library, which ships no types of its own. Both are dynamically imported, so coexisting
   costs nothing in the initial bundle. **VR is also still unverified on three 0.180** — no headset
   was available across all three PRs. Both are now [P1] in the backlog.
+- **Follow-up fix (PR #38).** `.sog` reached the loader but not the editor's upload `accept` filter,
+  so the engine rendered a format the author could not *select* — silently, with no error and no
+  entry in the file picker. The cause was a list stated twice with nothing tying the copies together,
+  so the fix was structural again: `src/lib/modelFormats.ts` is now the single source, and the
+  editor's `accept` attribute and help text are *derived* from it. The test that matters checks every
+  accepted splat extension has a Spark `fileType` mapping — a missing one still works from a story
+  file but **fails for the extension-less `blob:` URL an upload produces**. Second instance that day
+  of the same shape: a rule that had to be remembered in two places, replaced by one that cannot be
+  stated wrongly.
 - **Cost:** Spark is a **1.75 MB gzipped** lazy chunk; the initial bundle is unchanged at 119 kB.
   Tooling note: `@playcanvas/splat-transform` cannot run on macOS 14 (its native `webgpu` binary
   targets macOS 15), so producing SOG locally means SuperSplat's web export.
