@@ -19,10 +19,10 @@
  *   ?sortms=<n>   Spark's minSortIntervalMs — floor on how often the splat depth
  *                 sort re-runs. Decouples sort rate from frame rate, a lever the
  *                 previous library had no equivalent for.
- *   ?aa=0         turn WebGL antialiasing off. Spark recommends AA off for splats
- *                 (it does nothing for them and costs real fill rate), but the
- *                 renderer is built before we know the story's format and meshes
- *                 DO benefit — so AA stays on by default and this flag A/Bs it.
+ *   ?aa=0         turn WebGL antialiasing off. Spark recommends AA off for splats,
+ *                 but measured on Greenwich it made no fps difference — we are not
+ *                 fill-rate bound — so AA stays on, which is what meshes want too.
+ *                 The flag remains for re-measuring on other hardware.
  *
  * The diagnosis (2026-07): desktop choppiness was frame-pacing from Chrome binding
  * the integrated GPU. The fix — 'high-performance' by default — ships in
