@@ -1,8 +1,9 @@
 import * as THREE from 'three'
 import CameraControls from 'camera-controls'
 import { loadModel } from './loadModel'
+import { disposeSparkRenderer } from './loadSplat'
 import { debugTuning } from './debugTuning'
-import { samplingStride, splatFramingFromSamples } from './splatFraming'
+import { sampleSplatCenters, splatFramingFromSamples, type SplatCenterSource } from './splatFraming'
 
 // camera-controls needs a (subset of) THREE injected once at module load.
 CameraControls.install({ THREE })
@@ -138,7 +139,11 @@ export class ThreeViewer {
     const dbg = debugTuning()
     this.spin = dbg.spin
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      // Spark recommends antialias:false for splats — WebGL AA does nothing for
+      // Gaussians and costs real fill rate. But the renderer is built before we
+      // know whether this story is a splat or a mesh, and meshes DO benefit, so
+      // AA stays on by default. ?aa=0 A/Bs it against the splat frame rate.
+      antialias: dbg.aa,
       // Ask the browser for the high-performance GPU. On dual-GPU laptops the
       // 'default' preference often binds the integrated GPU, whose frames are then
       // copied across the GPU boundary for display — that cross-adapter step is
@@ -259,7 +264,15 @@ export class ThreeViewer {
       disposeObject(this.currentModel)
       this.currentModel = null
     }
-    const obj = await loadModel(url, basePath, formatHint, orientation)
+    // Spark needs our WebGLRenderer (it does sort work outside the render call)
+    // and a redraw hook: its sort is a worker round-trip, so the frame that
+    // triggers it draws with the PREVIOUS ordering. On-demand rendering would
+    // otherwise leave that mis-sorted frame on screen once the loop idles.
+    const obj = await loadModel(url, basePath, formatHint, orientation, {
+      scene: this.scene,
+      renderer: this.renderer,
+      onDirty: () => this.invalidate(),
+    })
     if (this.disposed) {
       disposeObject(obj)
       return obj
@@ -283,9 +296,10 @@ export class ThreeViewer {
   private modelFraming(
     obj: THREE.Object3D,
   ): { center: THREE.Vector3; diameter: number; core?: number } | null {
-    const splatMesh = obj.userData?.isSplat ? (obj as unknown as { splatMesh?: SplatMeshLike }).splatMesh : undefined
-    if (splatMesh) {
-      const robust = robustSplatFraming(splatMesh, obj)
+    // Spark's SplatMesh IS the object — there is no wrapper Group to reach
+    // through, unlike the previous library's DropInViewer.
+    if (obj.userData?.isSplat) {
+      const robust = robustSplatFraming(obj as unknown as SplatMeshLike, obj)
       if (robust) return robust
     }
     const box = new THREE.Box3().setFromObject(obj)
@@ -667,8 +681,8 @@ export class ThreeViewer {
   }
 
   private getSplatCount(): number {
-    const m = this.currentModel as (THREE.Object3D & { splatMesh?: SplatMeshLike }) | null
-    return m?.userData?.isSplat ? (m.splatMesh?.getSplatCount() ?? 0) : 0
+    const m = this.currentModel as (THREE.Object3D & { numSplats?: number }) | null
+    return m?.userData?.isSplat ? (m.numSplats ?? 0) : 0
   }
 
   /** Live metrics for the DebugHud (FPS is meaningful while rendering every frame — use ?spin). */
@@ -698,6 +712,7 @@ export class ThreeViewer {
     this.resizeObserver.disconnect()
     this.controls.dispose()
     this.setHotspotGizmo(null)
+    disposeSparkRenderer(this.scene)
     this.setStartGizmo(null)
     if (this.currentModel) disposeObject(this.currentModel)
     this.renderer.dispose()
@@ -706,10 +721,7 @@ export class ThreeViewer {
 }
 
 /** The slice of the splat mesh API we read for framing. */
-interface SplatMeshLike {
-  getSplatCount(): number
-  getSplatCenter(globalIndex: number, out: THREE.Vector3, applySceneTransform?: boolean): void
-}
+type SplatMeshLike = SplatCenterSource
 
 /**
  * Robust centre + extents for a splat scene. Samples up to ~30k splat centres,
@@ -727,29 +739,21 @@ function robustSplatFraming(
   splatMesh: SplatMeshLike,
   obj: THREE.Object3D,
 ): { center: THREE.Vector3; diameter: number; core: number } | null {
-  const total = splatMesh.getSplatCount()
-  if (!total) return null
   obj.updateWorldMatrix(true, false)
   const toWorld = obj.matrixWorld
-  const stride = samplingStride(total)
 
-  // Sample into plain arrays, then hand off to splatFraming.ts. The split is
-  // deliberate: this half is the only part tied to the splat library's API, so
-  // a renderer swap rewrites the loop below and nothing else.
-  const xs: number[] = []
-  const ys: number[] = []
-  const zs: number[] = []
+  // The centre read goes through sampleSplatCenters — the single place allowed to
+  // call Spark's getSplat, which returns a reused singleton (see its doc comment).
+  // The transform is the SOLE source of the world matrix here: Spark centres are
+  // local-space and it has no applySceneTransform equivalent, so this is what
+  // honours the .ply upright flip.
   const c = new THREE.Vector3()
-  for (let i = 0; i < total; i += stride) {
-    splatMesh.getSplatCenter(i, c, true)
-    // Centres come out in the model's own space; this is what honours any
-    // rotation/offset applied to it (e.g. the .ply upright flip).
-    c.applyMatrix4(toWorld)
-    if (!Number.isFinite(c.x) || !Number.isFinite(c.y) || !Number.isFinite(c.z)) continue
-    xs.push(c.x)
-    ys.push(c.y)
-    zs.push(c.z)
-  }
+  const samples = sampleSplatCenters(splatMesh, (x, y, z) => {
+    c.set(x, y, z).applyMatrix4(toWorld)
+    return [c.x, c.y, c.z] as const
+  })
+  if (!samples) return null
+  const { xs, ys, zs } = samples
 
   const framing = splatFramingFromSamples(xs, ys, zs)
   if (!framing) return null
