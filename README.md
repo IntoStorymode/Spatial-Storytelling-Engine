@@ -23,7 +23,7 @@ Both modes read the **same** story file; a toggle switches between them live.
 
 ## Quick start
 
-**Prerequisites:** Node.js 18+ and npm. (With `nvm`: `nvm use 20`.)
+**Prerequisites:** Node.js 20+ and npm. (With `nvm`: `nvm use 20`.)
 
 ```bash
 git clone https://github.com/WWStoryMode/Spatial-Storytelling-Engine

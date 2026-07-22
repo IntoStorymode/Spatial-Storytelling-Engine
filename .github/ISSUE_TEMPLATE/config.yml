@@ -1,0 +1,16 @@
+# Blank issues stay enabled deliberately — the three forms cover the common cases,
+# but nobody should have to pick a category to ask a question.
+blank_issues_enabled: true
+contact_links:
+  - name: Authoring a story
+    url: https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/docs/AUTHORING.md
+    about: The editor, hand-authoring, and the full story.md format reference.
+  - name: Gaussian splats & 3D models
+    url: https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/docs/GAUSSIAN-SPLATS.md
+    about: Supported formats, preparing a scan, and the fix for a splat that loads upside down.
+  - name: Publishing & sharing
+    url: https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/docs/PUBLISHING.md
+    about: Exporting a story as a static site and hosting it.
+  - name: Development
+    url: https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/docs/DEVELOPMENT.md
+    about: Setup, scripts, tests, and the debug flags to include in a bug report.

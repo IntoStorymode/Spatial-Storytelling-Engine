@@ -1,0 +1,39 @@
+name: Idea or feature request
+description: Something the engine could do, or could do better
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome even if they are only half-formed. The
+        [roadmap](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/ROADMAP.md)
+        shows what is already planned, and
+        [the vision](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/docs/VISION.md)
+        explains what the engine deliberately does *not* try to be — anything needing
+        accounts or a server belongs to a platform layer built on top rather than to the
+        engine itself.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: |
+        The situation rather than the solution, if you can. Knowing what you were trying
+        to make often suggests a better answer than the feature first imagined.
+      placeholder: I want a story to move between two buildings, but a story only takes one model.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: Your suggestion, if you have one. It is fine to leave this blank.
+
+  - type: input
+    id: context
+    attributes:
+      label: What are you making?
+      description: |
+        Optional, and genuinely useful — an exhibition, a local history project, a shop,
+        a film, a scan you are experimenting with. It shapes which answer is the right one.
