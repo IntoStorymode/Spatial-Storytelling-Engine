@@ -9,22 +9,22 @@ scan.
 ## Use your own scan
 
 1. **Replace the model** — drop your file into `assets/` and point the `model:`
-   line in `story.md` at it. Supported: `.ksplat` / `.splat` / `.ply` / `.spz`
-   (format auto-detected from the extension).
+   line in `story.md` at it. Supported: `.sog` / `.ksplat` / `.splat` / `.ply` /
+   `.spz` (format auto-detected from the extension).
 
-2. **(Recommended) Convert / clean** a raw `.ply` to a compact web `.ksplat`
-   with [SuperSplat](https://superspl.at/editor) (free, open source) — crop the
-   scene, drop stray splats, and export `.ksplat` for faster loads.
+2. **(Recommended) Convert / clean** a raw `.ply` with
+   [SuperSplat](https://superspl.at/editor) (free, open source) — crop the scene,
+   drop stray splats, and export `.sog`, which is roughly 10–20× smaller than the
+   raw `.ply` and loads much faster.
 
 3. **Tune the hotspots** in `story.md` (`position` / `target`) to frame your
-   scene. The M6 editor will let you click-to-place these instead.
+   scene — or use the in-app editor's click-to-place, which is far easier.
 
 ## Notes
 
-- **Cross-origin isolation:** the dev/preview server already sends the COOP/COEP
-  headers the splat sorter needs for GPU sorting + `SharedArrayBuffer`. If you
-  deploy elsewhere, send the same headers or the viewer falls back to a slower
-  CPU sort.
+- **Hosting:** splats need no special headers — no cross-origin isolation, no
+  `SharedArrayBuffer`. The renderer sorts in WebAssembly, so an exported story
+  runs on any plain static host.
 - **Orientation:** splats are sometimes trained upside down. If yours loads
   inverted, set `orientation: "flip"` in `story.md` (or **Model orientation →
   Flip upright** in the editor). See

@@ -9,9 +9,11 @@
 //
 // Why it just works at any URL path: the app uses hash routing (HashRouter) and
 // fetches its story data with RELATIVE paths, and Vite builds assets with
-// `base: './'`. So the same folder runs at a domain root, any subfolder
-// (e.g. news.example.com/spatial/), or even file:// — no server config, and no
-// COOP/COEP headers (the splat renderer runs without SharedArrayBuffer).
+// `base: './'`. So the same folder runs at a domain root or any subfolder
+// (e.g. news.example.com/spatial/) — no server config, and no COOP/COEP headers
+// (the splat renderer runs without SharedArrayBuffer). It does have to be
+// SERVED, though: browsers block the story-data fetch on a file:// URL, which is
+// why the generated DEPLOY.md says not to double-click index.html.
 import {
   existsSync,
   readFileSync,
