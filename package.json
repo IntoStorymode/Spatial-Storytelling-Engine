@@ -8,7 +8,7 @@
   "author": "Into Storymode",
   "repository": {
     "type": "git",
-    "url": "https://github.com/WWStoryMode/Spatial-Storytelling-Engine"
+    "url": "https://github.com/IntoStorymode/Spatial-Storytelling-Engine"
   },
   "engines": {
     "node": ">=20"

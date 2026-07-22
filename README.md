@@ -1,6 +1,6 @@
 # Spatial Storytelling Engine
 
-[![CI](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/actions/workflows/ci.yml)
+[![CI](https://github.com/IntoStorymode/Spatial-Storytelling-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/IntoStorymode/Spatial-Storytelling-Engine/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 A local-first web engine for telling stories **inside** a 3D scan. One Markdown `story.md` file
@@ -29,7 +29,7 @@ Both modes read the **same** story file; a toggle switches between them live.
 **Prerequisites:** Node.js 20+ and npm. (With `nvm`: `nvm use 20`.)
 
 ```bash
-git clone https://github.com/WWStoryMode/Spatial-Storytelling-Engine
+git clone https://github.com/IntoStorymode/Spatial-Storytelling-Engine
 cd Spatial-Storytelling-Engine
 npm install
 npm run dev        # → http://localhost:5173

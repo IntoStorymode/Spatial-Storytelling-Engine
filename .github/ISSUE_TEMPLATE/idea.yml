@@ -6,9 +6,9 @@ body:
     attributes:
       value: |
         Ideas are welcome even if they are only half-formed. The
-        [roadmap](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/ROADMAP.md)
+        [roadmap](https://github.com/IntoStorymode/Spatial-Storytelling-Engine/blob/main/ROADMAP.md)
         shows what is already planned, and
-        [the vision](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/blob/main/docs/VISION.md)
+        [the vision](https://github.com/IntoStorymode/Spatial-Storytelling-Engine/blob/main/docs/VISION.md)
         explains what the engine deliberately does *not* try to be — anything needing
         accounts or a server belongs to a platform layer built on top rather than to the
         engine itself.

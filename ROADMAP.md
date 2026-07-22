@@ -3,7 +3,7 @@
 What is being worked on next, roughly in order of priority. This is a direction, not a set of
 commitments or dates.
 
-Ideas and requests are welcome as [issues](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/issues).
+Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spatial-Storytelling-Engine/issues).
 
 ---
 

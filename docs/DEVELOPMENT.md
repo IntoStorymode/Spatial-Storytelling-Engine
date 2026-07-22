@@ -15,7 +15,7 @@ Node 20 is a real floor for the test suite, not a rounded-up recommendation: the
 fail there.
 
 ```bash
-git clone https://github.com/WWStoryMode/Spatial-Storytelling-Engine
+git clone https://github.com/IntoStorymode/Spatial-Storytelling-Engine
 cd Spatial-Storytelling-Engine
 npm install
 npm run dev        # → http://localhost:5173
