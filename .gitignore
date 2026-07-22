@@ -31,6 +31,11 @@ dist-ssr/
 !/public/stories/demo/
 !/public/stories/splat-example/
 
+# Local-only dev tooling. Registers whatever stories exist in dist/ into
+# dist/stories/index.json so gitignored author scans are testable in
+# `vite preview` without dirtying the tracked public/stories/index.json.
+scripts/dev-register-local-stories.mjs
+
 # Generated demo assets (rebuilt by scripts/gen-assets.mjs on predev/prebuild)
 public/stories/demo/assets/narration.wav
 public/stories/demo/assets/cube.gltf
