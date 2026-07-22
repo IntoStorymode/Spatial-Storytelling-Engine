@@ -4,8 +4,10 @@ A milestone-by-milestone record of what was built and the key decisions behind i
 Newest entries at the top. See [`BACKLOG.md`](./BACKLOG.md) for what's next and
 [`../PLAN.md`](../PLAN.md) for the original implementation plan.
 
-**Current state (2026-07-21):** The project is **MIT licensed** and named the **Spatial Storytelling
-Engine** (PR #34) — see the milestone below for why MIT rather than AGPL. M1–M12 complete and merged to `main` (a story published live to
+**Current state (2026-07-22):** The project is **MIT licensed** and named the **Spatial Storytelling
+Engine** (PR #34) — see the milestone below for why MIT rather than AGPL. The splat renderer is now
+**Spark** (PRs #35–#37): **17 → 35 fps** on the Greenwich scan, `.sog` supported, and the COOP/COEP
+isolation headers removed. M1–M12 complete and merged to `main` (a story published live to
 Vercel), plus a run of follow-ups: a **WebXR VR viewer** that ships in every export (`vr.html`,
 carried by `publishManifest`) — its UI promotion and splat-performance direction are the open calls,
 not its availability — an **in-app guidance + copy overhaul**, an **optional section title**, a
@@ -39,11 +41,71 @@ under `public/stories/`.
 
 React 18 · Vite 5 · TypeScript · react-router-dom · zustand · Three.js ·
 `camera-controls` (yomotsu) for camera-to-waypoint tweening ·
-`@mkkellogg/gaussian-splats-3d` for splat rendering (lazy-loaded) · `js-yaml`.
+**`@sparkjsdev/spark`** for splat rendering (lazy-loaded) · `js-yaml`.
+*(`@mkkellogg/gaussian-splats-3d` remains only for the VR viewer, pending its migration.)*
 
 ---
 
 ## Milestones
+
+### Splat renderer migrated to Spark, + SOG support (PRs #35, #36, #37)
+The splat renderer moved from `@mkkellogg/gaussian-splats-3d` to **`@sparkjsdev/spark`**, closing
+**[P3] SOG splat format support** and lifting a frame-rate ceiling that three earlier attempts had
+failed to move. **17 fps → 35 fps** on the Greenwich `.spz`, same machine, same `?debug&spin=1` flags.
+
+- **The request was PlayCanvas; the answer was Spark.** The stated goal — depend only on maintained
+  libraries, and read SOG — was right: the old library's last *code* commit was 2025-01-25, with 82
+  open issues and `SceneFormat` hardcoded to four formats. The proposed *mechanism* was rejected on
+  evidence. Every documented PlayCanvas path constructs a `pc.Application(canvas)` owning the canvas,
+  graphics device and rAF loop, with **no supported API for rendering into an externally-managed
+  `THREE.WebGLRenderer`** — adopting it meant rewriting `ThreeViewer`, the loaders, `primitives.ts`
+  and the VR viewer: ~1,780 lines with **zero test coverage** protecting them. Spark's `SplatMesh
+  extends THREE.Object3D` and its `SparkRenderer` sorts from `onBeforeRender` — architecturally the
+  same trick `DropInViewer` used — so the same goals cost a loader swap.
+- **Shipped as three PRs, deliberately.** Prep (#35: extract `resolveUrl`, split the framing maths
+  into a Three-free module, +40 tests), the three.js 0.169→0.180 bump alone (#36: Spark's hard peer
+  requirement), then the swap (#37). One candidate cause per regression instead of two.
+- **SOG cost five lines, not five days.** The backlog entry had estimated ~2–4 days and ~300–500
+  lines to hand-roll a decoder against the old library's *unexported* internals. Spark reads SOG
+  natively, so it became an extension-map entry. **Trap, now pinned by a test:** `.sog` is
+  `PCSOGSZIP`, *never* `PCSOGS` — the latter is the multi-file directory form and the decoder rejects
+  the string outright. `.sog` also needs the same auto-upright flip as `.ply`, since SuperSplat
+  exports from INRIA-convention sources.
+- **The bug that was avoided rather than fixed.** Spark's `getSplat(i)` does not allocate: it returns
+  a *module-level singleton* whose `center` vector is overwritten on the next call, while its type
+  (`center: THREE.Vector3`) advertises nothing. `arr.push(getSplat(i).center)` therefore reads as
+  correct and yields N references to one vector — failing **silently**, as a collapsed extent and a
+  camera framing nothing. Rather than document the hazard, the ability to express it was removed:
+  `sampleSplatCenters()` is the only place in the app that calls `getSplat`, and it returns **plain
+  number arrays** — nothing to retain, nothing to alias. *(The migration plan had this wrong: it
+  warned only about `forEachSplat` and recommended `getSplat` as the safe alternative. Both share the
+  hazard. A test written to "prove" the guard worked was then mutation-tested and found not to catch
+  it at all — the guarantee is structural, from the return type, and no test can enforce it.)*
+- **COOP/COEP headers removed.** The old library's fast sort needed `SharedArrayBuffer`, and cross-
+  origin isolation was the price — which broke the deploy-anywhere commitment, so we were developing
+  under isolation and deploying without it. Spark's WASM counting sort needs neither, so the headers
+  went rather than being adopted. The DebugHud still reports `crossOriginIsolated` /
+  `SharedArrayBuffer` as a standing check that the dependency has not come back.
+- **`onDirty` replaced a workaround.** Spark's sort is a worker round-trip, so the triggering frame
+  draws with the *previous* ordering — a real correctness problem for an on-demand render loop that
+  stops as soon as it settles. Instead of rendering a 60-frame tail and hoping, `SparkRenderer`'s
+  `onDirty` callback now drives `invalidate()`: Spark says when the sort lands.
+- **A latent bug fixed in prep (#35).** `ViewerStage` passed `viewer.scene` to `frameObject`, but
+  `scene.userData.isSplat` is undefined — so the robust splat-framing branch **never fired from that
+  path**. A waypoint-less splat story got `Box3` framing over instanced quads: precisely the failure
+  the median/percentile code exists to prevent.
+- **Diagnostics re-aimed.** `?gpusort` and `?alpha` retired (no Spark analogue); `?sortms`
+  (`minSortIntervalMs`, decoupling sort rate from frame rate) and `?aa` added. Antialiasing was
+  *measured* rather than assumed: Spark recommends AA off for splats, but `?aa=0` made **no fps
+  difference** — the scene is not fill-rate bound — so AA stays on, which is what meshes want anyway.
+  Recorded in code so it is not re-litigated without a fresh measurement.
+- **Not done, on purpose.** `src/types/gaussian-splats-3d.d.ts` stays: `VRStoryViewer.ts` is still on
+  the old library, which ships no types of its own. Both are dynamically imported, so coexisting
+  costs nothing in the initial bundle. **VR is also still unverified on three 0.180** — no headset
+  was available across all three PRs. Both are now [P1] in the backlog.
+- **Cost:** Spark is a **1.75 MB gzipped** lazy chunk; the initial bundle is unchanged at 119 kB.
+  Tooling note: `@playcanvas/splat-transform` cannot run on macOS 14 (its native `webgpu` binary
+  targets macOS 15), so producing SOG locally means SuperSplat's web export.
 
 ### MIT licence + rename to "Spatial Storytelling Engine" (PR #34)
 The first non-code milestone: the project became legally usable and got its public name

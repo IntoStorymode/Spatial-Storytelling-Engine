@@ -87,25 +87,20 @@ nice-to-have / exploratory.
   visible rather than silent: importing a story names every referenced asset whose bytes weren't
   in the bundle, so you can re-upload it. Catching it *before* export (in `validateStory`) is
   still open.
-- **[P3] SOG splat format support** *(investigated 2026-07-21, not started)*
-  SOG (Spatially Ordered Gaussians, PlayCanvas/SuperSplat) packs splats into WebP planes — roughly
-  **10–20× smaller than `.ply`** and smaller than `.spz`, with fast native WebP decode. Two blockers:
-  (1) `@mkkellogg/gaussian-splats-3d` is **stale upstream** — `0.4.7`, published 2025-01-25, with
-  `SceneFormat` hardcoded to `Splat|KSplat|Ply|Spz` — so there is no version to upgrade to;
-  (2) SOG's directory form (`meta.json` + several `.webp`) **fights the single-model-file assumption**
-  baked into `frontmatter.model`, editor upload, zip bundling and static export.
-  A decoder is feasible *without* swapping engines: the library exports `SplatBuffer` /
-  `SplatBufferGenerator`, and `SplatBuffer.generateFromUncompressedSplatArrays()` takes an
-  `UncompressedSplatArray` — so fetch → unzip → `createImageBitmap` per WebP → un-quantize →
-  `addSplatBuffers()`. `loadSplat.ts` already threads an explicit `ext`, so dispatch is one branch.
-  Estimate **~2–4 days, ~300–500 lines**, with real risk: `UncompressedSplatArray` is **not an
-  exported symbol**, so this depends on internals of an unmaintained library. A first pass could drop
-  to SH degree 0 (no view-dependent sheen) and roughly halve the work.
-  **Before starting, confirm SuperSplat's default export is the single-file `.sog`** — if it is
-  directory-only, the packaging work swamps the decoding work and the trade-off changes. Note SOG only
-  speeds *download*; it does nothing for the per-frame sort ceiling (see **GPU-accelerated splat sort
-  A/B** under Robustness & quality), which is what readers actually feel. Interim with zero code:
-  convert offline via PlayCanvas `splat-transform`, or export `.ply`/`.splat` from SuperSplat.
+- **[P3] SOG splat format support** *(done — PR #37, 2026-07-22)*
+  ✅ `.sog` loads. Not by the route this entry planned: rather than hand-rolling a decoder against
+  an unmaintained library's internals (~2–4 days, ~300–500 lines, depending on the unexported
+  `UncompressedSplatArray`), the splat renderer was swapped to **Spark**, which reads SOG natively —
+  so SOG cost a **five-line extension map** instead. Both blockers this entry named dissolved: the
+  stale library was replaced outright, and SuperSplat's **bundled single-file `.sog`** is what
+  uploads and exports actually are, so the directory form never had to fight `frontmatter.model`.
+  **Traps recorded in code:** `.sog` maps to `PCSOGSZIP`, *never* `PCSOGS` (the directory form; the
+  decoder rejects the string outright) — pinned by a test. And `.sog` needs the same auto-upright
+  flip as `.ply`, since SuperSplat exports from INRIA-convention sources.
+  **Still open:** `PCSOGS` (multi-file directory form) is unsupported and out of scope.
+  **Authoring note:** `@playcanvas/splat-transform` **cannot run on macOS 14** — its native `webgpu`
+  binary targets macOS 15 — so producing SOG locally means SuperSplat's web export.
+
 - **[P3] Multiple models / model switching within one story** (exploratory).
 - **[P3] Point-cloud PLY polish** *(after the point-cloud support fix)* — robust percentile framing
   for point clouds (mirror `robustSplatFraming`) if stray outliers balloon the AABB; a soft
@@ -119,17 +114,35 @@ nice-to-have / exploratory.
   item), and the editor → preview resume round trip.
 - **[P2] Performance pass on large splats**
   Profile load + sort cost; consider progressive loading UI and a splat-count budget warning.
-- **[P2] GPU-accelerated splat sort A/B** *(after the on-demand-render idle fix)* — on-demand
-  rendering quiets the *idle* splat load; this targets the *active-navigation* cost. Try
-  `gpuAcceleratedSort: true` in `loadSplat.ts` (moves the per-frame depth sort off the CPU worker)
-  and confirm it still renders on the Vercel deploy without COOP/COEP isolation headers.
-  **Note (PR #31):** the desktop-choppiness diagnosis (see the "Splat choppiness on desktop"
-  DEVLOG entry) measured this as the remaining ceiling — a fixed per-frame cost the CPU sort
-  imposes (~16 fps on the Greenwich splat), unchanged by pixel ratio or splat count. The
-  `high-performance` GPU fix cured the *stutter* but not the *rate*; a `?gpusort=1` test
-  **black-screened** and needs COOP/COEP (which breaks deploy-anywhere), so lifting the rate is
-  still open and non-trivial. A header-free option — sort on *position* not head/view rotation —
-  would need a library patch/fork.
+- **[P2] GPU-accelerated splat sort A/B** *(resolved — PR #37, 2026-07-22)*
+  ✅ **Resolved by replacing the renderer, not by winning this A/B.** The ceiling this entry chased —
+  a fixed per-frame CPU-sort cost, ~16–17 fps on the Greenwich splat, unmoved by pixel ratio or
+  splat count — is gone: **35 fps** on the same asset and flags after the Spark migration.
+  The trade-off that made it hard also dissolved. `gpuAcceleratedSort` black-screened and needed
+  COOP/COEP, which breaks deploy-anywhere; Spark's WASM counting sort needs **no `SharedArrayBuffer`
+  at all**, so the isolation headers were *removed* rather than adopted (dev now matches production).
+  New lever if a scene ever needs it: **`?sortms`** (`minSortIntervalMs`) decouples sort rate from
+  frame rate — no equivalent existed before. The DebugHud still reports `crossOriginIsolated` /
+  `SharedArrayBuffer` as a standing check that we have not re-acquired that dependency.
+
+- **[P1] Migrate the VR viewer to Spark** *(follow-up to PR #37)*
+  `src/vr/VRStoryViewer.ts` is the **only remaining user of `@mkkellogg/gaussian-splats-3d`**, which
+  is why both that dependency and our hand-written `src/types/gaussian-splats-3d.d.ts` (93 lines, the
+  library ships no types) are still in the tree. It uses the library's `Viewer` with `webXRMode`,
+  which the main viewer never did, so this is a real port rather than a repeat of the loader swap —
+  Spark's WebXR support (`SparkXr`) replaces it. Finishing it deletes the dependency, the type shim
+  and VR's private `SCENE_FORMAT_BY_EXT`, and gives VR SOG support for free. Both libraries are
+  dynamically imported, so coexisting costs nothing in the initial bundle meanwhile.
+- **[P1] Verify VR on three 0.180** *(carried unverified through PRs #35–#37)*
+  The three.js bump to 0.180 (Spark's hard peer requirement) has **never been tested in a headset** —
+  no hardware was available. `@mkkellogg/gaussian-splats-3d@0.4.7` predates 0.180 and is typed only
+  by our own shim, so `tsc` proves nothing about it; any breakage is runtime-only. If it *is* broken
+  it is already broken on `main`. Cheap to check (`adb reverse tcp:4173 tcp:4173`, then
+  `http://localhost:4173/vr.html?story=<slug>`) and worth doing *before* the VR migration above, so a
+  port isn't debugged against an already-broken baseline.
+- **[P3] Splat `.ply` and `.ksplat` coverage** *(gap noted in PR #37)*
+  No bundled or local story uses either format, so neither loader path was exercised against Spark.
+  Both are mapped and expected to work; nothing has confirmed it.
 - **[P3] `renderer.forceContextLoss()` on dispose** *(hygiene)* — `ThreeViewer.dispose()` calls
   `renderer.dispose()` but not `forceContextLoss()`, so a WebGL context lingers until GC. Low risk
   today (single long-lived viewer), but worth adding if repeated story-to-story navigation ever
