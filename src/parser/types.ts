@@ -46,7 +46,7 @@ export interface Frontmatter {
   author: string
   location: string
   date: string
-  /** Path to the 3D model: `.glb`/`.gltf`, a splat (`.ply`/`.splat`/`.ksplat`), or `builtin:room`. */
+  /** Path to the 3D model: a mesh, a splat, or `builtin:room`. See lib/modelFormats.ts. */
   model: string
   /**
    * Named camera positions for this story's scan. Sections and `start` reference
