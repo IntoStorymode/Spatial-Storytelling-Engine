@@ -1,5 +1,8 @@
 # Spatial Storytelling Engine
 
+[![CI](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/actions/workflows/ci.yml/badge.svg)](https://github.com/WWStoryMode/Spatial-Storytelling-Engine/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 A local-first web engine for telling stories **inside** a 3D scan. One Markdown `story.md` file
 drives two switchable presentation modes — no reload, no backend.
 
