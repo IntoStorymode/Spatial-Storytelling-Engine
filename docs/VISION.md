@@ -37,7 +37,9 @@ stories but not places. When the building comes down, the story loses its spatia
 
 ## Who it is for
 
-People who have a story about a place and need somewhere to put it:
+Anyone with a story about a place and nowhere to put it.
+
+The engine grew out of community heritage work, and that is still where its heart is:
 
 - **Community documentarians and local history groups** recording a building before it changes.
 - **Oral historians** with recordings that mean more when you can stand where they were made.
@@ -45,8 +47,26 @@ People who have a story about a place and need somewhere to put it:
 - **Architects and conservators** whose scans currently end their life as a deliverable.
 - **Residents** who know a place in ways no survey captures.
 
+But "a story anchored to a place" turns out to be a much wider shape than the work that prompted it,
+and the engine does not care which kind you are making:
+
+- **Curators and exhibition makers** keeping a show alive after it comes down, or opening it to
+  people who could never travel to it.
+- **Artists and filmmakers** using a captured space as a medium rather than a location scout's
+  reference.
+- **Independent shops, studios, workshops and co-working spaces** — the ones whose character is the
+  point, and who are badly served by a floor plan and a photo gallery.
+- **Anyone exploring 3D Gaussian splatting** who wants somewhere to put a scan other than a viewer
+  with a spinning turntable.
+
 The common thread is that none of them should need a developer. If placing a waypoint and linking a
 recording requires writing code, the tool has failed the people it is for.
+
+**Commercial use is fine, explicitly.** The engine is MIT licensed: use it for client work, put it
+behind a paywall, build a product on it, charge whatever you like. No permission, no revenue share,
+nothing to ask. A business with a genuine story about its space is not a lesser use of this than a
+heritage project — a hundred-year-old workshop explaining how it works is exactly the kind of
+account that disappears when the building does.
 
 ## The scan is shared infrastructure; the story is the act of authorship
 
