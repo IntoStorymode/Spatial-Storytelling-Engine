@@ -192,5 +192,5 @@ exported site the same way, since it's just those same plain files.)
 - **Kiosk redirect** (single-story exports only): a tiny injected script sends the deployed root
   straight to `#/story/<slug>`. A multi-story export omits it, so the site opens on the gallery.
 
-See the [development log](./DEVLOG.md) for the reasoning behind hash routing and the shared export
-pipeline.
+See the [engineering notes](./ENGINEERING-NOTES.md#architecture) for the reasoning behind hash
+routing and the shared export pipeline.

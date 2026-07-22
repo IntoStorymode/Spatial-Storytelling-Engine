@@ -5,6 +5,11 @@ drives two switchable presentation modes — no reload, no backend.
 
 > The scan is shared infrastructure; the story is the act of authorship.
 
+A 3D scan is expensive to make and cheap to reuse. Treating it as *infrastructure* rather than a
+deliverable means one capture of a place can hold many accounts of it — the architect's, the
+resident's, the journalist's — without any one overwriting the others.
+[Why this exists →](./docs/VISION.md)
+
 ![Page view and immersive view of the same story](./docs/images/hero-modes.png)
 
 - **Page view (Mode B):** a scrolling long-form article; the 3D model is one inline element in
@@ -61,12 +66,13 @@ site → **[Publishing & sharing](./docs/PUBLISHING.md)**.
 
 | Guide | What's in it |
 | --- | --- |
+| [Why this exists](./docs/VISION.md) | The problem, who it is for, the principles, and how the engine relates to the wider platform idea. |
 | [Authoring a story](./docs/AUTHORING.md) | The editor, hand-authoring, and the full `story.md` format reference. |
 | [Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md) | Supported formats, SuperSplat prep, the orientation fix, and hosting. |
 | [Publishing & sharing](./docs/PUBLISHING.md) | Export a story as a static site and host it (Netlify, Vercel, and more). |
-| [Development log](./docs/DEVLOG.md) | Architecture, key decisions, and milestone history. |
-| [Backlog](./docs/BACKLOG.md) | Roadmap and proposed features. |
-| [Implementation plan](./PLAN.md) | The original prototype plan. |
+| [Development](./docs/DEVELOPMENT.md) | Setup, scripts, tests, debug flags, and where things live. |
+| [Engineering notes](./docs/ENGINEERING-NOTES.md) | Architecture decisions and hard-won findings — splat formats, frame pacing, renderer choice. |
+| [Roadmap](./ROADMAP.md) | What is being worked on next. |
 
 ## Tech stack
 
@@ -78,12 +84,17 @@ site → **[Publishing & sharing](./docs/PUBLISHING.md)**.
   for it).
 - **No backend** — story data and assets are plain files under `public/stories/`.
 
-Architecture and rationale live in the [development log](./docs/DEVLOG.md).
+Architecture and rationale live in the [engineering notes](./docs/ENGINEERING-NOTES.md).
 
 ## Status
 
-Working prototype (milestones M1–M11 merged). Next steps are tracked in the
-[backlog](./docs/BACKLOG.md).
+In active development and usable today: the full loop — import a scan, author a story with
+waypoints and media, preview both modes, export a self-contained website — works end to end, and
+stories have been published live.
+
+Rough edges are honest ones: accessibility is unaudited, the immersive view was designed on desktop
+and is workable rather than polished on phones, and the VR viewer is a generation behind the main
+one. See the [roadmap](./ROADMAP.md).
 
 ## License
 
