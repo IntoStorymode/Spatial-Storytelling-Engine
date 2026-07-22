@@ -140,7 +140,7 @@ export class ThreeViewer {
     this.spin = dbg.spin
     this.renderer = new THREE.WebGLRenderer({
       // Spark recommends antialias:false for splats — WebGL AA does nothing for
-      // Gaussians visually. MEASURED 2026-07-22 on the Greenwich .spz under
+      // Gaussians visually. MEASURED 2026-07 on a ~13 MB .spz scan under
       // ?debug&spin=1: ?aa=0 made NO fps difference, so the scene is not
       // fill-rate bound and turning AA off buys nothing. Left on, which is also
       // what meshes want. Don't re-litigate without a new measurement — ?aa=0

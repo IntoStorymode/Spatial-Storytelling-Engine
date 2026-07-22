@@ -20,7 +20,7 @@
  *                 sort re-runs. Decouples sort rate from frame rate, a lever the
  *                 previous library had no equivalent for.
  *   ?aa=0         turn WebGL antialiasing off. Spark recommends AA off for splats,
- *                 but measured on Greenwich it made no fps difference — we are not
+ *                 but measured on a real scan it made no fps difference — we are not
  *                 fill-rate bound — so AA stays on, which is what meshes want too.
  *                 The flag remains for re-measuring on other hardware.
  *
