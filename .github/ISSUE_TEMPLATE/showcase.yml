@@ -1,0 +1,32 @@
+name: Show what you built
+description: You made something with the engine
+labels: [showcase]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `CONTRIBUTING.md` means it: an issue saying you built something is genuinely nice
+        to receive. No format required — a link and a sentence is plenty.
+
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: Wherever it is published. Leave blank if it is not public.
+
+  - type: textarea
+    id: about
+    attributes:
+      label: What is it?
+      placeholder: A walkthrough of a printworks in the West Midlands, recorded a month before it was demolished.
+    validations:
+      required: true
+
+  - type: textarea
+    id: friction
+    attributes:
+      label: What was awkward?
+      description: |
+        Optional, and the most valuable thing you can put here. Anything that was
+        confusing, slow, or that you expected to work differently — first-time
+        experience is the hardest thing to see from the inside.

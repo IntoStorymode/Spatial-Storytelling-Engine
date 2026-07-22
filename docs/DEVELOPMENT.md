@@ -8,7 +8,11 @@ no clone at all.
 
 ## Setup
 
-**Prerequisites:** Node.js 18+ and npm. (With `nvm`: `nvm use 20`.)
+**Prerequisites:** Node.js 20+ and npm. (With `nvm`: `nvm use 20`.)
+
+Node 20 is a real floor for the test suite, not a rounded-up recommendation: the tests use the
+`File` global, which Node only exposes from version 20. The app still *builds* on 18, but 14 tests
+fail there.
 
 ```bash
 git clone https://github.com/WWStoryMode/Spatial-Storytelling-Engine

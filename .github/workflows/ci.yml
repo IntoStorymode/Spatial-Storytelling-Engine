@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first — no point finishing a run
+# for a commit that has already been superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't stop the other versions when one fails — knowing whether a break is
+      # version-specific or universal is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        # 20 is the documented minimum: the test suite needs the `File` global,
+        # which only became available in Node 20 (the app itself still BUILDS on
+        # 18, but 14 tests fail there). 22 is LTS, 24 is current.
+        node: [20, 22, 24]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # `npm ci` installs exactly what package-lock.json pins, and fails if the
+      # lockfile and package.json disagree — which `npm install` would quietly fix.
+      - run: npm ci
+
+      - name: Test
+        run: npm run test
+
+      # Runs `tsc --noEmit` then `vite build`, so this covers type-checking too.
+      # The prebuild hook regenerates the demo assets and the third-party notices,
+      # which means this also proves a clean checkout can produce them.
+      - name: Build
+        run: npm run build

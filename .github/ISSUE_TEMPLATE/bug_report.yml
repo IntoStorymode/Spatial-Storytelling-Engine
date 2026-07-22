@@ -1,0 +1,98 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The fields below are the ones that usually
+        decide how quickly something can be diagnosed — especially the format and
+        the debug readout.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected, and what you got instead.
+      placeholder: I uploaded a .sog scan and the model appeared upside down.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the editor and click + New story
+        2. Upload …
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - The in-app editor
+        - Reading a story (page view)
+        - Reading a story (immersive view)
+        - An exported / published site
+        - The VR viewer (vr.html)
+        - Running it locally (npm run dev / build)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: format
+    attributes:
+      label: Model format
+      description: If the problem involves a 3D model. Splat formats behave quite differently from each other.
+      options:
+        - "Not model-related"
+        - ".sog"
+        - ".spz"
+        - ".ply (Gaussian splat)"
+        - ".ply (point cloud / mesh)"
+        - ".splat"
+        - ".ksplat"
+        - ".glb / .gltf"
+        - "builtin:room"
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser, OS and device
+      placeholder: Chrome 141, macOS 14, M1 MacBook Air
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug readout (for anything visual, slow, or 3D)
+      description: |
+        Add `?debug` to the URL — e.g. `http://localhost:5173/?debug#/story/splat-example` —
+        and paste or screenshot the overlay. It reports frame rate, frame time, splat
+        count and which GPU the browser actually bound, which answers most
+        performance and rendering questions immediately.
+
+        Add `&spin=1` as well if it is a performance problem: it runs a fixed
+        auto-orbit, so the numbers are comparable between machines.
+      placeholder: fps 35 · frame ms 28.1 / 41.0 · splats 1,999,396 · GPU …
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      description: Anything red in the browser console, if there is any.
+      render: text
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else
+      description: |
+        A `story.md` is plain text — pasting the relevant part is often the fastest
+        way to show the problem. Please don't attach large scan files; a
+        screenshot usually says more.

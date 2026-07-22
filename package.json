@@ -10,6 +10,9 @@
     "type": "git",
     "url": "https://github.com/WWStoryMode/Spatial-Storytelling-Engine"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "gen:assets": "node scripts/gen-assets.mjs",
     "gen:notices": "node scripts/gen-notices.mjs",
