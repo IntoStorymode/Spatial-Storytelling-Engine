@@ -36,7 +36,7 @@ SUMMARY
   scheduler@0.23.2 — MIT
   setimmediate@1.0.5 — MIT
   string_decoder@1.1.1 — MIT
-  three@0.169.0 — MIT
+  three@0.180.0 — MIT
   use-sync-external-store@1.6.0 — MIT
   util-deprecate@1.0.2 — MIT
   zustand@4.5.7 — MIT
@@ -1592,13 +1592,13 @@ IN THE SOFTWARE.
 """
 
 ==============================================================================
-three@0.169.0
+three@0.180.0
 License: MIT
 ==============================================================================
 
 The MIT License
 
-Copyright © 2010-2024 three.js authors
+Copyright © 2010-2025 three.js authors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
