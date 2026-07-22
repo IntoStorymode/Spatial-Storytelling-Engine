@@ -187,10 +187,10 @@ exported site the same way, since it's just those same plain files.)
   URL is stable wherever the folder sits.
 - **Relative data paths**: the app fetches `stories/index.json` (not `/stories/…`) and asset
   paths resolve against the page, so everything works at a root or a subfolder.
-- **No COOP/COEP headers**: the Gaussian-splat renderer runs without `SharedArrayBuffer`
-  (`sharedMemoryForWorkers: false`), so plain static hosts work — no cross-origin isolation
-  setup.
+- **No COOP/COEP headers**: the Gaussian-splat renderer sorts in WebAssembly and never needs
+  `SharedArrayBuffer`, so plain static hosts work — no cross-origin isolation setup.
 - **Kiosk redirect** (single-story exports only): a tiny injected script sends the deployed root
   straight to `#/story/<slug>`. A multi-story export omits it, so the site opens on the gallery.
 
-See [`DEVLOG.md`](./DEVLOG.md) → *M9*–*M11* for the full rationale.
+See the [development log](./DEVLOG.md) for the reasoning behind hash routing and the shared export
+pipeline.

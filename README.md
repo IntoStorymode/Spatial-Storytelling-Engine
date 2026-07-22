@@ -40,7 +40,8 @@ The fastest path is the in-app editor (**+ New story** on Home):
 
 ![The story editor](./docs/images/editor.png)
 
-1. **Upload** your 3D scan — a `.glb` mesh or a `.ply`/`.splat`/`.ksplat`/`.spz` Gaussian splat.
+1. **Upload** your 3D scan — a `.glb` mesh or a `.sog`/`.ply`/`.splat`/`.ksplat`/`.spz` Gaussian
+   splat.
    No scan yet? Capture one on a phone with [Scaniverse](https://scaniverse.com/) or Polycam.
 2. Fill in the details and **add sections** (text / image / audio / video), uploading any media inline.
 3. Frame the 3D scene and **add waypoints**, then point each section at one; hit **▶ Preview** to
@@ -61,7 +62,7 @@ site → **[Publishing & sharing](./docs/PUBLISHING.md)**.
 | Guide | What's in it |
 | --- | --- |
 | [Authoring a story](./docs/AUTHORING.md) | The editor, hand-authoring, and the full `story.md` format reference. |
-| [Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md) | Supported formats, SuperSplat prep, the orientation fix, COOP/COEP. |
+| [Gaussian splats & 3D models](./docs/GAUSSIAN-SPLATS.md) | Supported formats, SuperSplat prep, the orientation fix, and hosting. |
 | [Publishing & sharing](./docs/PUBLISHING.md) | Export a story as a static site and host it (Netlify, Vercel, and more). |
 | [Development log](./docs/DEVLOG.md) | Architecture, key decisions, and milestone history. |
 | [Backlog](./docs/BACKLOG.md) | Roadmap and proposed features. |
@@ -73,8 +74,8 @@ site → **[Publishing & sharing](./docs/PUBLISHING.md)**.
 - **One unified [Three.js](https://threejs.org/) viewer** for both GLB meshes and Gaussian
   splats, with [`camera-controls`](https://github.com/yomotsu/camera-controls) for
   hotspot-to-hotspot animation and
-  [`@mkkellogg/gaussian-splats-3d`](https://github.com/mkkellogg/GaussianSplats3D) for splats
-  (lazy-loaded — only splat stories pay for it).
+  [Spark](https://github.com/sparkjsdev/spark) for splats (lazy-loaded — only splat stories pay
+  for it).
 - **No backend** — story data and assets are plain files under `public/stories/`.
 
 Architecture and rationale live in the [development log](./docs/DEVLOG.md).
@@ -89,7 +90,9 @@ Working prototype (milestones M1–M11 merged). Next steps are tracked in the
 MIT — see [LICENSE](./LICENSE). Use it, fork it, build a product on it; no permission needed.
 
 The bundled third-party dependencies keep their own licences, reproduced in
-`THIRD-PARTY-NOTICES.txt` (generated at build time and included in every published site).
+`public/THIRD-PARTY-NOTICES.txt` — generated from the dependency tree at build time (so it does not
+exist on a fresh clone until you run `npm run dev` or `npm run build`) and included in every
+published site.
 
 Pull requests are not currently accepted — see [CONTRIBUTING.md](./CONTRIBUTING.md). Issues and
 forks are welcome.

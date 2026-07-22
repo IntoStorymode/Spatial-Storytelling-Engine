@@ -67,7 +67,9 @@ export interface Frontmatter {
   navigation?: 'orbit' | 'firstPerson'
   /**
    * Override the automatic splat up-axis correction. Absent = **auto**: `.ply`
-   * splats get the 180° upright flip, other splat formats are left as-is. `flip`
+   * and `.sog` splats get the 180° upright flip (both come from INRIA-convention
+   * sources — see AUTO_FLIP_EXTS in three/loadSplat.ts), other splat formats are
+   * left as-is. `flip`
    * forces the upright flip (e.g. a SuperSplat `.splat` repacked from an INRIA
    * `.ply` that inherits the flipped orientation); `none` disables it. Affects
    * splat models only — meshes are Y-up by spec.

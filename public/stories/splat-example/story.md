@@ -34,8 +34,8 @@ type: text
 waypoint: item-02
 
 Splat hotspots use the same world-space `position` + `target` as GLB scenes, so
-the M6 editor's click-to-place will bind them the same way. Here the camera
+the editor's click-to-place binds them the same way. Here the camera
 swings around to face the sphere from the opposite side.
 
-To use your own scan, replace `assets/scene.splat` with a `.ksplat` / `.splat` /
-`.ply` (and update the `model:` line) — see this folder's README.
+To use your own scan, replace `assets/scene.splat` with a `.sog` / `.ksplat` /
+`.splat` / `.ply` / `.spz` (and update the `model:` line) — see this folder's README.
