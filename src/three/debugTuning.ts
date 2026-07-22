@@ -5,8 +5,8 @@
  * devices (desktop Chrome vs iPad) WITHOUT a rebuild. Flags are read from both the
  * normal query string AND the query part of the hash route, so appending
  * `?debug&spin=1` works after either — e.g.
- *   /?debug&spin=1#/story/greenwich-exhibition
- *   /#/story/greenwich-exhibition?debug&spin=1
+ *   /?debug&spin=1#/story/splat-example
+ *   /#/story/splat-example?debug&spin=1
  *
  * Flags:
  *   ?debug        show the DebugHud overlay (FPS, buffer size, GPU, isolation…)
