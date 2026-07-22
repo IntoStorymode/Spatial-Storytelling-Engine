@@ -43,7 +43,7 @@ describe('debugTuning', () => {
 
   it('reads flags from the query part of a hash route', async () => {
     // Both orderings must work: /?debug#/story/x and /#/story/x?debug
-    const t = await tuningFor('', '#/story/greenwich-exhibition?debug&spin=1')
+    const t = await tuningFor('', '#/story/splat-example?debug&spin=1')
     expect(t.debug).toBe(true)
     expect(t.spin).toBe(true)
   })

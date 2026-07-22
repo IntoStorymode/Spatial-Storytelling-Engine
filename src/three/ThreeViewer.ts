@@ -140,9 +140,11 @@ export class ThreeViewer {
     this.spin = dbg.spin
     this.renderer = new THREE.WebGLRenderer({
       // Spark recommends antialias:false for splats — WebGL AA does nothing for
-      // Gaussians and costs real fill rate. But the renderer is built before we
-      // know whether this story is a splat or a mesh, and meshes DO benefit, so
-      // AA stays on by default. ?aa=0 A/Bs it against the splat frame rate.
+      // Gaussians visually. MEASURED 2026-07 on a ~13 MB .spz scan under
+      // ?debug&spin=1: ?aa=0 made NO fps difference, so the scene is not
+      // fill-rate bound and turning AA off buys nothing. Left on, which is also
+      // what meshes want. Don't re-litigate without a new measurement — ?aa=0
+      // still exists to take one.
       antialias: dbg.aa,
       // Ask the browser for the high-performance GPU. On dual-GPU laptops the
       // 'default' preference often binds the integrated GPU, whose frames are then
