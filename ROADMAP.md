@@ -34,6 +34,11 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
   considered non-visual story.
 - **Mobile refinement** of the immersive view — the overlay is workable but was designed on desktop.
 - **Transition polish** between sections and between the two modes.
+- **Travel between stories.** A reader currently has to return to the gallery to move on. Add a
+  next/previous path (ordered by the gallery) and optional curated links between stories, so a set
+  can be read as a sequence or a web. The scene swap should be seamless — keeping the 3D context
+  alive rather than reloading — with controls in both reading modes. Targets come from the
+  deployment's own story index, so a single-story export simply shows none.
 
 ## Platform
 
