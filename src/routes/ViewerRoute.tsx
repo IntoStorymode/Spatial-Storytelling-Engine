@@ -6,9 +6,12 @@ import { useStoryStore } from '../store/useStoryStore'
 import { ViewerStage } from '../components/viewer/ViewerStage'
 import { PageView } from '../components/viewer/PageView'
 import { ImmersiveView } from '../components/viewer/ImmersiveView'
+import { storyNeighbours } from '../lib/storyNeighbours'
+import type { Neighbours } from '../lib/storyNeighbours'
 
 interface IndexEntry {
   id: string
+  title: string
   path: string
 }
 
@@ -20,6 +23,7 @@ interface IndexEntry {
 export function ViewerRoute() {
   const { id } = useParams<{ id: string }>()
   const [story, setStory] = useState<Story | null>(null)
+  const [neighbours, setNeighbours] = useState<Neighbours>({ prev: null, next: null })
   const [error, setError] = useState<string | null>(null)
   const mode = useStoryStore((s) => s.mode)
   const reset = useStoryStore((s) => s.reset)
@@ -27,6 +31,7 @@ export function ViewerRoute() {
   useEffect(() => {
     let cancelled = false
     setStory(null)
+    setNeighbours({ prev: null, next: null })
     setError(null)
     reset() // fresh mode/activeIndex/auto-tour per story
 
@@ -42,7 +47,12 @@ export function ViewerRoute() {
       const raw = await mdRes.text()
 
       const basePath = entry.path.replace(/[^/]+$/, '') // strip filename → directory
-      if (!cancelled) setStory(parseStory(raw, basePath))
+      if (!cancelled) {
+        setStory(parseStory(raw, basePath))
+        // Prev/next follow the index's own (unsorted) order — the same order the
+        // gallery lists — so "next" is the story shown after this one on Home.
+        setNeighbours(storyNeighbours(idx, id))
+      }
     }
 
     load().catch((e) => !cancelled && setError(String(e)))
@@ -78,7 +88,11 @@ export function ViewerRoute() {
           </ul>
         </div>
       )}
-      {mode === 'page' ? <PageView story={story} /> : <ImmersiveView story={story} />}
+      {mode === 'page' ? (
+        <PageView story={story} prev={neighbours.prev} next={neighbours.next} />
+      ) : (
+        <ImmersiveView story={story} prev={neighbours.prev} next={neighbours.next} />
+      )}
     </ViewerStage>
   )
 }
