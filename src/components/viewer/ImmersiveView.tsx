@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { Story } from '../../parser/types'
+import type { Neighbour } from '../../lib/storyNeighbours'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageSlot } from './StageSlot'
 import { OverlayPanel } from './OverlayPanel'
 import { NavControls } from './NavControls'
+import { StoryNav } from './StoryNav'
 import { ProgressIndicator } from './ProgressIndicator'
 import { ModeToggle } from './ModeToggle'
 import { NavModeToggle } from './NavModeToggle'
@@ -20,9 +22,24 @@ const STEP_COOLDOWN_MS = 650 // lock so one keypress = one section
  * first-person — and to the overlay panel (native scroll), matching Mode B.
  * Any manual nav cancels the auto-tour.
  */
-export function ImmersiveView({ story, hideBack }: { story: Story; hideBack?: boolean }) {
+export function ImmersiveView({
+  story,
+  hideBack,
+  prev = null,
+  next = null,
+}: {
+  story: Story
+  hideBack?: boolean
+  prev?: Neighbour | null
+  next?: Neighbour | null
+}) {
   const step = useStoryStore((s) => s.step)
   const setAutoTour = useStoryStore((s) => s.setAutoTour)
+  const activeIndex = useStoryStore((s) => s.activeIndex)
+  const sectionCount = useStoryStore((s) => s.sectionCount)
+  // Story travel surfaces at the natural end — the last section, where the
+  // "next section" control is already spent (see NavControls).
+  const onLastSection = sectionCount > 0 && activeIndex >= sectionCount - 1
   const containerRef = useRef<HTMLDivElement>(null)
   const topbarRef = useRef<HTMLDivElement>(null)
   const lockRef = useRef(false)
@@ -87,8 +104,13 @@ export function ImmersiveView({ story, hideBack }: { story: Story; hideBack?: bo
       <TouchWalkHint />
 
       <div className="immersive-footer">
-        <ProgressIndicator />
-        <NavControls />
+        {onLastSection && (
+          <StoryNav variant="immersive" prev={prev} next={next} emphasizeNext />
+        )}
+        <div className="immersive-footer-row">
+          <ProgressIndicator />
+          <NavControls />
+        </div>
       </div>
     </div>
   )

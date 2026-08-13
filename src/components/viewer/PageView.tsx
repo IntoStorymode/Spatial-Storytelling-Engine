@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { Story } from '../../parser/types'
+import type { Neighbour } from '../../lib/storyNeighbours'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageSlot } from './StageSlot'
+import { StoryNav } from './StoryNav'
 import { ModeToggle } from './ModeToggle'
 import { SectionContent } from '../content/SectionContent'
 import { isPublishedSite } from '../../publish/published'
@@ -13,7 +15,17 @@ import { isPublishedSite } from '../../publish/published'
  * appears inline as ONE element in the scroll. An IntersectionObserver tracks
  * which section is centred so that toggling into Mode A lands on the same section.
  */
-export function PageView({ story, hideBack }: { story: Story; hideBack?: boolean }) {
+export function PageView({
+  story,
+  hideBack,
+  prev = null,
+  next = null,
+}: {
+  story: Story
+  hideBack?: boolean
+  prev?: Neighbour | null
+  next?: Neighbour | null
+}) {
   const { frontmatter: fm, sections, basePath } = story
   const { id } = useParams<{ id: string }>()
   const setActiveIndex = useStoryStore((s) => s.setActiveIndex)
@@ -103,6 +115,8 @@ export function PageView({ story, hideBack }: { story: Story; hideBack?: boolean
             )}
           </Fragment>
         ))}
+
+        <StoryNav variant="page" prev={prev} next={next} />
       </article>
     </div>
   )

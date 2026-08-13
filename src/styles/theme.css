@@ -288,6 +288,89 @@ a:hover {
   font-style: italic;
 }
 
+/* ── Travel to the neighbouring stories (both reading modes) ───────────────── */
+.story-nav-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.story-nav-link {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.story-nav-dir {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.story-nav-title {
+  color: var(--text);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Page view: an end-of-scroll block, set off from the last section. */
+.story-nav--page {
+  margin-top: 56px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+.story-nav-heading {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.story-nav--page .story-nav-next {
+  margin-left: auto;
+  text-align: right;
+}
+.story-nav--page .story-nav-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+/* Immersive: a compact row above the footer controls; emphasized next = CTA. */
+.story-nav--immersive .story-nav-links {
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: 12px;
+}
+.story-nav--immersive .story-nav-link {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(10, 9, 8, 0.5);
+}
+.story-nav--immersive .story-nav-link:hover {
+  border-color: var(--accent-dim);
+}
+.story-nav--immersive .story-nav-title {
+  font-size: 13px;
+  max-width: 26ch;
+}
+.story-nav--immersive .story-nav-next.is-emphasized {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+.story-nav--immersive .story-nav-next.is-emphasized .story-nav-dir {
+  color: var(--text);
+}
+
 /* ── Story items (shared by Mode A & B via ItemContent) ───────────────────── */
 .item {
   margin: 44px 0;
@@ -651,11 +734,18 @@ a:hover {
   bottom: 0;
   z-index: 3;
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 24px 22px;
+  background: linear-gradient(to top, rgba(10, 9, 8, 0.7), transparent);
+}
+/* The progress + section controls share one space-between row; the story-nav
+   (last section only) stacks above it. */
+.immersive-footer-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 24px 22px;
-  background: linear-gradient(to top, rgba(10, 9, 8, 0.7), transparent);
 }
 
 .progress {
@@ -730,7 +820,7 @@ a:hover {
     font-size: 11px;
     padding: 7px 10px;
   }
-  .immersive-footer {
+  .immersive-footer-row {
     flex-direction: column;
     gap: 12px;
   }
