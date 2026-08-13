@@ -116,7 +116,7 @@ start: entrance-hall          # optional — name of the opening view
 | Field | Required | Notes |
 | --- | --- | --- |
 | `title` / `author` / `location` / `date` | yes | Shown on Home and in the story header. |
-| `model` | yes | Path to the 3D model (relative to the story folder), or `builtin:room` for a generated placeholder. Formats: `.glb`/`.gltf` meshes, `.sog`/`.ply`/`.splat`/`.ksplat`/`.spz` splats. |
+| `model` | yes | Path to the 3D model (relative to the story folder), or `builtin:room` for a generated placeholder. Formats: `.glb`/`.gltf` meshes, `.sog`/`.ply`/`.splat`/`.ksplat`/`.spz` splats. Keep it small (≤ ~40 MB) so it loads fast — see [Size budget](./GAUSSIAN-SPLATS.md#size-budget). |
 | `navigation` | no | Reader's default immersive camera: `firstPerson` or `orbit`. Absent = `firstPerson`. Either way the reader can switch live with the in-viewer toggle. |
 | `orientation` | no | Splat up-axis override: `flip` (force upright) or `none` (no correction). Absent = auto. See [Gaussian splats](./GAUSSIAN-SPLATS.md#orientation). |
 | `waypoints` | no | Named camera views (`name` + `position` + `target` in world coordinates). Sections reference them by `name`; several sections can share one. |

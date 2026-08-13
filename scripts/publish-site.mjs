@@ -43,6 +43,26 @@ function fail(msg) {
   process.exit(1)
 }
 
+// Advisory model-weight check. Mirror of src/lib/modelFormats.ts — that file is
+// TS and this script is plain .mjs, so the thresholds are duplicated; keep them
+// in sync. Non-fatal: an oversized/raw splat still publishes, it's just flagged.
+const MESH_EXTS = ['glb', 'gltf']
+const SPLAT_EXTS = ['ply', 'splat', 'ksplat', 'spz', 'sog']
+const RAW_SPLAT_EXTS = ['splat', 'ply']
+const MODEL_EXTS = [...MESH_EXTS, ...SPLAT_EXTS]
+const MODEL_SIZE_WARN_BYTES = 40 * 1024 * 1024 // ~40 MB
+function describeModelWeight(name, size) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (!MODEL_EXTS.includes(ext)) return null // only judge model files, not JS/CSS
+  const mb = `${(size / (1024 * 1024)).toFixed(1)} MB`
+  if (RAW_SPLAT_EXTS.includes(ext))
+    return `${name} (${mb}) is a raw, uncompressed splat — re-export it as .sog in SuperSplat (typically 10–20× smaller) so it loads quickly.`
+  if (size <= MODEL_SIZE_WARN_BYTES) return null
+  if (MESH_EXTS.includes(ext))
+    return `${name} (${mb}) is a large mesh — consider decimating or compressing it (Draco / meshopt).`
+  return `${name} (${mb}) is over the ~40 MB budget for smooth loading — crop stray splats or reduce the splat count in SuperSplat.`
+}
+
 // ── 1. Resolve + validate the slug ───────────────────────────────────────────
 const slug = process.argv.slice(2).find((a) => !a.startsWith('-'))
 if (!slug) {
@@ -104,6 +124,7 @@ writeFileSync(indexPath, injectPublishedMarker(injectKiosk(readFileSync(indexPat
 const zip = new JSZip()
 const siteRoot = siteDirName(slug)
 zip.file('DEPLOY.md', deployMd({ title: entry.title, siteDir: siteRoot }))
+const modelWarnings = []
 function addDir(absDir, zipPrefix) {
   for (const name of readdirSync(absDir)) {
     // The build's app-shell manifest is only consumed by the editor's in-app
@@ -112,8 +133,13 @@ function addDir(absDir, zipPrefix) {
     if (absDir === dist && name === 'publish-manifest.json') continue
     const abs = join(absDir, name)
     const zpath = `${zipPrefix}/${name}`
-    if (statSync(abs).isDirectory()) addDir(abs, zpath)
-    else zip.file(zpath, readFileSync(abs))
+    const st = statSync(abs)
+    if (st.isDirectory()) addDir(abs, zpath)
+    else {
+      const warn = describeModelWeight(name, st.size)
+      if (warn) modelWarnings.push(warn)
+      zip.file(zpath, readFileSync(abs))
+    }
   }
 }
 addDir(dist, siteRoot)
@@ -125,3 +151,5 @@ writeFileSync(outPath, buf)
 const mb = (buf.length / (1024 * 1024)).toFixed(2)
 console.log(`\npublish-site: wrote ${slug}-site.zip (${mb} MB)`)
 console.log(`  → unzip and follow DEPLOY.md, or drag the ${slug}-site folder to netlify.com/drop`)
+
+for (const warn of modelWarnings) console.warn(`\npublish-site: heads up — ${warn}`)

@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { MESH_EXTS, MODEL_ACCEPT, MODEL_EXTS, SPLAT_EXTS, isMeshExt, isSplatExt } from './modelFormats'
+import {
+  MESH_EXTS,
+  MODEL_ACCEPT,
+  MODEL_EXTS,
+  MODEL_SIZE_WARN_BYTES,
+  SPLAT_EXTS,
+  describeModelWeight,
+  isMeshExt,
+  isSplatExt,
+} from './modelFormats'
+
+const MB = 1024 * 1024
 
 /**
  * These exist because the list DID drift: `.sog` shipped in the loader (PR #37)
@@ -36,5 +47,42 @@ describe('model formats', () => {
   it('rejects unknown extensions', () => {
     expect(isMeshExt('obj')).toBe(false)
     expect(isSplatExt('zip')).toBe(false) // a bundled SOG is .sog, never .zip
+  })
+})
+
+/**
+ * The guardrail behind the editor upload warning + the two export backstops.
+ * The 91 MB raw `.splat` that shipped in hyde-vale-fountain is exactly what this
+ * catches — a format problem, flagged regardless of how "big" 91 MB feels.
+ */
+describe('describeModelWeight', () => {
+  it('flags a raw .splat at ANY size — the format is the problem, not the byte count', () => {
+    expect(describeModelWeight('scene.splat', 5 * MB)).toMatch(/raw, uncompressed splat/)
+    // The real regression: 91.5 MB raw splat.
+    expect(describeModelWeight('Blackheath - SHD 1.splat', 91.5 * MB)).toMatch(/\.sog/)
+  })
+
+  it('flags a raw .ply the same way (INRIA dump or point cloud — still uncompressed)', () => {
+    expect(describeModelWeight('train.ply', 1 * MB)).toMatch(/raw, uncompressed/)
+  })
+
+  it('passes a compressed splat that is under budget', () => {
+    expect(describeModelWeight('greenwich.spz', 14 * MB)).toBeNull()
+    expect(describeModelWeight('sutro.sog', 28 * MB)).toBeNull()
+    expect(describeModelWeight('scene.ksplat', 10 * MB)).toBeNull()
+  })
+
+  it('flags a compressed splat only once it exceeds the budget', () => {
+    expect(describeModelWeight('huge.sog', MODEL_SIZE_WARN_BYTES - 1)).toBeNull()
+    expect(describeModelWeight('huge.sog', MODEL_SIZE_WARN_BYTES + 1)).toMatch(/budget/)
+  })
+
+  it('gives meshes their own advice, and only when oversized', () => {
+    expect(describeModelWeight('mall.glb', 20 * MB)).toBeNull()
+    expect(describeModelWeight('mall.glb', 57 * MB)).toMatch(/mesh/)
+  })
+
+  it('matches the extension case-insensitively', () => {
+    expect(describeModelWeight('SCAN.SPLAT', 3 * MB)).toMatch(/raw, uncompressed/)
   })
 })

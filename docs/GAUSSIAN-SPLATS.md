@@ -38,6 +38,18 @@ A ready-to-use template lives in
 [`public/stories/splat-example/`](../public/stories/splat-example/) — drop your file into its
 `assets/`, and see that folder's README for the specifics.
 
+### Size budget
+
+Aim for **under ~40 MB per model** — ideally **≤ ~15 MB**. Below that a scene loads quickly, and
+it stays quick when a reader travels straight from one story to the next (the next scene loads on
+the fly). A compressed `.sog` scan is usually comfortably inside this; a raw `.splat`/`.ply`
+straight out of training is typically many times over it.
+
+The engine helps you keep to this: the editor shows a note when you upload a raw or oversized
+model, and both export paths (in-app **Download website** and `npm run publish:site`) print the
+same heads-up. They're **advisories, not blocks** — an oversized story still exports — but a
+`.sog` re-export is almost always the fix.
+
 ## Orientation
 
 Splats use different up-axis conventions depending on where they were trained, so a scan can

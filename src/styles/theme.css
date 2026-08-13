@@ -1198,6 +1198,14 @@ button.cta {
   line-height: 1.5;
   margin: 8px 0 0;
 }
+/* An advisory, not an error — a gentle copper nudge (e.g. an oversized splat). */
+.ed-hint-warn {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 8px 10px;
+}
 .ed-hint code,
 .export-pop code {
   font-family: var(--font-mono);

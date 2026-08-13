@@ -7,6 +7,7 @@ import type { Upload } from '../store/useDraftStore'
 import { useGalleryStore } from '../store/useGalleryStore'
 import { upsertWaypoint, renameWaypoint, deleteWaypoint, nextWaypointName, countUsage } from '../parser/waypoints'
 import { collectAssets } from '../publish/collectAssets'
+import { describeModelWeight } from '../lib/modelFormats'
 import { toSlug, suggestSlug } from '../publish/slug'
 import type { ThreeViewer } from '../three/ThreeViewer'
 import { SceneForm } from '../components/editor/SceneForm'
@@ -404,6 +405,7 @@ export function EditorRoute() {
             <SceneForm
               fm={fm}
               uploadedModel={uploaded ? fm.model : null}
+              modelWarning={uploaded ? describeModelWeight(uploaded.file.name, uploaded.file.size) : null}
               onChange={(patch) => setFm((m) => ({ ...m, ...patch }))}
               onModelPath={setModelPath}
               onUpload={onUpload}
