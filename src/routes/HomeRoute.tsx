@@ -52,7 +52,7 @@ export function HomeRoute() {
   const [building, setBuilding] = useState(false)
   // Set after a successful export, so a "what next" banner can name the file and
   // point at deploy + re-import — the loop the app was otherwise silent about.
-  const [exported, setExported] = useState<{ fileName: string } | null>(null)
+  const [exported, setExported] = useState<{ fileName: string; warnings: string[] } | null>(null)
 
   // Which saved stories are selected for export. New saves default to selected;
   // explicit toggles are preserved; removed stories drop out.
@@ -144,9 +144,9 @@ export function HomeRoute() {
         story: { frontmatter: s.fm, sections: s.sections, basePath: s.basePath, warnings: [] },
         assets: collectAssets(s.fm, s.sections, s.uploaded, s.mediaUploads),
       }))
-      const { blob, fileName } = await buildSiteZip({ stories: exportStories, manifest })
+      const { blob, fileName, warnings } = await buildSiteZip({ stories: exportStories, manifest })
       triggerDownload(blob, fileName)
-      setExported({ fileName })
+      setExported({ fileName, warnings })
     } finally {
       setBuilding(false)
     }
@@ -246,6 +246,11 @@ export function HomeRoute() {
             are in the <code>DEPLOY.md</code> inside the zip. Keep the zip: you can reopen it here any
             time with <strong>⬆ Import story</strong>.
           </p>
+          {exported.warnings.map((w, i) => (
+            <p key={i} className="ed-hint ed-hint-warn" role="status">
+              {w}
+            </p>
+          ))}
         </section>
       )}
 

@@ -6,13 +6,15 @@ interface Props {
   fm: Frontmatter
   /** Non-null when the model came from a file upload (shows the export path). */
   uploadedModel: string | null
+  /** Advisory when the uploaded model is raw/oversized, or null when it's fine. */
+  modelWarning: string | null
   onChange: (patch: Partial<Frontmatter>) => void
   onModelPath: (value: string) => void
   onUpload: (file: File) => void
 }
 
 /** The scan: 3D model source + reader/orientation options (tucked in a disclosure). */
-export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }: Props) {
+export function SceneForm({ fm, uploadedModel, modelWarning, onChange, onModelPath, onUpload }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   return (
@@ -40,6 +42,11 @@ export function SceneForm({ fm, uploadedModel, onChange, onModelPath, onUpload }
             }}
           />
         </div>
+        {modelWarning && (
+          <p className="ed-hint ed-hint-warn" role="status">
+            {modelWarning}
+          </p>
+        )}
         {uploadedModel ? (
           <p className="ed-hint">
             Previewing your uploaded scan. It's bundled into the site automatically at{' '}

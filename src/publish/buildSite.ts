@@ -1,6 +1,7 @@
 import JSZip from 'jszip'
 import type { Story } from '../parser/types'
 import { serializeStory } from '../parser/serializeStory'
+import { describeModelWeight } from '../lib/modelFormats'
 import { deployMd, indexEntry, injectKiosk, injectPublishedMarker, siteDirName } from './siteTemplate.mjs'
 
 /** The app-shell file list emitted at build time (see the vite publish-manifest plugin). */
@@ -53,10 +54,20 @@ interface BuildSiteOpts {
  *
  * Returns the blob plus the suggested download filename.
  */
-export async function buildSiteZip({ stories, manifest }: BuildSiteOpts): Promise<{ blob: Blob; fileName: string }> {
+export async function buildSiteZip({ stories, manifest }: BuildSiteOpts): Promise<{ blob: Blob; fileName: string; warnings: string[] }> {
   if (!stories.length) throw new Error('publish: no stories selected to export')
   const single = stories.length === 1
   const dirName = single ? siteDirName(stories[0].slug) : siteDirName('gallery')
+
+  // Advisory backstop: flag any raw/oversized model heading into the bundle, so
+  // an author who imported a heavy scan (bypassing the editor's upload warning)
+  // still hears about it. Non-blocking — the export proceeds regardless.
+  const warnings: string[] = []
+  for (const { story, assets } of stories) {
+    const model = assets.find((a) => a.path === story.frontmatter.model)
+    const warn = model && describeModelWeight(model.file.name, model.file.size)
+    if (warn) warnings.push(warn)
+  }
 
   const zip = new JSZip()
   const site = zip.folder(dirName)!
@@ -99,5 +110,5 @@ export async function buildSiteZip({ stories, manifest }: BuildSiteOpts): Promis
   zip.file('DEPLOY.md', deployMd({ title, siteDir: dirName }))
 
   const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
-  return { blob, fileName: `${dirName}.zip` }
+  return { blob, fileName: `${dirName}.zip`, warnings }
 }
