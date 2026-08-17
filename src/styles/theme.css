@@ -377,35 +377,6 @@ a:hover {
   white-space: normal;
 }
 
-/* Immersive: a compact row above the footer controls; emphasized next = CTA. */
-.story-nav--immersive .story-nav-links {
-  justify-content: flex-end;
-  align-items: stretch;
-  gap: 12px;
-}
-.story-nav--immersive .story-nav-link {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: rgba(10, 9, 8, 0.5);
-}
-.story-nav--immersive .story-nav-link:hover {
-  border-color: var(--accent-dim);
-}
-.story-nav--immersive .story-nav-title {
-  font-size: 13px;
-  max-width: 26ch;
-}
-.story-nav--immersive .story-nav-next.is-emphasized {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-}
-.story-nav--immersive .story-nav-next.is-emphasized .story-nav-dir {
-  color: var(--text);
-}
 
 /* ── Story items (shared by Mode A & B via ItemContent) ───────────────────── */
 .item {
@@ -770,18 +741,11 @@ a:hover {
   bottom: 0;
   z-index: 3;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px 24px 22px;
-  background: linear-gradient(to top, rgba(10, 9, 8, 0.7), transparent);
-}
-/* The progress + section controls share one space-between row; the story-nav
-   (last section only) stacks above it. */
-.immersive-footer-row {
-  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding: 18px 24px 22px;
+  background: linear-gradient(to top, rgba(10, 9, 8, 0.7), transparent);
 }
 
 .progress {
@@ -826,6 +790,20 @@ a:hover {
   opacity: 0.4;
   cursor: default;
 }
+/* Story-jump buttons reuse the section-button slots but read as an accent so a
+   story change is distinct from a section step. Rendered as an <a> (Link). */
+.nav-btn-story {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  text-decoration: none;
+}
+.nav-btn-story:hover {
+  color: var(--accent);
+  background: var(--panel-2);
+  border-color: var(--accent);
+}
 
 @media (max-width: 640px) {
   /* On phones, anchor the panel to the TOP, just below the *measured* topbar
@@ -856,7 +834,7 @@ a:hover {
     font-size: 11px;
     padding: 7px 10px;
   }
-  .immersive-footer-row {
+  .immersive-footer {
     flex-direction: column;
     gap: 12px;
   }
