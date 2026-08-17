@@ -49,6 +49,13 @@ export function PageView({
     return () => obs.disconnect()
   }, [sections, setActiveIndex])
 
+  // Arriving at a new story (via travel) should start at the top — the reader
+  // was at the bottom of the previous story when they clicked "Continue reading".
+  // PageView stays mounted across the swap, so key this on the story's directory.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [basePath])
+
   return (
     <div className="page">
       <div className="page-topbar">
@@ -116,7 +123,7 @@ export function PageView({
           </Fragment>
         ))}
 
-        <StoryNav variant="page" prev={prev} next={next} />
+        <StoryNav prev={prev} next={next} />
       </article>
     </div>
   )
