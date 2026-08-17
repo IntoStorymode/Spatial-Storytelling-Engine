@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { parseStory } from '../parser/parseStory'
 import type { Story } from '../parser/types'
@@ -15,25 +15,36 @@ interface IndexEntry {
   path: string
 }
 
+/** A story plus its linear neighbours — swapped in as one unit. */
+interface Bundle {
+  story: Story
+  neighbours: Neighbours
+}
+
 /**
- * Viewer (screens 3 & 4) — fetches + parses a story by :id, then renders it in
- * the current mode. ViewerStage stays mounted across the Mode A ⇄ Mode B toggle,
- * so the 3D model is never reloaded; only its child view swaps.
+ * Viewer (screens 3 & 4) — fetches + parses a story by :id and renders it.
+ *
+ * Two bundles are tracked so travel is seamless: `displayed` is what the reader
+ * currently sees; `target` is the latest story parsed from the URL. On a switch
+ * we set `target` but keep showing `displayed` — ViewerStage preloads the target's
+ * model in the background and, once it's ready, commits it and calls `onCommit`,
+ * which promotes target → displayed. So text, model and camera arrive together
+ * with no black gap, and ViewerStage never unmounts (the WebGL context survives).
  */
 export function ViewerRoute() {
   const { id } = useParams<{ id: string }>()
-  const [story, setStory] = useState<Story | null>(null)
-  const [neighbours, setNeighbours] = useState<Neighbours>({ prev: null, next: null })
+  const [displayed, setDisplayed] = useState<Bundle | null>(null)
+  const [target, setTarget] = useState<Bundle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const mode = useStoryStore((s) => s.mode)
-  const reset = useStoryStore((s) => s.reset)
+
+  // Latest target, for the commit callback (which runs in a promise, not render).
+  const targetRef = useRef<Bundle | null>(null)
+  targetRef.current = target
 
   useEffect(() => {
     let cancelled = false
-    setStory(null)
-    setNeighbours({ prev: null, next: null })
     setError(null)
-    reset() // fresh mode/activeIndex/auto-tour per story
 
     async function load() {
       const idxRes = await fetch('stories/index.json')
@@ -48,10 +59,10 @@ export function ViewerRoute() {
 
       const basePath = entry.path.replace(/[^/]+$/, '') // strip filename → directory
       if (!cancelled) {
-        setStory(parseStory(raw, basePath))
-        // Prev/next follow the index's own (unsorted) order — the same order the
-        // gallery lists — so "next" is the story shown after this one on Home.
-        setNeighbours(storyNeighbours(idx, id))
+        // Set the target only. The displayed bundle keeps showing (with its live
+        // viewer) until ViewerStage has the new model ready — see onCommit. Prev/
+        // next follow the index's own (unsorted) order, matching the gallery.
+        setTarget({ story: parseStory(raw, basePath), neighbours: storyNeighbours(idx, id) })
       }
     }
 
@@ -59,7 +70,13 @@ export function ViewerRoute() {
     return () => {
       cancelled = true
     }
-  }, [id, reset])
+  }, [id])
+
+  // The pending model is committed — promote the target to displayed so its text
+  // and neighbours appear in the same batch as the model/camera.
+  const onCommit = useCallback(() => {
+    if (targetRef.current) setDisplayed(targetRef.current)
+  }, [])
 
   if (error) {
     return (
@@ -74,24 +91,35 @@ export function ViewerRoute() {
     )
   }
 
-  if (!story) return <p className="state">Loading story…</p>
+  if (!target) return <p className="state">Loading story…</p>
 
+  // Drive the viewer's per-section/camera effects from the displayed story (or the
+  // target on first load, before anything is shown); preload the target's model.
+  const shown = displayed ?? target
   return (
-    <ViewerStage story={story}>
-      {story.warnings.length > 0 && mode === 'page' && (
-        <div className="warnings">
-          <strong>Parser notes</strong>
-          <ul>
-            {story.warnings.map((w, i) => (
-              <li key={i}>{w}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {mode === 'page' ? (
-        <PageView story={story} prev={neighbours.prev} next={neighbours.next} />
-      ) : (
-        <ImmersiveView story={story} prev={neighbours.prev} next={neighbours.next} />
+    <ViewerStage story={shown.story} pendingStory={target.story} onCommit={onCommit}>
+      {displayed && (
+        <>
+          {displayed.story.warnings.length > 0 && mode === 'page' && (
+            <div className="warnings">
+              <strong>Parser notes</strong>
+              <ul>
+                {displayed.story.warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {mode === 'page' ? (
+            <PageView story={displayed.story} prev={displayed.neighbours.prev} next={displayed.neighbours.next} />
+          ) : (
+            <ImmersiveView
+              story={displayed.story}
+              prev={displayed.neighbours.prev}
+              next={displayed.neighbours.next}
+            />
+          )}
+        </>
       )}
     </ViewerStage>
   )

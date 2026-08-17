@@ -288,6 +288,42 @@ a:hover {
   font-style: italic;
 }
 
+/* Travel hint: on a story-to-story swap the current scene stays fully visible
+   while the next story's model decodes in the background — this is a small,
+   non-blocking pill (above the footer), never a cover. */
+.story-loading {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 15px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+}
+.story-loading .spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--text) 30%, transparent);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-loading .spinner {
+    animation: none;
+  }
+}
+
 /* ── Travel to the neighbouring stories (both reading modes) ───────────────── */
 .story-nav-links {
   display: flex;
