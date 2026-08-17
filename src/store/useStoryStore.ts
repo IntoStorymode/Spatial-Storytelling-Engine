@@ -37,6 +37,12 @@ interface StoryUIState {
   setVideoPlaying: (playing: boolean) => void
   /** Reset UI state when a new story loads. */
   reset: () => void
+  /**
+   * Reset per-story UI on arrival at a story. `keepMode` preserves the reader's
+   * current mode — used for story-to-story travel so an immersive reader stays
+   * immersive — while a fresh entry (`keepMode: false`) opens in page mode.
+   */
+  arrive: (keepMode: boolean) => void
 }
 
 /**
@@ -82,4 +88,6 @@ export const useStoryStore = create<StoryUIState>((set, get) => ({
   // `frontmatter.navigation` by ViewerStage. Resetting it would clobber that seed
   // (a parent route's reset() runs after the child ViewerStage seed effect).
   reset: () => set({ mode: 'page', activeIndex: 0, autoTour: false, videoPlaying: false }),
+  arrive: (keepMode) =>
+    set({ activeIndex: 0, autoTour: false, videoPlaying: false, ...(keepMode ? {} : { mode: 'page' }) }),
 }))

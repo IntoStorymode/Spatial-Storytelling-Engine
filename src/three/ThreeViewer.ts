@@ -254,6 +254,61 @@ export class ThreeViewer {
     if (up) this.controls.elevate(up * step, false)
   }
 
+  /** Whether this viewer has been torn down (its GL context is gone). */
+  get isDisposed(): boolean {
+    return this.disposed
+  }
+
+  /**
+   * Build a model object WITHOUT touching the scene or the current model — so
+   * the current scene stays visible (and interactive) while the next one loads.
+   * The object is NOT added; hand it to `commitModel` (or `discard` it).
+   *
+   * Spark needs our WebGLRenderer (it does sort work outside the render call)
+   * and a redraw hook: its sort is a worker round-trip, so the frame that
+   * triggers it draws with the PREVIOUS ordering. On-demand rendering would
+   * otherwise leave that mis-sorted frame on screen once the loop idles.
+   */
+  loadModelObject(
+    url: string,
+    basePath = '',
+    formatHint?: string,
+    orientation?: 'flip' | 'none',
+  ): Promise<THREE.Object3D> {
+    return loadModel(url, basePath, formatHint, orientation, {
+      scene: this.scene,
+      renderer: this.renderer,
+      onDirty: () => this.invalidate(),
+    })
+  }
+
+  /** Dispose an object that was loaded via `loadModelObject` but never committed. */
+  discard(obj: THREE.Object3D): void {
+    disposeObject(obj)
+  }
+
+  /**
+   * Swap a pre-loaded object in as the current model: add it, frame the camera,
+   * then remove + dispose the PREVIOUS model. Add-before-remove means the scene
+   * is never empty, so switching stories never flashes to the background colour.
+   * `frameObject` reads `currentModel`, so set it before framing.
+   */
+  commitModel(obj: THREE.Object3D): void {
+    if (this.disposed) {
+      disposeObject(obj)
+      return
+    }
+    const prev = this.currentModel
+    this.scene.add(obj)
+    this.currentModel = obj
+    this.frameObject(false)
+    this.invalidate() // ensure the loaded model (and a splat's first sort) draws
+    if (prev) {
+      this.scene.remove(prev)
+      disposeObject(prev)
+    }
+  }
+
   /** Replace the current model. Frames the camera to fit it. */
   async setModel(
     url: string,
@@ -261,28 +316,8 @@ export class ThreeViewer {
     formatHint?: string,
     orientation?: 'flip' | 'none',
   ): Promise<THREE.Object3D> {
-    if (this.currentModel) {
-      this.scene.remove(this.currentModel)
-      disposeObject(this.currentModel)
-      this.currentModel = null
-    }
-    // Spark needs our WebGLRenderer (it does sort work outside the render call)
-    // and a redraw hook: its sort is a worker round-trip, so the frame that
-    // triggers it draws with the PREVIOUS ordering. On-demand rendering would
-    // otherwise leave that mis-sorted frame on screen once the loop idles.
-    const obj = await loadModel(url, basePath, formatHint, orientation, {
-      scene: this.scene,
-      renderer: this.renderer,
-      onDirty: () => this.invalidate(),
-    })
-    if (this.disposed) {
-      disposeObject(obj)
-      return obj
-    }
-    this.scene.add(obj)
-    this.currentModel = obj
-    this.frameObject(false)
-    this.invalidate() // ensure the loaded model (and a splat's first sort) draws
+    const obj = await this.loadModelObject(url, basePath, formatHint, orientation)
+    this.commitModel(obj) // no-ops the add + disposes obj if we were torn down mid-load
     return obj
   }
 
