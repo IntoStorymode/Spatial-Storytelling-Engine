@@ -26,6 +26,9 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
   to a single scan.
 - **Point-cloud polish** — percentile-based framing for point clouds (splats already have it), a
   warning for very large clouds, and a per-file up-axis override for scans that are not Z-up.
+- **Edit curated links in the editor.** A story's `links:` (curated links to related stories) works
+  by hand-editing `story.md` and round-trips through the editor untouched, but there's no UI field to
+  set them yet.
 
 ## Reading
 
@@ -34,11 +37,10 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
   considered non-visual story.
 - **Mobile refinement** of the immersive view — the overlay is workable but was designed on desktop.
 - **Transition polish** between sections and between the two modes.
-- **Travel between stories.** A reader currently has to return to the gallery to move on. Add a
-  next/previous path (ordered by the gallery) and optional curated links between stories, so a set
-  can be read as a sequence or a web. The scene swap should be seamless — keeping the 3D context
-  alive rather than reloading — with controls in both reading modes. Targets come from the
-  deployment's own story index, so a single-story export simply shows none.
+- **Curated links in immersive mode.** Travel between stories shipped — next/previous by gallery
+  order (a seamless in-place swap) plus optional curated `links:`, shown as "Related stories" at the
+  end of the page view. Those curated links aren't yet surfaced in the immersive view, which still
+  offers only the linear next/previous — give them a home there too (e.g. a small menu on the footer).
 
 ## Platform
 
@@ -47,6 +49,13 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
   step from a single-author engine toward the shared-infrastructure idea in the
   [vision](./docs/VISION.md).
 - **Story discovery** — a map or index browse mode, secondary to stories rather than replacing them.
+- **Record the story-format history against engine versions.** The `story.md` / `index.json` schema
+  evolves by adding optional fields (recently `links:` and `modelBytes`), and old files keep working
+  by discipline — optional fields, ignore-unknown parsing, round-trip tests — rather than an enforced
+  version. Add a human-readable format-history doc (which engine version introduced or changed which
+  field, and its backward-compatibility note) so the contract is auditable. This first needs the
+  engine to carry a real version — `package.json` is still `0.0.0`, though the export manifest already
+  has an `appVersion` slot to carry it. Stories themselves stay plain and unversioned.
 
 Anything requiring accounts, server-side storage or moderation is out of scope for the engine by
 design. Those belong to a platform layer built on top of it — see
