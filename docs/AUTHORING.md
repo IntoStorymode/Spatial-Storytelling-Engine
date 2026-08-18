@@ -121,6 +121,7 @@ start: entrance-hall          # optional — name of the opening view
 | `orientation` | no | Splat up-axis override: `flip` (force upright) or `none` (no correction). Absent = auto. See [Gaussian splats](./GAUSSIAN-SPLATS.md#orientation). |
 | `waypoints` | no | Named camera views (`name` + `position` + `target` in world coordinates). Sections reference them by `name`; several sections can share one. |
 | `start` | no | **Name** of the waypoint used as the opening view. If absent, the first section's waypoint opens the story; if neither resolves, the camera is auto-framed from the model bounds. |
+| `links` | no | A list of other stories' **ids** (their folder name / gallery id) to feature as "Related stories" at the end of the page view — a curated path on top of the automatic previous/next order. Resolved against the deployment's own story index, so an id that isn't in a given export simply doesn't appear. Example: `links:` then `  - "greenwich-foundation-architecture"` on the next line. |
 
 ### Section blocks
 

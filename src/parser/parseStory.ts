@@ -114,6 +114,19 @@ export function parseStory(raw: string, basePath = ''): Story {
         if (orient === 'flip' || orient === 'none') frontmatter.orientation = orient
         else warnings.push(`Frontmatter orientation: expected "flip" or "none", got "${orient}"`)
       }
+      if (data.links !== undefined) {
+        if (Array.isArray(data.links)) {
+          const links = data.links
+            .filter((l): l is string => typeof l === 'string' && l.trim().length > 0)
+            .map((l) => l.trim())
+          if (links.length !== data.links.length) {
+            warnings.push('Frontmatter links: each entry must be a non-empty story id')
+          }
+          if (links.length) frontmatter.links = links
+        } else {
+          warnings.push('Frontmatter links: expected a list of story ids')
+        }
+      }
     } catch (e) {
       warnings.push(`Frontmatter parse error: ${String(e)}`)
     }

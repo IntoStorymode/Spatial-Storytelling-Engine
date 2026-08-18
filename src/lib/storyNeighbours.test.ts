@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { storyNeighbours } from './storyNeighbours'
+import { resolveStoryLinks, storyNeighbours } from './storyNeighbours'
 
 const index = [
   { id: 'a', title: 'Alpha' },
@@ -45,5 +45,27 @@ describe('storyNeighbours', () => {
     ]
     expect(storyNeighbours(unsorted, 'z').next).toEqual({ id: 'm', title: 'Mike' })
     expect(storyNeighbours(unsorted, 'm').next).toEqual({ id: 'a', title: 'Alpha' })
+  })
+})
+
+describe('resolveStoryLinks', () => {
+  it('resolves slugs to index entries, preserving author order', () => {
+    expect(resolveStoryLinks(index, ['c', 'a'], 'b')).toEqual([
+      { id: 'c', title: 'Charlie' },
+      { id: 'a', title: 'Alpha' },
+    ])
+  })
+
+  it('drops slugs not in this deployment (no dead links)', () => {
+    expect(resolveStoryLinks(index, ['a', 'missing'], 'b')).toEqual([{ id: 'a', title: 'Alpha' }])
+  })
+
+  it('drops a self-reference and duplicates', () => {
+    expect(resolveStoryLinks(index, ['b', 'a', 'a'], 'b')).toEqual([{ id: 'a', title: 'Alpha' }])
+  })
+
+  it('returns nothing for empty/absent links', () => {
+    expect(resolveStoryLinks(index, undefined, 'a')).toEqual([])
+    expect(resolveStoryLinks(index, [], 'a')).toEqual([])
   })
 })

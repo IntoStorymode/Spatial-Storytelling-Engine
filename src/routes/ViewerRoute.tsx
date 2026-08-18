@@ -6,8 +6,8 @@ import { useStoryStore } from '../store/useStoryStore'
 import { ViewerStage } from '../components/viewer/ViewerStage'
 import { PageView } from '../components/viewer/PageView'
 import { ImmersiveView } from '../components/viewer/ImmersiveView'
-import { storyNeighbours } from '../lib/storyNeighbours'
-import type { Neighbours } from '../lib/storyNeighbours'
+import { resolveStoryLinks, storyNeighbours } from '../lib/storyNeighbours'
+import type { Neighbour, Neighbours } from '../lib/storyNeighbours'
 
 interface IndexEntry {
   id: string
@@ -15,10 +15,12 @@ interface IndexEntry {
   path: string
 }
 
-/** A story plus its linear neighbours — swapped in as one unit. */
+/** A story plus its index-derived navigation — swapped in as one unit. */
 interface Bundle {
   story: Story
   neighbours: Neighbours
+  /** Curated links resolved against the live index (existing targets only). */
+  links: Neighbour[]
 }
 
 /**
@@ -61,8 +63,14 @@ export function ViewerRoute() {
       if (!cancelled) {
         // Set the target only. The displayed bundle keeps showing (with its live
         // viewer) until ViewerStage has the new model ready — see onCommit. Prev/
-        // next follow the index's own (unsorted) order, matching the gallery.
-        setTarget({ story: parseStory(raw, basePath), neighbours: storyNeighbours(idx, id) })
+        // next follow the index's own (unsorted) order, matching the gallery;
+        // curated links are resolved against that same index (existing only).
+        const story = parseStory(raw, basePath)
+        setTarget({
+          story,
+          neighbours: storyNeighbours(idx, id),
+          links: resolveStoryLinks(idx, story.frontmatter.links, id),
+        })
       }
     }
 
@@ -111,7 +119,12 @@ export function ViewerRoute() {
             </div>
           )}
           {mode === 'page' ? (
-            <PageView story={displayed.story} prev={displayed.neighbours.prev} next={displayed.neighbours.next} />
+            <PageView
+              story={displayed.story}
+              prev={displayed.neighbours.prev}
+              next={displayed.neighbours.next}
+              links={displayed.links}
+            />
           ) : (
             <ImmersiveView
               story={displayed.story}
