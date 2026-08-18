@@ -13,12 +13,16 @@ interface IndexEntry {
   id: string
   title: string
   path: string
+  /** Model file size on disk — a fallback total for the download % (see indexEntry). */
+  modelBytes?: number
 }
 
 /** A story plus its index-derived navigation — swapped in as one unit. */
 interface Bundle {
   story: Story
   neighbours: Neighbours
+  /** The model's byte size, when the index carries it (for the download %). */
+  modelBytes?: number
   /** Curated links resolved against the live index (existing targets only). */
   links: Neighbour[]
 }
@@ -70,6 +74,7 @@ export function ViewerRoute() {
           story,
           neighbours: storyNeighbours(idx, id),
           links: resolveStoryLinks(idx, story.frontmatter.links, id),
+          modelBytes: entry.modelBytes,
         })
       }
     }
@@ -105,7 +110,12 @@ export function ViewerRoute() {
   // target on first load, before anything is shown); preload the target's model.
   const shown = displayed ?? target
   return (
-    <ViewerStage story={shown.story} pendingStory={target.story} onCommit={onCommit}>
+    <ViewerStage
+      story={shown.story}
+      pendingStory={target.story}
+      pendingModelBytes={target.modelBytes}
+      onCommit={onCommit}
+    >
       {displayed && (
         <>
           {displayed.story.warnings.length > 0 && mode === 'page' && (

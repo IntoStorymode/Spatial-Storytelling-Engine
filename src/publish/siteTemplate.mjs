@@ -51,8 +51,14 @@ export function injectPublishedMarker(html) {
 /**
  * The registry entry for one story, matching public/stories/index.json's shape.
  * `fm` is the story frontmatter ({ title, author, location, date, ... }).
+ *
+ * `modelBytes` (optional) is the model file's size on disk. It lets the viewer
+ * show a real download percentage even when the host serves the model compressed
+ * without a `Content-Length` (e.g. Vercel Brotli-encoding a .sog): the browser
+ * decompresses transparently, so the bytes read climb toward this uncompressed
+ * size. Omitted for `builtin:` models or when the size is unknown.
  */
-export function indexEntry(fm, slug) {
+export function indexEntry(fm, slug, modelBytes) {
   return {
     id: slug,
     title: fm.title ?? slug,
@@ -60,6 +66,7 @@ export function indexEntry(fm, slug) {
     location: fm.location ?? '',
     date: fm.date ?? '',
     path: `stories/${slug}/story.md`,
+    ...(typeof modelBytes === 'number' && modelBytes > 0 ? { modelBytes } : {}),
   }
 }
 

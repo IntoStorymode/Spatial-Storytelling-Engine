@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ThreeViewer } from '../../three/ThreeViewer'
 import type { Story } from '../../parser/types'
 import { resolveWaypoint } from '../../parser/waypoints'
+import { extOf, isSplatExt } from '../../lib/modelFormats'
 import { useStoryStore } from '../../store/useStoryStore'
 import { StageContext } from './stageContext'
 import { DebugHud } from './DebugHud'
@@ -36,6 +37,7 @@ export function ViewerStage({
   pendingStory,
   onCommit,
   modelFormat,
+  pendingModelBytes,
   children,
 }: {
   story: Story
@@ -45,6 +47,8 @@ export function ViewerStage({
   onCommit?: (committed: Story) => void
   /** Format hint for a blob: model URL (preview of an uploaded file). */
   modelFormat?: string
+  /** The pending model's byte size — the download-% total when the host omits Content-Length. */
+  pendingModelBytes?: number
   children: ReactNode
 }) {
   const { sections, frontmatter } = story
@@ -136,16 +140,27 @@ export function ViewerStage({
     setSlowLoad(false)
     const slowTimer = window.setTimeout(() => !cancelled && setSlowLoad(true), 1000)
 
+    // For a splat, Spark streams the fetch and the browser decompresses, so the
+    // bytes read climb toward the model's UNCOMPRESSED size — which is what the
+    // index stamped. Prefer that stamped total: it's correct even when the host
+    // serves the model compressed and drops Content-Length (Vercel Brotli), and
+    // when the server total IS the compressed size (which would overshoot). Only
+    // splats get this — a mesh's XHR progress can't be trusted against it.
+    const stampedTotal =
+      isSplatExt(extOf(pending.frontmatter.model)) && pendingModelBytes ? pendingModelBytes : 0
+
     viewer
       .loadModelObject(
         pending.frontmatter.model,
         pending.basePath,
         modelFormat,
         pending.frontmatter.orientation,
-        (loaded, total) => {
+        (loaded, serverTotal) => {
+          if (cancelled) return
+          const total = stampedTotal > 0 ? stampedTotal : serverTotal
           // Cap at 99: the 100% download still has a decode tail, so never show
           // a "done" number while the scene is still coming up.
-          if (!cancelled && total > 0) setProgress(Math.min(99, Math.round((loaded / total) * 100)))
+          if (total > 0) setProgress(Math.min(99, Math.round((loaded / total) * 100)))
         },
       )
       .then((obj) => {
@@ -181,7 +196,7 @@ export function ViewerStage({
       cancelled = true
       window.clearTimeout(slowTimer)
     }
-  }, [viewer, pending, modelFormat, arrive, onCommit])
+  }, [viewer, pending, modelFormat, pendingModelBytes, arrive, onCommit])
 
   // A fresh entry into Mode A should open on the story start view, not jump
   // straight to section 1's waypoint — so reset the "opened" latch in Mode B.
