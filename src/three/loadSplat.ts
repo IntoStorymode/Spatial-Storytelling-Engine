@@ -108,6 +108,7 @@ export async function loadSplat(
   ext?: string,
   orientation?: 'flip' | 'none',
   ctx?: SplatContext,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<THREE.Object3D> {
   const { SplatMesh } = await import('@sparkjsdev/spark')
   if (ctx) await ensureSparkRenderer(ctx)
@@ -120,9 +121,16 @@ export async function loadSplat(
   // braces for .ply/.spz. Note we do NOT pass `fileName` as a second detection
   // chance: when `url` is set Spark forwards `pathName: resolvedURL || fileName`,
   // so the blob URL shadows it and it is never consulted.
+  //
+  // `onProgress` reports the DOWNLOAD (fetch) bytes — meaningful for a hosted
+  // story over the network; a local file downloads near-instantly and the wait
+  // is the decode, which the loader does not report.
   const mesh = new SplatMesh({
     url: resolvedUrl,
     ...(fileType !== undefined ? { fileType: fileType as never } : {}),
+    ...(onProgress
+      ? { onProgress: (e: ProgressEvent) => onProgress(e.loaded, e.lengthComputable ? e.total : 0) }
+      : {}),
   })
   await mesh.initialized
 

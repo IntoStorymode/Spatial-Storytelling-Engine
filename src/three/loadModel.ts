@@ -22,6 +22,7 @@ export async function loadModel(
   formatHint?: string,
   orientation?: 'flip' | 'none',
   splatContext?: SplatContext,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<THREE.Object3D> {
   if (url.startsWith('builtin:')) {
     return buildPrimitive(url.slice('builtin:'.length))
@@ -33,7 +34,10 @@ export async function loadModel(
   const resolved = resolveUrl(url, basePath)
 
   if (isMeshExt(ext)) {
-    const gltf = await new GLTFLoader().loadAsync(resolved)
+    const gltf = await new GLTFLoader().loadAsync(
+      resolved,
+      onProgress ? (e) => onProgress(e.loaded, e.lengthComputable ? e.total : 0) : undefined,
+    )
     gltf.scene.name = 'gltf-model'
     return gltf.scene
   }
@@ -45,7 +49,7 @@ export async function loadModel(
     if (ext === 'ply' && !(await plyIsSplat(resolved))) {
       return loadPly(resolved)
     }
-    return loadSplat(resolved, ext, orientation, splatContext)
+    return loadSplat(resolved, ext, orientation, splatContext, onProgress)
   }
 
   throw new Error(`Unsupported model format: "${url}"`)

@@ -101,6 +101,11 @@ export function ViewerStage({
   // Set once the first model has ever been committed — gates the full spinner
   // (shown only before the very first story appears).
   const [hasCommitted, setHasCommitted] = useState(false)
+  // Download progress (0–99) of the loading model, or null when not computable.
+  // Only surfaced once a load has run past ~1s (see `slowLoad`), so quick loads
+  // don't flash a number. Reflects download bytes, not the decode that follows.
+  const [progress, setProgress] = useState<number | null>(null)
+  const [slowLoad, setSlowLoad] = useState(false)
   // Model key of the currently committed model, or null before the first commit.
   const committedKeyRef = useRef<string | null>(null)
   // Whether Mode A has shown its opening frame yet (resets when leaving immersive).
@@ -125,8 +130,24 @@ export function ViewerStage({
     setLoading(true)
     if (!isFirst) setSwapping(true) // first load uses the full spinner instead
 
+    // Reveal a percentage only once a load is genuinely slow (~1s+), so fast
+    // swaps don't flicker a number.
+    setProgress(null)
+    setSlowLoad(false)
+    const slowTimer = window.setTimeout(() => !cancelled && setSlowLoad(true), 1000)
+
     viewer
-      .loadModelObject(pending.frontmatter.model, pending.basePath, modelFormat, pending.frontmatter.orientation)
+      .loadModelObject(
+        pending.frontmatter.model,
+        pending.basePath,
+        modelFormat,
+        pending.frontmatter.orientation,
+        (loaded, total) => {
+          // Cap at 99: the 100% download still has a decode tail, so never show
+          // a "done" number while the scene is still coming up.
+          if (!cancelled && total > 0) setProgress(Math.min(99, Math.round((loaded / total) * 100)))
+        },
+      )
       .then((obj) => {
         if (cancelled || viewer.isDisposed) {
           viewer.discard(obj) // a newer target superseded this, or we were torn down
@@ -148,13 +169,17 @@ export function ViewerStage({
         setLoadError(e instanceof Error ? e.message : String(e))
       })
       .finally(() => {
+        window.clearTimeout(slowTimer)
         if (cancelled) return
         setLoading(false)
         setSwapping(false)
+        setSlowLoad(false)
+        setProgress(null)
       })
 
     return () => {
       cancelled = true
+      window.clearTimeout(slowTimer)
     }
   }, [viewer, pending, modelFormat, arrive, onCommit])
 
@@ -235,6 +260,9 @@ export function ViewerStage({
     viewer?.setRenderPaused(videoPlaying)
   }, [viewer, videoPlaying])
 
+  // A percentage suffix, only once the load has run slow enough to warrant it.
+  const pct = slowLoad && progress != null ? ` ${progress}%` : ''
+
   return (
     <StageContext.Provider value={{ hostEl: hostRef.current, viewer }}>
       {debugTuning().debug && <DebugHud viewer={viewer} />}
@@ -247,7 +275,7 @@ export function ViewerStage({
       {loading && !loadError && !hasCommitted && (
         <div className="model-loading" role="status">
           <span className="spinner" aria-hidden="true" />
-          Loading model…
+          Loading model…{pct}
         </div>
       )}
       {children}
@@ -256,7 +284,7 @@ export function ViewerStage({
       {swapping && (
         <div className="story-loading" role="status">
           <span className="spinner" aria-hidden="true" />
-          Loading next story…
+          Loading story…{pct}
         </div>
       )}
     </StageContext.Provider>

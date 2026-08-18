@@ -274,12 +274,20 @@ export class ThreeViewer {
     basePath = '',
     formatHint?: string,
     orientation?: 'flip' | 'none',
+    onProgress?: (loaded: number, total: number) => void,
   ): Promise<THREE.Object3D> {
-    return loadModel(url, basePath, formatHint, orientation, {
-      scene: this.scene,
-      renderer: this.renderer,
-      onDirty: () => this.invalidate(),
-    })
+    return loadModel(
+      url,
+      basePath,
+      formatHint,
+      orientation,
+      {
+        scene: this.scene,
+        renderer: this.renderer,
+        onDirty: () => this.invalidate(),
+      },
+      onProgress,
+    )
   }
 
   /** Dispose an object that was loaded via `loadModelObject` but never committed. */

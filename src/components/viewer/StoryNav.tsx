@@ -21,37 +21,46 @@ export function StoryNav({
 
   return (
     <nav className="story-nav story-nav--page" aria-label="Other stories">
-      <p className="story-nav-heading">Continue reading</p>
-      {(prev || next) && (
-        <div className="story-nav-links">
-          {prev ? (
-            <Link to={`/story/${prev.id}`} className="story-nav-link story-nav-prev">
-              <span className="story-nav-dir">← Previous story</span>
-              <span className="story-nav-title">{prev.title}</span>
-            </Link>
-          ) : (
-            <span />
-          )}
-          {next && (
-            <Link to={`/story/${next.id}`} className="story-nav-link story-nav-next">
-              <span className="story-nav-dir">Next story →</span>
-              <span className="story-nav-title">{next.title}</span>
-            </Link>
-          )}
-        </div>
-      )}
       {links.length > 0 && (
         <div className="story-nav-related">
-          <p className="story-nav-related-label">Related stories</p>
-          <ul className="story-chips">
+          <p className="story-nav-heading">Related stories</p>
+          <ul className="story-nav-related-list">
             {links.map((l) => (
               <li key={l.id}>
-                <Link to={`/story/${l.id}`} className="story-chip">
+                <span className="story-nav-related-arrow" aria-hidden="true">
+                  →
+                </span>
+                <Link to={`/story/${l.id}`} className="story-nav-related-link">
                   {l.title}
                 </Link>
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {(prev || next) && (
+        <div className="story-nav-continue">
+          <p className="story-nav-heading">Continue reading</p>
+          <div className="story-nav-links">
+            {prev ? (
+              <div className="story-nav-link story-nav-prev">
+                <span className="story-nav-dir">← Previous story</span>
+                <Link to={`/story/${prev.id}`} className="story-nav-title">
+                  {prev.title}
+                </Link>
+              </div>
+            ) : (
+              <span />
+            )}
+            {next && (
+              <div className="story-nav-link story-nav-next">
+                <span className="story-nav-dir">Next story →</span>
+                <Link to={`/story/${next.id}`} className="story-nav-title">
+                  {next.title}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>

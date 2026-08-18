@@ -336,6 +336,9 @@ a:hover {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  /* Only the title is a link; the direction eyebrow is plain text. Shrink
+     children to content so the click target is the title text, not the column. */
+  align-items: flex-start;
 }
 .story-nav-dir {
   font-family: var(--font-mono);
@@ -347,9 +350,11 @@ a:hover {
 .story-nav-title {
   color: var(--text);
   font-size: 15px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.story-nav-title:hover {
+  color: var(--accent);
 }
 
 /* Page view: an end-of-scroll block, set off from the last section. */
@@ -369,6 +374,7 @@ a:hover {
 .story-nav--page .story-nav-next {
   margin-left: auto;
   text-align: right;
+  align-items: flex-end; /* eyebrow + title hug the right edge */
 }
 .story-nav--page .story-nav-title {
   font-family: var(--font-display);
@@ -377,41 +383,40 @@ a:hover {
   white-space: normal;
 }
 
-/* Curated links (frontmatter `links:`) — a chip row of related stories, shown
-   under the linear prev/next when the author declared any. */
-.story-nav-related {
-  margin-top: 28px;
-}
-.story-nav-related-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 12px;
-}
-.story-chips {
+/* Curated links (frontmatter `links:`) — "Related stories", shown ABOVE the
+   linear prev/next. Titles use the reading display face like the section
+   headings and the Continue-reading titles, not a cramped pill. */
+.story-nav-related-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 14px;
 }
-.story-chip {
-  display: inline-block;
-  padding: 7px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--text);
-  font-size: 14px;
-  text-decoration: none;
-  transition: background 120ms ease, border-color 120ms ease;
+/* Arrow is decoration beside the link, not part of the click target. */
+.story-nav-related-list li {
+  display: flex;
+  align-items: baseline;
 }
-.story-chip:hover {
-  background: var(--panel-2);
-  border-color: var(--accent);
+.story-nav-related-arrow {
   color: var(--accent);
+  margin-right: 12px;
+}
+.story-nav-related-link {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.story-nav-related-link:hover {
+  color: var(--accent);
+}
+/* When both blocks show, set Continue reading off from Related above it. */
+.story-nav-related + .story-nav-continue {
+  margin-top: 44px;
 }
 
 
