@@ -377,6 +377,43 @@ a:hover {
   white-space: normal;
 }
 
+/* Curated links (frontmatter `links:`) — a chip row of related stories, shown
+   under the linear prev/next when the author declared any. */
+.story-nav-related {
+  margin-top: 28px;
+}
+.story-nav-related-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.story-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.story-chip {
+  display: inline-block;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.story-chip:hover {
+  background: var(--panel-2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 
 /* ── Story items (shared by Mode A & B via ItemContent) ───────────────────── */
 .item {

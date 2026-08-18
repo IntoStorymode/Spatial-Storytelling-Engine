@@ -36,6 +36,10 @@ export function serializeStory(story: Story): string {
     }
   }
   if (fm.start) headLines.push(`start: ${fm.start}`)
+  if (fm.links && fm.links.length) {
+    headLines.push('links:')
+    for (const slug of fm.links) headLines.push(`  - "${slug}"`)
+  }
   headLines.push('---')
   const head = headLines.join('\n')
 

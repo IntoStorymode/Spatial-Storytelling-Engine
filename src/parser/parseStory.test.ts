@@ -290,4 +290,28 @@ describe('story parser — model orientation override', () => {
     expect(story.frontmatter.orientation).toBeUndefined()
     expect(story.warnings.some((w) => w.includes('orientation'))).toBe(true)
   })
+
+  it('round-trips a story with curated links', () => {
+    const withLinks =
+      '---\ntitle: "x"\nlinks:\n  - "other-a"\n  - "other-b"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    const s1 = parseStory(withLinks, BASE)
+    expect(s1.frontmatter.links).toEqual(['other-a', 'other-b'])
+    const s2 = parseStory(serializeStory(s1), BASE)
+    expect(s2.frontmatter).toEqual(s1.frontmatter)
+    expect(s2.warnings).toEqual([])
+  })
+
+  it('drops non-string / empty link entries with a warning', () => {
+    const md = '---\ntitle: "x"\nlinks:\n  - "ok"\n  - ""\n  - 5\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    const story = parseStory(md, BASE)
+    expect(story.frontmatter.links).toEqual(['ok'])
+    expect(story.warnings.some((w) => w.includes('links'))).toBe(true)
+  })
+
+  it('ignores a links value that is not a list', () => {
+    const md = '---\ntitle: "x"\nlinks: "not-a-list"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    const story = parseStory(md, BASE)
+    expect(story.frontmatter.links).toBeUndefined()
+    expect(story.warnings.some((w) => w.includes('links'))).toBe(true)
+  })
 })

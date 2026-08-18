@@ -31,3 +31,29 @@ export function storyNeighbours(stories: Neighbour[], id: string | undefined): N
   }
   return { prev: pick(at - 1), next: pick(at + 1) }
 }
+
+/**
+ * Resolve a story's curated link slugs against the live index — keeping only
+ * targets that actually exist in this deployment (so a slug absent from a given
+ * export never renders a dead link), dropping any self-reference and duplicates,
+ * and preserving the author's order. Each result carries the index entry's title.
+ */
+export function resolveStoryLinks(
+  stories: Neighbour[],
+  slugs: string[] | undefined,
+  currentId: string | undefined,
+): Neighbour[] {
+  if (!slugs?.length) return []
+  const byId = new Map(stories.map((s) => [s.id, s]))
+  const seen = new Set<string>()
+  const out: Neighbour[] = []
+  for (const slug of slugs) {
+    if (slug === currentId || seen.has(slug)) continue
+    const entry = byId.get(slug)
+    if (entry) {
+      out.push({ id: entry.id, title: entry.title })
+      seen.add(slug)
+    }
+  }
+  return out
+}

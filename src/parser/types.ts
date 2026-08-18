@@ -75,6 +75,14 @@ export interface Frontmatter {
    * splat models only — meshes are Y-up by spec.
    */
   orientation?: 'flip' | 'none'
+  /**
+   * Curated links to other stories in the same deployment, by their index id.
+   * A non-linear layer on top of the gallery-order prev/next path — a story can
+   * point a reader at specific related stories (a web, not just a line). Targets
+   * are resolved against the live `stories/index.json` at render time, so a slug
+   * absent from a given export simply doesn't appear. Absent/empty = none.
+   */
+  links?: string[]
 }
 
 export interface Story {

@@ -20,11 +20,13 @@ export function PageView({
   hideBack,
   prev = null,
   next = null,
+  links = [],
 }: {
   story: Story
   hideBack?: boolean
   prev?: Neighbour | null
   next?: Neighbour | null
+  links?: Neighbour[]
 }) {
   const { frontmatter: fm, sections, basePath } = story
   const { id } = useParams<{ id: string }>()
@@ -123,7 +125,7 @@ export function PageView({
           </Fragment>
         ))}
 
-        <StoryNav prev={prev} next={next} />
+        <StoryNav prev={prev} next={next} links={links} />
       </article>
     </div>
   )
