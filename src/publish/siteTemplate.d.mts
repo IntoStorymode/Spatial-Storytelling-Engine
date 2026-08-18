@@ -14,7 +14,9 @@ export interface IndexEntry {
   location: string
   date: string
   path: string
+  /** Model file size on disk; a fallback total for the viewer's download %. */
+  modelBytes?: number
 }
-export function indexEntry(fm: Partial<Frontmatter>, slug: string): IndexEntry
+export function indexEntry(fm: Partial<Frontmatter>, slug: string, modelBytes?: number): IndexEntry
 
 export function deployMd(opts: { title: string; siteDir: string }): string

@@ -88,10 +88,21 @@ export async function buildSiteZip({ stories, manifest }: BuildSiteOpts): Promis
   // published marker goes on every export so the hosted site is read-only.
   site.file('index.html', injectPublishedMarker(single ? injectKiosk(html, stories[0].slug) : html))
 
-  // 2. The registry: one entry per exported story.
+  // 2. The registry: one entry per exported story. Stamp the model's byte size
+  //    so the viewer can show a real download % even on hosts that compress the
+  //    model without a Content-Length (see indexEntry).
   site.file(
     'stories/index.json',
-    JSON.stringify({ stories: stories.map((s) => indexEntry(s.story.frontmatter, s.slug)) }, null, 2),
+    JSON.stringify(
+      {
+        stories: stories.map((s) => {
+          const model = s.assets.find((a) => a.path === s.story.frontmatter.model)
+          return indexEntry(s.story.frontmatter, s.slug, model?.file.size)
+        }),
+      },
+      null,
+      2,
+    ),
   )
 
   // 3. Each story's data: serialized story.md + its uploaded assets (deduped).

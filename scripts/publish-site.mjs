@@ -97,6 +97,20 @@ function entryFromFrontmatter() {
 const entry = entryFromIndex() ?? entryFromFrontmatter()
 entry.path = `stories/${slug}/story.md` // ensure relative, regardless of source
 
+// Stamp the model's byte size (the committed index entry may not carry it) so the
+// viewer can show a real download % even on hosts that serve the model compressed
+// without a Content-Length — see indexEntry in src/publish/siteTemplate.mjs.
+try {
+  const m = readFileSync(storyMd, 'utf8').match(/^---\n([\s\S]*?)\n---/)
+  const model = String((m ? (yaml.load(m[1]) ?? {}) : {}).model ?? '')
+  if (model && !model.startsWith('builtin:')) {
+    const modelPath = join(storyDir, model)
+    if (existsSync(modelPath)) entry.modelBytes = statSync(modelPath).size
+  }
+} catch {
+  /* leave modelBytes off — it's an optional optimisation */
+}
+
 // ── 3. Build the app (gen-assets + tsc + vite) ───────────────────────────────
 console.log(`publish-site: building "${entry.title}" (${slug})…`)
 execSync('npm run build', { cwd: ROOT, stdio: 'inherit' })
