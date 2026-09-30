@@ -14,8 +14,8 @@ interface Props {
 }
 
 /**
- * Pick an exported story to import — as the .zip, or as the folder you unzipped it
- * into. A native file picker can only be one or the other (`webkitdirectory` switches
+ * Pick an exported story or collection to import — as the .zip, or as the folder you
+ * unzipped it into. A native file picker can only be one or the other (`webkitdirectory` switches
  * the OS dialog into folder mode), so the drop zone is what unifies them: both shapes
  * can be dropped on it. The two "choose" links are the click-only fallback.
  */
@@ -67,10 +67,10 @@ export function ImportDialog({ busy, onBundle, onCancel }: Props) {
           }}
         >
           {busy ? (
-            <p>… reading the story</p>
+            <p>… reading the files</p>
           ) : (
             <>
-              <p className="import-drop-lead">Drop the exported story here</p>
+              <p className="import-drop-lead">Drop the exported site here</p>
               <p className="muted">
                 the <code>.zip</code>, or the folder you unzipped it into
               </p>

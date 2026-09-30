@@ -7,7 +7,7 @@ import { collectAssets } from '../publish/collectAssets'
 import { triggerDownload } from '../publish/download'
 import { isPublishedSite } from '../publish/published'
 import { importSite, type Bundle } from '../publish/importSite'
-import { toSavedStory } from '../publish/importSnapshot'
+import { toSavedCollection, toSavedStory } from '../publish/importSnapshot'
 import { ImportDialog } from '../components/ImportDialog'
 import {
   hostCollectionEntry,
@@ -28,6 +28,8 @@ interface StoryIndexEntry {
 /** What an import produced, so its warnings are shown rather than swallowed. */
 interface ImportReport {
   imported: { slug: string; title: string; warnings: string[] }[]
+  /** The collection the bundle carried, when it had one. */
+  collection: { slug: string; title: string; warnings: string[] } | null
   error: string | null
 }
 
@@ -51,6 +53,8 @@ export function HomeRoute() {
 
   const saved = useGalleryStore((s) => s.stories)
   const removeSaved = useGalleryStore((s) => s.remove)
+  const savedCollections = useGalleryStore((s) => s.collections)
+  const removeSavedCollection = useGalleryStore((s) => s.removeCollection)
 
   // Importing an exported story back in (a .zip, or the same site as a folder).
   const [picking, setPicking] = useState(false)
@@ -118,27 +122,45 @@ export function HomeRoute() {
     setReport(null)
     try {
       const gallery = useGalleryStore.getState()
-      const result = await importSite(bundle, { takenSlugs: gallery.stories.map((s) => s.slug) })
-      if (!result.stories.length) {
-        setReport({ imported: [], error: result.warnings[0] ?? 'Nothing to import.' })
+      const result = await importSite(bundle, {
+        takenSlugs: gallery.stories.map((s) => s.slug),
+        takenCollectionSlugs: gallery.collections.map((c) => c.slug),
+      })
+      // A collection alone is importable (a hand-authored folder), so "nothing
+      // came back" means neither a story nor a collection did.
+      if (!result.stories.length && !result.collection) {
+        setReport({ imported: [], collection: null, error: result.warnings[0] ?? 'Nothing to import.' })
         return
       }
       const now = Date.now()
       for (const story of result.stories) gallery.save(toSavedStory(story, now))
+      if (result.collection) gallery.saveCollection(toSavedCollection(result.collection, now))
       setReport({
         imported: result.stories.map((s) => ({
           slug: s.slug,
           title: s.story.frontmatter.title || 'Untitled story',
           warnings: s.warnings,
         })),
+        collection: result.collection
+          ? {
+              slug: result.collection.slug,
+              title: result.collection.collection.title || 'Untitled collection',
+              warnings: [...result.collection.warnings, ...result.warnings],
+            }
+          : null,
         error: null,
       })
     } catch (e) {
-      setReport({ imported: [], error: `Could not read that story: ${String(e)}` })
+      setReport({ imported: [], collection: null, error: `Could not read that: ${String(e)}` })
     } finally {
       setImporting(false)
     }
   }
+
+  // Which story ids a collection's `stories:` list can actually resolve to right
+  // now — the session gallery plus whatever this deployment's index carries.
+  const sessionStoryIds = new Set(saved.map((s) => s.slug))
+  const indexStoryIds = new Set((stories ?? []).map((s) => s.id))
 
   const importedSlugs = new Set(report?.imported.map((i) => i.slug))
   const justImported = saved.filter((s) => importedSlugs.has(s.slug))
@@ -204,9 +226,9 @@ export function HomeRoute() {
             <button
               className="btn"
               onClick={() => setPicking(true)}
-              title="Open a story you exported earlier — it comes back with its scan, upgraded to the current format"
+              title="Open a story or collection you exported earlier — it comes back with its scan and media, upgraded to the current format"
             >
-              ⬆ Import story
+              ⬆ Import
             </button>
           </div>
         )}
@@ -233,11 +255,35 @@ export function HomeRoute() {
           ) : (
             <>
               <p>
-                Imported {report.imported.length}{' '}
-                {report.imported.length === 1 ? 'story' : 'stories'}:{' '}
-                <strong>{report.imported.map((i) => i.title).join(', ')}</strong>. Imported stories
-                are upgraded to the current story format.
+                {report.collection && (
+                  <>
+                    Imported the collection <strong>{report.collection.title}</strong>
+                    {report.imported.length > 0 && ' with '}
+                  </>
+                )}
+                {report.imported.length > 0 && (
+                  <>
+                    {!report.collection && 'Imported '}
+                    {report.imported.length}{' '}
+                    {report.imported.length === 1 ? 'story' : 'stories'}:{' '}
+                    <strong>{report.imported.map((i) => i.title).join(', ')}</strong>
+                  </>
+                )}
+                . Imported stories are upgraded to the current story format.
               </p>
+              {report.collection && report.collection.warnings.length > 0 && (
+                <details>
+                  <summary>
+                    {report.collection.title} — {report.collection.warnings.length} warning
+                    {report.collection.warnings.length === 1 ? '' : 's'}
+                  </summary>
+                  <ul>
+                    {report.collection.warnings.map((w, n) => (
+                      <li key={n}>{w}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
               {report.imported
                 .filter((i) => i.warnings.length > 0)
                 .map((i) => (
@@ -272,13 +318,75 @@ export function HomeRoute() {
             Downloaded <strong>{exported.fileName}</strong>. Unzip it, then drag the folder onto{' '}
             <strong>Netlify Drop</strong> (app.netlify.com/drop) to get a live URL — the full steps
             are in the <code>DEPLOY.md</code> inside the zip. Keep the zip: you can reopen it here any
-            time with <strong>⬆ Import story</strong>.
+            time with <strong>⬆ Import</strong>.
           </p>
           {exported.warnings.map((w, i) => (
             <p key={i} className="ed-hint ed-hint-warn" role="status">
               {w}
             </p>
           ))}
+        </section>
+      )}
+
+      {/* Imported or authored this session. Above the stories, mirroring how a
+          collection sits above the stories it introduces. */}
+      {!published && savedCollections.length > 0 && (
+        <section className="gallery-mine">
+          <div className="gallery-mine-head">
+            <h2 className="home-h2">
+              Your collections <span className="muted">· this session</span>
+            </h2>
+          </div>
+          <p className="home-note">
+            A collection introduces a group of stories and becomes the front page of an exported
+            site. Editing one in the app, and exporting it from here, are still to come — for now
+            publish it with <code>npm run publish:site -- &lt;slug&gt;</code>.
+          </p>
+          <div className="story-grid">
+            {savedCollections.map((c) => {
+              const present = c.collection.stories.filter((id) =>
+                sessionStoryIds.has(id) || indexStoryIds.has(id),
+              )
+              const missing = c.collection.stories.filter(
+                (id) => !sessionStoryIds.has(id) && !indexStoryIds.has(id),
+              )
+              return (
+                <div key={c.slug} className="story-card collection-card">
+                  {c.cover && (
+                    <span className="collection-card-cover">
+                      <img src={c.cover.url} alt="" />
+                    </span>
+                  )}
+                  <p className="eyebrow">Collection</p>
+                  <h2>{c.collection.title || 'Untitled collection'}</h2>
+                  <div className="meta">
+                    {c.collection.subtitle && (
+                      <>
+                        {c.collection.subtitle}
+                        <br />
+                      </>
+                    )}
+                    {present.length} of {c.collection.stories.length}{' '}
+                    {c.collection.stories.length === 1 ? 'story' : 'stories'} here
+                    {missing.length > 0 && (
+                      <>
+                        {' '}
+                        — <span className="muted">missing: {missing.join(', ')}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="story-card-actions">
+                    <button
+                      className="cta cta-muted"
+                      onClick={() => removeSavedCollection(c.slug)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </section>
       )}
 

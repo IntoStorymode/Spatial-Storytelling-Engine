@@ -1,9 +1,18 @@
 import { describe, it, expect } from 'vitest'
-import { importSite, findStoryDirs, isIgnorable, normalizePath, type Bundle } from './importSite'
+import {
+  importSite,
+  findStoryDirs,
+  findCollectionDirs,
+  isIgnorable,
+  normalizePath,
+  type Bundle,
+} from './importSite'
 import { uniqueSlug, toSlug, suggestSlug } from './slug'
-import { collectAssets } from './collectAssets'
+import { collectAssets, collectCollectionAssets } from './collectAssets'
 import { validateStory } from './validateStory'
 import { serializeStory } from '../parser/serializeStory'
+import { serializeCollection } from '../parser/collection'
+import { toSavedCollection } from './importSnapshot'
 
 const enc = new TextEncoder()
 const e = (path: string, body = 'x'): Bundle[number] => ({
@@ -79,6 +88,30 @@ function siteBundle(prefix = 'demo-site/'): Bundle {
     e(`${prefix}stories/demo/assets/cube.gltf`),
     e(`${prefix}stories/demo/assets/entrance.svg`),
     e(`${prefix}stories/demo/assets/narration.wav`),
+  ]
+}
+
+const COLLECTION = `---
+type: collection
+title: "Example Site"
+subtitle: Two demo stories, one front door
+cover: assets/cover.svg
+stories:
+  - "demo"
+  - "other"
+---
+
+Background prose about the site.
+
+How the scans were gathered.
+`
+
+/** The layout a collection export really produces: the collection beside stories/. */
+function collectionBundle(prefix = 'example-site-site/'): Bundle {
+  return [
+    ...siteBundle(prefix),
+    e(`${prefix}collections/example-site/collection.md`, COLLECTION),
+    e(`${prefix}collections/example-site/assets/cover.svg`),
   ]
 }
 
@@ -208,6 +241,157 @@ describe('importSite', () => {
     expect(warnings[0]).toContain('No story.md')
   })
 })
+
+describe('importSite — collections', () => {
+  it('reads the collection, its story list and its cover out of a collection export', async () => {
+    const { collection, warnings } = await importSite(collectionBundle())
+    expect(warnings).toEqual([])
+    expect(collection).not.toBeNull()
+    expect(collection!.slug).toBe('example-site')
+    expect(collection!.collection.title).toBe('Example Site')
+    expect(collection!.collection.subtitle).toBe('Two demo stories, one front door')
+    expect(collection!.collection.stories).toEqual(['demo', 'other'])
+    expect(collection!.collection.basePath).toBe('')
+    expect(collection!.cover).toMatchObject({ path: 'assets/cover.svg' })
+    expect(collection!.cover!.file).toBeInstanceOf(File)
+  })
+
+  it('keeps the prose body whole', async () => {
+    const { collection } = await importSite(collectionBundle())
+    expect(collection!.collection.body).toBe(
+      'Background prose about the site.\n\nHow the scans were gathered.',
+    )
+  })
+
+  it('imports the bundle’s stories alongside it, unregressed', async () => {
+    const { stories } = await importSite(collectionBundle())
+    expect(stories.map((s) => s.slug)).toEqual(['demo'])
+    expect(stories[0].model).toMatchObject({ path: 'assets/cube.gltf' })
+  })
+
+  // The backward-compatibility case: every export made before collections existed.
+  it('returns collection: null for a plain story export', async () => {
+    const { stories, collection, warnings } = await importSite(siteBundle())
+    expect(collection).toBeNull()
+    expect(stories).toHaveLength(1)
+    expect(warnings).toEqual([])
+  })
+
+  it.each(['', 'example-site-site/', 'Downloads/example-site-site/'])(
+    'finds the collection regardless of how deep the pick was (%s)',
+    async (prefix) => {
+      const { collection } = await importSite(collectionBundle(prefix))
+      expect(collection?.slug).toBe('example-site')
+      expect(collection?.cover?.path).toBe('assets/cover.svg')
+    },
+  )
+
+  it('imports a collection with no stories in the bundle at all', async () => {
+    // A hand-authored collection folder on its own is a valid pick.
+    const bundle: Bundle = [
+      e('collections/example-site/collection.md', COLLECTION),
+      e('collections/example-site/assets/cover.svg'),
+    ]
+    const { stories, collection } = await importSite(bundle)
+    expect(stories).toEqual([])
+    expect(collection?.slug).toBe('example-site')
+  })
+
+  it('warns when the cover is referenced but not bundled, without throwing', async () => {
+    const bundle = collectionBundle().filter((x) => !x.path.endsWith('cover.svg'))
+    const { collection } = await importSite(bundle)
+    expect(collection!.cover).toBeNull()
+    expect(collection!.warnings.some((w) => w.includes('cover.svg'))).toBe(true)
+  })
+
+  it('never pulls the app shell or a story into the collection folder', async () => {
+    const { collection } = await importSite(collectionBundle())
+    expect(collection!.cover!.path).toBe('assets/cover.svg')
+    // The only asset it could reach is its own; a story's cube.gltf is out of scope.
+    expect(collection!.cover!.file.name).toBe('cover.svg')
+  })
+
+  it('takes the first of several collections and says so', async () => {
+    const bundle: Bundle = [
+      ...collectionBundle(),
+      e('example-site-site/collections/another/collection.md', COLLECTION),
+    ]
+    const { collection, warnings } = await importSite(bundle)
+    expect(collection!.slug).toBe('another') // sorted, so 'another' precedes 'example-site'
+    expect(warnings.some((w) => w.includes('2 collections'))).toBe(true)
+  })
+
+  it('reports nothing-importable when neither a story nor a collection is present', async () => {
+    const { stories, collection, warnings } = await importSite([e('random.txt')])
+    expect(stories).toEqual([])
+    expect(collection).toBeNull()
+    expect(warnings[0]).toMatch(/collection\.md/)
+  })
+
+  it('uniquifies a collection slug against collections only, not stories', async () => {
+    // Separate namespaces: a story called "example-site" must not rename the collection.
+    const taken = await importSite(collectionBundle(), { takenSlugs: ['example-site'] })
+    expect(taken.collection!.slug).toBe('example-site')
+
+    const clash = await importSite(collectionBundle(), { takenCollectionSlugs: ['example-site'] })
+    expect(clash.collection!.slug).toBe('example-site-2')
+  })
+
+  it('round-trips: import → serialize reproduces the collection', async () => {
+    const { collection } = await importSite(collectionBundle())
+    const out = serializeCollection(collection!.collection)
+    expect(out).toContain('type: collection')
+    expect(out).toContain('title: "Example Site"')
+    expect(out).toContain('cover: "assets/cover.svg"')
+    expect(out).toContain('- "demo"')
+    expect(out).toContain('Background prose about the site.')
+  })
+
+  it('round-trips its cover back out through collectCollectionAssets', async () => {
+    const { collection } = await importSite(collectionBundle())
+    const saved = toSavedCollection(collection!, Date.now())
+    const out = collectCollectionAssets(saved.collection, saved.cover)
+    expect(out.map((a) => a.path)).toEqual(['assets/cover.svg'])
+  })
+
+  it('toSavedCollection produces a gallery entry with a blob-backed cover', async () => {
+    const { collection } = await importSite(collectionBundle())
+    const saved = toSavedCollection(collection!, 1234)
+    expect(saved.slug).toBe('example-site')
+    expect(saved.savedAt).toBe(1234)
+    expect(saved.cover!.url).toMatch(/^blob:/)
+    expect(saved.cover!.file).toBeInstanceOf(File)
+  })
+
+  it('toSavedCollection tolerates a collection with no cover', async () => {
+    const bundle = collectionBundle().filter((x) => !x.path.endsWith('cover.svg'))
+    const { collection } = await importSite(bundle)
+    expect(toSavedCollection(collection!, 1).cover).toBeNull()
+  })
+})
+
+describe('findCollectionDirs', () => {
+  it('finds a collection at any depth and names it after its folder', () => {
+    expect(findCollectionDirs(['a/b/collections/x/collection.md'])).toEqual([
+      { dir: 'a/b/collections/x/', name: 'x' },
+    ])
+  })
+
+  it('finds one at the bundle root, with an empty name', () => {
+    expect(findCollectionDirs(['collection.md'])).toEqual([{ dir: '', name: '' }])
+  })
+
+  it('ignores story.md, and is ignored by findStoryDirs in turn', () => {
+    const paths = ['stories/demo/story.md', 'collections/c/collection.md']
+    expect(findCollectionDirs(paths).map((d) => d.name)).toEqual(['c'])
+    expect(findStoryDirs(paths).map((d) => d.name)).toEqual(['demo'])
+  })
+
+  it('does not match a file merely ending in the name', () => {
+    expect(findCollectionDirs(['notacollection.md', 'my-collection.md'])).toEqual([])
+  })
+})
+
 
 describe('import path helpers', () => {
   it('normalizes separators, doubled slashes and leading ./', () => {

@@ -112,8 +112,9 @@ Deep links are unaffected: `…/#/story/<slug>` still opens that story directly,
 export was re-cut keep resolving. An older engine opening a collection export ignores the
 `collections` key and shows its gallery, so the site degrades rather than breaking.
 
-> **Not from the editor yet.** Exporting a collection needs the CLI above: the session gallery
-> can't hold a collection, so there is nothing to select. See the [roadmap](../ROADMAP.md).
+> **Not from the editor yet.** Exporting a collection needs the CLI above. A collection `.zip`
+> *imports* fine (see below), and shows on Home — but editing one in the app and exporting it from
+> there wait on the collection editor. See the [roadmap](../ROADMAP.md).
 
 ---
 
@@ -175,7 +176,7 @@ relative paths and hash-based routing, so it resolves wherever it lives.
 
 An export isn't a dead end — it's your source. To make changes later, bring it back into the editor:
 
-1. On the Home page, click **⬆ Import story**.
+1. On the Home page, click **⬆ Import**.
 2. Drop the exported **`.zip`**, or the unzipped **`<slug>-site`** folder, onto the dialog (or pick
    it with the file/folder buttons).
 3. The story reappears under **"Your stories"** with its scan and media — **upgraded to the current
@@ -185,6 +186,30 @@ An export isn't a dead end — it's your source. To make changes later, bring it
 This closes the loop: **author → export → deploy → import → edit → re-export**, all local-first, with
 the plain `story.md` + `assets/` as the thing that travels. (You can also re-import someone else's
 exported site the same way, since it's just those same plain files.)
+
+### Importing a collection
+
+The same dialog takes a **collection** export. Everything comes back: the collection itself — its
+title, subtitle, background prose, cover image and `stories:` list — plus **every story in the
+bundle**, each with its own scan and media. The collection appears under **"Your collections"** and
+the stories under **"Your stories"**.
+
+A few things worth knowing:
+
+- **Story ids are preserved**, so the collection's `stories:` list still resolves. The card shows how
+  many of its stories are present, and names any that aren't — useful when you import a collection
+  without the stories it points at.
+- **A collection folder on its own imports too** — you don't need the whole site, just a folder with
+  a `collection.md` in it.
+- **Collections and stories are separate namespaces.** A collection may share a slug with a story
+  without either being renamed.
+- **One collection per bundle.** If a bundle somehow carries two, the first is imported and you're
+  told the rest were skipped.
+- An imported collection can be **removed**, but not yet opened or edited in the app, and not yet
+  exported from it — publish it with `npm run publish:site` in the meantime.
+
+An export made **before collections existed** imports exactly as it always did: no collection, all
+its stories, no warnings.
 
 ---
 
