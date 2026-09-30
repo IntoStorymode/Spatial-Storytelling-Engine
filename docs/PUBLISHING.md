@@ -12,7 +12,8 @@ There are two ways to produce that website, for two situations:
 | --- | --- | --- |
 | Authoring in the editor (built or hosted app) | **💾 Save to gallery → Export** | No |
 | Working in the repo / running `npm run dev` | **`npm run publish:site -- <slug>`** | Yes |
-| Publishing a [collection](./AUTHORING.md#collections) as a site's front door | **`npm run publish:site -- <collection-slug>`** | Yes |
+| Publishing a [collection](./AUTHORING.md#collections) authored in the app | **💾 Save to gallery → ⬇ Export** on its card | No |
+| Publishing a collection that lives in the repo | **`npm run publish:site -- <collection-slug>`** | Yes |
 
 ---
 
@@ -112,9 +113,14 @@ Deep links are unaffected: `…/#/story/<slug>` still opens that story directly,
 export was re-cut keep resolving. An older engine opening a collection export ignores the
 `collections` key and shows its gallery, so the site degrades rather than breaking.
 
-> **Not from the editor yet.** Exporting a collection needs the CLI above. A collection `.zip`
-> *imports* fine (see below), and shows on Home — but editing one in the app and exporting it from
-> there wait on the collection editor. See the [roadmap](../ROADMAP.md).
+> **Or from the app.** A collection can also be authored in the
+> [collection editor](./AUTHORING.md#the-collection-editor) and exported from Home with
+> **⬇ Export** on its card — no terminal. The CLI above is for collections that live in the repo
+> under `public/collections/`. Either way the output is the same site.
+>
+> One difference worth knowing: the CLI ships whatever sits in the collection's folder on disk, while
+> the in-app export ships only files the app was handed — so a cover has to be uploaded through the
+> editor to travel, exactly as a story's media does.
 
 ---
 
@@ -205,8 +211,8 @@ A few things worth knowing:
   without either being renamed.
 - **One collection per bundle.** If a bundle somehow carries two, the first is imported and you're
   told the rest were skipped.
-- An imported collection can be **removed**, but not yet opened or edited in the app, and not yet
-  exported from it — publish it with `npm run publish:site` in the meantime.
+- An imported collection can be **opened**, **edited**, **exported** and **removed** from its card on
+  Home, like one you authored yourself — the import produces the same thing a save does.
 
 An export made **before collections existed** imports exactly as it always did: no collection, all
 its stories, no warnings.

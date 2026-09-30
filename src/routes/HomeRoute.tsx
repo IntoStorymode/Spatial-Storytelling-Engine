@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useGalleryStore, type SavedStory } from '../store/useGalleryStore'
+import { useGalleryStore, type SavedCollection, type SavedStory } from '../store/useGalleryStore'
 import { useDraftStore } from '../store/useDraftStore'
 import { buildSiteZip, fetchManifest, type ExportStory, type Manifest } from '../publish/buildSite'
-import { collectAssets } from '../publish/collectAssets'
+import { collectAssets, collectCollectionAssets } from '../publish/collectAssets'
 import { triggerDownload } from '../publish/download'
 import { isPublishedSite } from '../publish/published'
 import { importSite, type Bundle } from '../publish/importSite'
@@ -187,6 +187,49 @@ export function HomeRoute() {
     }
   }
 
+  /**
+   * Export a collection as a site whose root is its landing page. The collection's
+   * own `stories:` list IS the selection — that is what "one collection per export"
+   * means — so this ignores the story checkboxes entirely.
+   */
+  async function exportCollection(c: SavedCollection) {
+    if (!manifest) return
+    setBuilding(true)
+    try {
+      const bySlug = new Map(saved.map((s) => [s.slug, s]))
+      const exportStories: ExportStory[] = c.collection.stories
+        .map((sid) => bySlug.get(sid))
+        .filter((s): s is SavedStory => !!s)
+        .map((s) => ({
+          slug: s.slug,
+          story: { frontmatter: s.fm, sections: s.sections, basePath: s.basePath, warnings: [] },
+          assets: collectAssets(s.fm, s.sections, s.uploaded, s.mediaUploads),
+        }))
+      if (!exportStories.length) {
+        setExported({
+          fileName: '',
+          warnings: [
+            'None of this collection’s stories are in your gallery, so there is nothing to export. Import or create them first.',
+          ],
+        })
+        return
+      }
+      const { blob, fileName, warnings } = await buildSiteZip({
+        stories: exportStories,
+        collection: {
+          slug: c.slug,
+          collection: c.collection,
+          assets: collectCollectionAssets(c.collection, c.cover),
+        },
+        manifest,
+      })
+      triggerDownload(blob, fileName)
+      setExported({ fileName, warnings })
+    } finally {
+      setBuilding(false)
+    }
+  }
+
   const exportTitle = canExport
     ? 'Export the selected stories as a deployable website (one → opens into it; several → opens on the gallery)'
     : manifest === null
@@ -222,6 +265,13 @@ export function HomeRoute() {
           <div className="home-actions">
             <Link to="/edit/new" className="btn btn-accent home-new">
               + New story
+            </Link>
+            <Link
+              to="/edit/collection/new"
+              className="btn home-new"
+              title="A collection introduces a group of stories and becomes the front page of an exported site"
+            >
+              + New collection
             </Link>
             <button
               className="btn"
@@ -339,8 +389,15 @@ export function HomeRoute() {
           </div>
           <p className="home-note">
             A collection introduces a group of stories and becomes the front page of an exported
-            site. Editing one in the app, and exporting it from here, are still to come — for now
-            publish it with <code>npm run publish:site -- &lt;slug&gt;</code>.
+            site. Its own story list is the selection, so <strong>Export</strong> here ignores the
+            checkboxes below.
+            {manifest === null && (
+              <>
+                {' '}Export is disabled under <code>npm run dev</code>; use{' '}
+                <code>npm run preview</code>, the hosted editor, or{' '}
+                <code>npm run publish:site</code>.
+              </>
+            )}
           </p>
           <div className="story-grid">
             {savedCollections.map((c) => {
@@ -376,6 +433,26 @@ export function HomeRoute() {
                     )}
                   </div>
                   <div className="story-card-actions">
+                    <Link to={`/collection/${c.slug}`} className="cta">
+                      Open →
+                    </Link>
+                    <Link to={`/edit/collection/${c.slug}`} className="cta cta-muted">
+                      Edit
+                    </Link>
+                    <button
+                      className="cta cta-muted"
+                      onClick={() => void exportCollection(c)}
+                      disabled={!manifest || building || present.length === 0}
+                      title={
+                        !manifest
+                          ? 'Export needs the built app — run npm run preview, or use the hosted editor'
+                          : present.length === 0
+                            ? 'None of this collection’s stories are in your gallery yet'
+                            : 'Export this collection as a website whose front page is its landing page'
+                      }
+                    >
+                      {building ? '…' : '⬇ Export'}
+                    </button>
                     <button
                       className="cta cta-muted"
                       onClick={() => removeSavedCollection(c.slug)}
