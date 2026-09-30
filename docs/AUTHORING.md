@@ -250,6 +250,10 @@ local collection you have not committed.
 > body — they render as the literal characters you typed. Real Markdown in prose bodies is a
 > [roadmap](../ROADMAP.md) item. Until then, keep background prose to plain paragraphs.
 
+A collection `.zip` can be brought back with **⬆ Import** on the Home page — the collection and
+every story in the bundle return intact. See
+[Publishing → importing a collection](./PUBLISHING.md#importing-a-collection).
+
 There is no collection editor yet — collections are hand-authored, exactly as a story's `links:`
 was when it first shipped. It is on the [roadmap](../ROADMAP.md).
 

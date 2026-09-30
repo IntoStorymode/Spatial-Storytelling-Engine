@@ -1,5 +1,6 @@
 import { parseStory } from '../parser/parseStory'
-import type { Story } from '../parser/types'
+import { parseCollection } from '../parser/collection'
+import type { Collection, Story } from '../parser/types'
 import { slugify, uniqueSlug } from './slug'
 
 /**
@@ -31,8 +32,27 @@ export interface ImportedStory {
   warnings: string[]
 }
 
+/** A collection recovered from a bundle — everything needed to restore it to the gallery. */
+export interface ImportedCollection {
+  slug: string
+  /** basePath is '' — the cover lives in memory, not in a directory. */
+  collection: Collection
+  /** The cover image, when `cover` resolved to bytes in the bundle. */
+  cover: { path: string; file: File } | null
+  warnings: string[]
+}
+
 export interface ImportResult {
   stories: ImportedStory[]
+  /**
+   * The collection this bundle carries, if any. Null for every export made
+   * before collections existed, and for a plain story export — which is the
+   * backward-compatible case, not an error.
+   *
+   * One per bundle: an export has a single front door, so a second collection.md
+   * is skipped with a warning rather than silently changing which one wins.
+   */
+  collection: ImportedCollection | null
   /** Bundle-level problems (nothing importable). Import never throws. */
   warnings: string[]
 }
@@ -94,11 +114,24 @@ export function isIgnorable(path: string): boolean {
  * unzipped folder, or a parent folder containing it.
  */
 export function findStoryDirs(paths: string[]): { dir: string; name: string }[] {
+  return findContentDirs(paths, 'story.md')
+}
+
+/**
+ * Every collection.md in the bundle, the same way. A collection export carries
+ * one, under `collections/<slug>/`; a story export carries none, which is why the
+ * result being empty is the ordinary backward-compatible case.
+ */
+export function findCollectionDirs(paths: string[]): { dir: string; name: string }[] {
+  return findContentDirs(paths, 'collection.md')
+}
+
+function findContentDirs(paths: string[], fileName: string): { dir: string; name: string }[] {
   return paths
-    .filter((p) => p === 'story.md' || p.endsWith('/story.md'))
+    .filter((p) => p === fileName || p.endsWith(`/${fileName}`))
     .sort()
     .map((p) => {
-      const dir = p.slice(0, p.length - 'story.md'.length) // keeps the trailing '/', or '' at the root
+      const dir = p.slice(0, p.length - fileName.length) // keeps the trailing '/', or '' at the root
       const segs = dir.replace(/\/$/, '').split('/')
       return { dir, name: dir ? segs[segs.length - 1] : '' }
     })
@@ -150,18 +183,32 @@ function lookup(index: Map<string, BundleEntry>, ref: string): BundleEntry | und
  */
 export async function importSite(
   bundle: Bundle,
-  opts: { takenSlugs?: Iterable<string> } = {},
+  opts: {
+    takenSlugs?: Iterable<string>
+    /**
+     * Collection slugs already in the gallery. A SEPARATE namespace from stories:
+     * collections live in their own directory, so a collection and a story may
+     * legitimately share a slug, and a collection must not be renamed just
+     * because a story happens to have that name.
+     */
+    takenCollectionSlugs?: Iterable<string>
+  } = {},
 ): Promise<ImportResult> {
   const entries = bundle
     .map((e) => ({ ...e, path: normalizePath(e.path) }))
     .filter((e) => !isIgnorable(e.path))
 
-  const dirs = findStoryDirs(entries.map((e) => e.path))
-  if (!dirs.length) {
+  const paths = entries.map((e) => e.path)
+  const dirs = findStoryDirs(paths)
+  const collectionDirs = findCollectionDirs(paths)
+  // A hand-authored collection folder on its own is importable, so "nothing here"
+  // means neither kind of content file was found.
+  if (!dirs.length && !collectionDirs.length) {
     return {
       stories: [],
+      collection: null,
       warnings: [
-        'No story.md found. Pick an exported story — the .zip, or the folder containing stories/.',
+        'No story.md or collection.md found. Pick an exported story or collection — the .zip, or the folder containing stories/.',
       ],
     }
   }
@@ -221,5 +268,62 @@ export async function importSite(
     stories.push({ slug, story, model, media, warnings })
   }
 
-  return { stories, warnings: [] }
+  const warnings: string[] = []
+  let collection: ImportedCollection | null = null
+  if (collectionDirs.length) {
+    if (collectionDirs.length > 1) {
+      warnings.push(
+        `This bundle carries ${collectionDirs.length} collections; importing the first ("${collectionDirs[0].name}") and ignoring the rest.`,
+      )
+    }
+    collection = await readCollection(
+      collectionDirs[0],
+      entries,
+      new Set(opts.takenCollectionSlugs ?? []),
+    )
+  }
+
+  return { stories, collection, warnings }
+}
+
+/** One collection.md plus its cover, scoped to its own directory like a story's. */
+async function readCollection(
+  { dir, name }: { dir: string; name: string },
+  entries: BundleEntry[],
+  taken: Set<string>,
+): Promise<ImportedCollection | null> {
+  const mdPath = dir + 'collection.md'
+  const md = entries.find((e) => e.path === mdPath)
+  if (!md) return null
+
+  const collection = parseCollection(await readText(md), '')
+  const warnings = [...collection.warnings]
+
+  // Everything beside collection.md in this collection's folder, keyed the way
+  // collection.md refers to it ("assets/cover.jpg"). Same scoping as a story, so
+  // the app shell and the stories are structurally out of reach.
+  const index = new Map<string, BundleEntry>()
+  for (const e of entries) {
+    if (e.path !== mdPath && e.path.startsWith(dir)) index.set(e.path.slice(dir.length), e)
+  }
+
+  let cover: ImportedCollection['cover'] = null
+  if (collection.cover) {
+    if (isExternal(collection.cover)) {
+      warnings.push(
+        `Cover "${collection.cover}" is an external path — it loads from there, not the bundle.`,
+      )
+    } else {
+      const hit = lookup(index, collection.cover)
+      if (hit) cover = { path: collection.cover, file: await toFile(hit) }
+      else
+        warnings.push(
+          `Cover "${collection.cover}" is referenced but wasn't in the bundle — re-upload it in the editor.`,
+        )
+    }
+  }
+
+  const slug = uniqueSlug(name || slugify(collection.title), taken)
+  taken.add(slug)
+  return { slug, collection, cover, warnings }
 }

@@ -1,6 +1,6 @@
 import type { Upload } from '../store/useDraftStore'
-import type { SavedStory } from '../store/useGalleryStore'
-import type { ImportedStory } from './importSite'
+import type { SavedCollection, SavedStory } from '../store/useGalleryStore'
+import type { ImportedCollection, ImportedStory } from './importSite'
 
 /**
  * An imported story → a gallery entry the editor can open verbatim.
@@ -33,6 +33,27 @@ export function toSavedStory(imported: ImportedStory, savedAt: number): SavedSto
       ? { url: URL.createObjectURL(model.file), file: model.file, format: model.format }
       : null,
     mediaUploads,
+    savedAt,
+  }
+}
+
+/**
+ * An imported collection → a gallery entry.
+ *
+ * Same shape as a collection saved this session: `basePath` is empty and the cover
+ * is a File behind a blob URL, exactly as an editor upload would leave it. So
+ * `collection.cover` keeps its `assets/…` path and collectCollectionAssets
+ * re-derives the same bundle on the way back out.
+ */
+export function toSavedCollection(
+  imported: ImportedCollection,
+  savedAt: number,
+): SavedCollection {
+  const { slug, collection, cover } = imported
+  return {
+    slug,
+    collection,
+    cover: cover ? { url: URL.createObjectURL(cover.file), file: cover.file } : null,
     savedAt,
   }
 }

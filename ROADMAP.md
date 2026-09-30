@@ -29,15 +29,16 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
 - **Edit curated links in the editor.** A story's `links:` (curated links to related stories) works
   by hand-editing `story.md` and round-trips through the editor untouched, but there's no UI field to
   set them yet.
-- **Finish collections.** The `collection.md` format, its landing page, and CLI export have landed —
-  a collection introduces a group of stories and becomes the front door of an exported site
-  (see [Authoring → Collections](./docs/AUTHORING.md#collections) and
+- **Finish collections.** The `collection.md` format, its landing page, CLI export and import have
+  landed — a collection introduces a group of stories, becomes the front page of an exported site,
+  and a collection `.zip` reopens with its collection and every story intact (see
+  [Authoring → Collections](./docs/AUTHORING.md#collections) and
   [Publishing → a collection](./docs/PUBLISHING.md#publishing-a-collection)). Still to come:
-  **importing** a collection `.zip` back into the gallery (today its stories come back and the
-  collection is silently dropped), **exporting from the editor** (the session gallery can't hold a
-  collection, so `npm run publish:site` is the only route), and a **collection editor** — title,
-  cover, prose, and picking/ordering the stories. Until that exists, collections are hand-authored,
-  as `links:` was at first.
+  a **collection editor** — title, cover, prose, and picking/ordering the stories — and with it
+  **exporting a collection from the app**, which needs the editor's preview and an export button
+  rather than just somewhere to keep the data. An imported collection currently shows on Home and
+  can be removed, but not opened or edited; `npm run publish:site -- <slug>` is still the way to
+  publish one. Until the editor exists, collections are hand-authored, as `links:` was at first.
 - **Real Markdown in prose bodies.** Body text — a story section's and a collection's alike — is
   split into paragraphs on blank lines and nothing else, so `**bold**`, `[links]()` and `##`
   headings render as literal characters. A collection's background prose is the longest continuous
