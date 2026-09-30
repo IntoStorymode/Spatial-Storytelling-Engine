@@ -6,10 +6,10 @@ import { createHash } from 'node:crypto'
 import { join, relative, sep } from 'node:path'
 
 // Emit dist/publish-manifest.json listing every generic app-shell file (all of
-// dist/ EXCEPT the per-story `stories/` data and the manifest itself). The
-// editor's export flow fetches this list to re-zip the running app's shell
-// together with the selected stories — no rebuild, no CLI. Runs on every
-// `vite build`, so `preview` and `publish:site` get it for free.
+// dist/ EXCEPT the per-story `stories/` data, the `collections/` data, and the
+// manifest itself). The editor's export flow fetches this list to re-zip the
+// running app's shell together with the selected stories — no rebuild, no CLI.
+// Runs on every `vite build`, so `preview` and `publish:site` get it for free.
 function publishManifest(): Plugin {
   return {
     name: 'publish-manifest',
@@ -22,7 +22,11 @@ function publishManifest(): Plugin {
           const abs = join(dir, name)
           const rel = relative(dist, abs).split(sep).join('/')
           if (statSync(abs).isDirectory()) {
-            if (rel !== 'stories') walk(abs)
+            // Content, not shell. Vite copies public/ verbatim into dist/, so
+            // without this the manifest would list every collection file and the
+            // browser export would re-zip them into EVERY site — single-story
+            // exports included — as well as churning appVersion.
+            if (rel !== 'stories' && rel !== 'collections') walk(abs)
           } else if (rel !== 'publish-manifest.json') {
             files.push(rel)
           }

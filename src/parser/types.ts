@@ -93,3 +93,45 @@ export interface Story {
   /** Non-fatal parse issues, surfaced in the UI rather than thrown. */
   warnings: string[]
 }
+
+/**
+ * A collection — a `collection.md` that introduces a group of stories and serves
+ * as the landing page of an export. Deliberately *not* a Story: it has no
+ * sections, no model and no waypoints, so reusing Story would make those
+ * absences sentinel values that every consumer has to remember to ignore.
+ *
+ * The collection lists its stories; stories never reference their collection.
+ * So `story.md` is unchanged by this type existing, a story may appear in more
+ * than one collection, and deleting a collection never modifies a story.
+ */
+export interface Collection {
+  title: string
+  /**
+   * An optional freeform line under the title. Never interpreted — a collection
+   * may group stories by town, family, decade or theme, so the engine does not
+   * presume which dimension binds them.
+   */
+  subtitle?: string
+  /**
+   * Optional cover image, as authored (resolved against `basePath` at render
+   * time). The landing page is deliberately light: an image, never a live scan.
+   */
+  cover?: string
+  /**
+   * Story ids, in the author's order. This is the *only* order: it drives the
+   * landing page's list and the order the export writes `stories/index.json`,
+   * which is what `storyNeighbours` walks — so next/previous inside a story
+   * follows the collection without any separate ordering machinery. An author
+   * who wants different next/previous reorders this list.
+   *
+   * Ids absent from a deployment are skipped at render time (never a dead link),
+   * exactly as a story's `links` are.
+   */
+  stories: string[]
+  /** Freeform background prose, rendered as paragraphs. */
+  body: string
+  /** Directory the collection.md was loaded from. Used to resolve `cover`. */
+  basePath: string
+  /** Non-fatal parse issues, surfaced in the UI rather than thrown. */
+  warnings: string[]
+}

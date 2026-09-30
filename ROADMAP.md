@@ -29,6 +29,17 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
 - **Edit curated links in the editor.** A story's `links:` (curated links to related stories) works
   by hand-editing `story.md` and round-trips through the editor untouched, but there's no UI field to
   set them yet.
+- **Finish collections.** The `collection.md` format and its landing page have landed — a collection
+  introduces a group of stories and is authored by hand (see
+  [Authoring → Collections](./docs/AUTHORING.md#collections)). Still to come: exporting a collection
+  as the site root so it becomes the front door of a multi-story site, importing a collection `.zip`
+  back into the gallery, and a collection editor (title, cover, prose, and picking/ordering the
+  stories). Until the editor exists, collections are hand-authored, as `links:` was at first.
+- **Real Markdown in prose bodies.** Body text — a story section's and a collection's alike — is
+  split into paragraphs on blank lines and nothing else, so `**bold**`, `[links]()` and `##`
+  headings render as literal characters. A collection's background prose is the longest continuous
+  text in the format and the place this is felt most. Adding a renderer changes how existing story
+  prose reads, so it needs deciding on its own merits rather than arriving with another feature.
 
 ## Reading
 

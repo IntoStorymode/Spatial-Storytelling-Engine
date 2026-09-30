@@ -1113,6 +1113,67 @@ button.cta {
   gap: 10px;
 }
 
+/* ── Collections ──────────────────────────────────────────────────────────────
+   A collection is a site's front door: a landing page that introduces a group of
+   stories. It borrows the reading column (.page / .article) wholesale, so only
+   the cover, the prose block and the story list need styles of their own. No
+   viewer chrome here — the landing page never mounts a 3D scene.
+   ────────────────────────────────────────────────────────────────────────── */
+.gallery-collections {
+  margin-bottom: 36px;
+}
+
+/* Collection cards carry a cover image, which story cards do not. The negative
+   margin bleeds it to the card edge, past .story-card's 22px padding. */
+.collection-card-cover {
+  display: block;
+  margin: -22px -22px 0;
+  border-radius: 9px 9px 0 0;
+  overflow: hidden;
+  background: var(--panel-2);
+}
+.collection-card-cover img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.collection-card .eyebrow {
+  margin-top: 18px;
+}
+
+/* The landing page itself. */
+.collection-cover {
+  margin: 32px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel-2);
+}
+.collection-cover img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+/* Matches .item-body so collection prose reads exactly like story prose. */
+.collection-body p {
+  font-size: 18px;
+  line-height: 1.72;
+  margin: 0 0 18px;
+  color: var(--text);
+}
+.collection-body p:first-of-type {
+  /* A lead-in, since a collection has no section heading above its first line. */
+  font-size: 20px;
+  color: var(--text);
+}
+.collection-stories {
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
 /* ── Editor ───────────────────────────────────────────────────────────────── */
 .editor {
   display: flex;

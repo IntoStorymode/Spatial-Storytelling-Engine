@@ -65,6 +65,12 @@ export function parseStory(raw: string, basePath = ''): Story {
   if (fmMatch) {
     try {
       const data = (yaml.load(fmMatch[1]) ?? {}) as Record<string, unknown>
+      // A collection.md fed to the story parser would otherwise parse as a story
+      // with no sections (its prose body has no `## [id]` headings) and warn once
+      // per paragraph, which says nothing about the real mistake. Say it instead.
+      if (toStr(data.type).trim() === 'collection') {
+        warnings.push('This looks like a collection, not a story — parse it with parseCollection')
+      }
       frontmatter = {
         title: toStr(data.title),
         author: toStr(data.author),

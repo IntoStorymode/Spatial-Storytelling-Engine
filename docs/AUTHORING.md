@@ -166,6 +166,91 @@ The TypeScript source of truth for these shapes is
 
 ---
 
+## Collections
+
+A **collection** introduces a group of stories. It is the front door of a site that holds more
+than one story — the page that says what the place is, who contributed, and how the scans and
+accounts were gathered, before a reader picks somewhere to start. A single story needs none of
+this; a site with four does.
+
+A collection is a `collection.md` in its own folder, authored exactly like a story — YAML
+frontmatter plus a Markdown body — and rendered as a page-view landing page. It never loads a
+3D scan: the landing page is prose and, at most, a cover image.
+
+```
+public/collections/my-site/
+├─ collection.md
+└─ assets/
+   └─ cover.jpg
+```
+
+```yaml
+---
+type: collection
+title: "The High Street"
+subtitle: Cradley Heath, England     # optional, freeform
+cover: assets/cover.jpg              # optional
+stories:
+  - "cinema"
+  - "tak-shun-mall"
+  - "market"
+---
+
+Background prose: the site, its history, how the scans and accounts were
+gathered, who contributed.
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `type` | no | `collection`. Optional — the filename already says what this is — but a *wrong* value warns. |
+| `title` | yes | Shown as the landing page's heading, and on the Home card. |
+| `subtitle` | no | One freeform line under the title. Never interpreted: a collection may group stories by town, family, decade or theme, so the engine does not presume which. |
+| `cover` | no | An image path, relative to the collection folder. A **live scan as the cover is deliberately not supported** — it would make the landing page as heavy as a story. |
+| `stories` | yes | Story **ids** (their folder name / gallery id), in the order you want them read. Ids absent from a given deployment are skipped, so a collection never shows a dead link. |
+| body | no | Freeform prose. Paragraphs are separated by blank lines — see the note on Markdown below. |
+
+**The collection lists its stories; stories never mention their collection.** So `story.md` is
+unchanged by any of this, a story can belong to several collections, and deleting a collection
+never modifies a story.
+
+**`stories:` is the order.** It sets the landing page's list order, and — once a collection is
+exported — the order of previous/next *inside* the stories too. If the reading order isn't what
+you want, reorder this list. (While working in the repo under `npm run dev`, previous/next still
+follows `public/stories/index.json`'s own order, so keep the two in step if it matters to you.)
+
+**Register it** so it appears on Home, alongside the `stories` array in
+`public/stories/index.json`:
+
+```json
+{
+  "stories": [ … ],
+  "collections": [
+    {
+      "id": "my-site",
+      "title": "The High Street",
+      "subtitle": "Cradley Heath, England",
+      "path": "collections/my-site/collection.md",
+      "cover": "collections/my-site/assets/cover.jpg"
+    }
+  ]
+}
+```
+
+The `collections` key is optional and additive — an index without it works exactly as before, and
+an older engine reading an index *with* it ignores the key and shows the stories. If you skip the
+registration you can still open the page directly at `#/collection/my-site`, which is handy for a
+local collection you have not committed.
+
+> **Prose is paragraphs, not Markdown.** Blank lines separate paragraphs; `**bold**`, `[links]()`
+> and `## headings` are *not* interpreted anywhere in the engine, in a story body or a collection
+> body — they render as the literal characters you typed. Real Markdown in prose bodies is a
+> [roadmap](../ROADMAP.md) item. Until then, keep background prose to plain paragraphs.
+
+There is no collection editor yet — collections are hand-authored, exactly as a story's `links:`
+was when it first shipped. It is on the [roadmap](../ROADMAP.md).
+
+---
+
 ## Next steps
 
 - **Prepare a 3D scan / fix orientation** → [Gaussian splats & 3D models](./GAUSSIAN-SPLATS.md)
