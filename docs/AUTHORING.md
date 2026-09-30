@@ -177,6 +177,10 @@ A collection is a `collection.md` in its own folder, authored exactly like a sto
 frontmatter plus a Markdown body — and rendered as a page-view landing page. It never loads a
 3D scan: the landing page is prose and, at most, a cover image.
 
+When you [publish a collection](./PUBLISHING.md#publishing-a-collection), its landing page becomes
+the site's **root page** — it replaces the gallery as the front door, rather than sitting in front
+of one.
+
 ```
 public/collections/my-site/
 ├─ collection.md

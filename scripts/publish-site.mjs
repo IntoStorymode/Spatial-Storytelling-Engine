@@ -223,16 +223,15 @@ writeFileSync(
 )
 
 // ── 5. Kiosk entry + published marker ────────────────────────────────────────
-// Inject a tiny redirect before the app bundle (fires only when there's no hash
-// yet, so deep links …/#/story/<slug> and in-app nav are untouched), plus the
-// published marker so the hosted site is read-only (no editor).
+// For a STORY, inject a tiny redirect before the app bundle (fires only when
+// there's no hash yet, so deep links …/#/story/<slug> and in-app nav are
+// untouched). A COLLECTION needs no redirect — its root renders the landing page
+// directly, because Home resolves to the collection on a published site whose
+// index names one — so the reader's URL stays a clean `/`.
+// The published marker goes on either, so the hosted site is read-only (no editor).
 const indexPath = join(dist, 'index.html')
-writeFileSync(
-  indexPath,
-  injectPublishedMarker(
-    injectKiosk(readFileSync(indexPath, 'utf8'), slug, isStory ? 'story' : 'collection'),
-  ),
-)
+const html = readFileSync(indexPath, 'utf8')
+writeFileSync(indexPath, injectPublishedMarker(isStory ? injectKiosk(html, slug) : html))
 
 // ── 6. Zip <slug>-site/ (the site) + DEPLOY.md ───────────────────────────────
 // DEPLOY.md lives next to the folder in the zip, not inside the site.

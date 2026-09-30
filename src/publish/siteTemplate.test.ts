@@ -36,37 +36,21 @@ describe('injectPublishedMarker', () => {
 })
 
 describe('kioskScript', () => {
-  // Pinned literally: a story export's index.html must not change byte-for-byte
-  // now that the function takes a second argument.
-  it('emits the unchanged story redirect when no kind is given', () => {
+  // Pinned literally: a single-story export's index.html must stay byte-identical.
+  // There is deliberately NO collection variant — a collection export injects no
+  // redirect at all, because its root renders the landing page directly, keeping
+  // the reader's URL a clean `/`.
+  it('emits the story redirect', () => {
     expect(kioskScript('my-story')).toBe(
       `<script>if(!location.hash){history.replaceState(null,'','#/story/my-story')}</script>`,
     )
   })
 
-  it('targets the collection landing page for a collection export', () => {
-    expect(kioskScript('my-site', 'collection')).toBe(
-      `<script>if(!location.hash){history.replaceState(null,'','#/collection/my-site')}</script>`,
-    )
-  })
-
-  it('treats an unrecognised kind as a story rather than emitting a broken route', () => {
-    // @ts-expect-error — deliberately wrong, to pin the fallback
-    expect(kioskScript('x', 'nonsense')).toContain('#/story/x')
-  })
-
   it('only fires when there is no hash, so deep links survive', () => {
-    expect(kioskScript('x', 'collection')).toContain('if(!location.hash)')
+    expect(kioskScript('x')).toContain('if(!location.hash)')
   })
 })
 
-describe('injectKiosk with a kind', () => {
-  it('still precedes the app module script', () => {
-    const html = `<head></head><script type="module" src="/assets/index.js"></script>`
-    const out = injectKiosk(html, 'my-site', 'collection')
-    expect(out.indexOf('#/collection/my-site')).toBeLessThan(out.indexOf('<script type="module"'))
-  })
-})
 
 describe('orderCollectionIds', () => {
   it('keeps the author’s order, filtered to what exists', () => {

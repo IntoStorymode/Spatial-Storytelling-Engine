@@ -112,15 +112,30 @@ describe('buildSiteZip — stories only (unchanged behaviour)', () => {
 })
 
 describe('buildSiteZip — collection export', () => {
-  it('roots the site at the collection and names the zip after it', async () => {
+  it('names the zip after the collection', async () => {
     const out = await buildSiteZip({
       stories: [story('a', 'A'), story('b', 'B')],
       collection: collection(['a', 'b']),
       manifest,
     })
     expect(out.fileName).toBe('my-site-site.zip')
+  })
+
+  it('injects NO redirect — the root renders the landing page directly', async () => {
+    // Home resolves to the collection on a published site, so the reader's URL
+    // stays a clean `/` with no redirect flash and no duplicate story listing
+    // behind the front door.
+    const out = await buildSiteZip({
+      stories: [story('a', 'A')],
+      collection: collection(['a']),
+      manifest,
+    })
     const { text } = await read(out.blob)
-    expect(await text('my-site-site/index.html')).toContain('#/collection/my-site')
+    const html = await text('my-site-site/index.html')
+    expect(html).not.toContain('replaceState')
+    expect(html).not.toContain('#/collection/')
+    // …but it is still marked published, so the hosted site is read-only.
+    expect(html).toContain('window.__SSP_PUBLISHED__=true')
   })
 
   it('writes the collection.md in its own directory, not the site root', async () => {

@@ -12,17 +12,17 @@ export function siteDirName(slug) {
 }
 
 /**
- * The kiosk redirect: on first load (no hash yet) jump straight into the site's
- * entry point. Deep links (…/#/story/<slug>) and in-app nav are untouched,
- * because the redirect only fires when there is no hash at all.
+ * The kiosk redirect: on first load (no hash yet) jump straight into the story.
+ * Deep links (…/#/story/<slug>) and in-app nav are untouched.
  *
- * `kind` selects the entry route: a single-story export opens the story, a
- * collection export opens its landing page. It defaults to 'story' so every
- * pre-existing call emits a byte-identical string.
+ * Single-story exports only. A COLLECTION export needs no redirect: its root
+ * renders the landing page directly, because Home resolves to the collection on
+ * a published site whose index names one (see HomeRoute). That keeps the reader's
+ * URL a clean `/` instead of `/#/collection/<slug>`, with no redirect flash and
+ * no duplicate story listing sitting behind the front door.
  */
-export function kioskScript(slug, kind = 'story') {
-  const route = kind === 'collection' ? 'collection' : 'story'
-  return `<script>if(!location.hash){history.replaceState(null,'','#/${route}/${slug}')}</script>`
+export function kioskScript(slug) {
+  return `<script>if(!location.hash){history.replaceState(null,'','#/story/${slug}')}</script>`
 }
 
 /**
@@ -30,8 +30,8 @@ export function kioskScript(slug, kind = 'story') {
  * module script. Byte-identical to the original inline logic so the CLI and the
  * browser produce the same index.html.
  */
-export function injectKiosk(html, slug, kind = 'story') {
-  const kiosk = kioskScript(slug, kind)
+export function injectKiosk(html, slug) {
+  const kiosk = kioskScript(slug)
   if (html.includes('<script type="module"')) {
     return html.replace('<script type="module"', `${kiosk}\n    <script type="module"`)
   }

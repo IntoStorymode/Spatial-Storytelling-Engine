@@ -2,12 +2,10 @@
 // from TypeScript (buildSite.ts) as well as from the Node CLI.
 import type { Collection, Frontmatter } from '../parser/types'
 
-/** Which route a kiosk export opens on. Defaults to 'story' everywhere. */
-export type KioskKind = 'story' | 'collection'
-
 export function siteDirName(slug: string): string
-export function kioskScript(slug: string, kind?: KioskKind): string
-export function injectKiosk(html: string, slug: string, kind?: KioskKind): string
+/** Single-story exports only — a collection export's root renders its landing page directly. */
+export function kioskScript(slug: string): string
+export function injectKiosk(html: string, slug: string): string
 export function injectPublishedMarker(html: string): string
 
 export interface IndexEntry {

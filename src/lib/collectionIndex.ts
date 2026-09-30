@@ -64,3 +64,19 @@ export function readCollectionEntries(json: unknown): CollectionIndexEntry[] {
 export function collectionPathFor(id: string): string {
   return `collections/${id}/collection.md`
 }
+
+/**
+ * The collection this deployment is *hosted as*, if any — i.e. the one whose
+ * landing page stands in for Home.
+ *
+ * Only on a published (exported) site: there the collection is the site's front
+ * door, so `/` renders it and a story's back link names it. In the authoring app
+ * Home is the author's own gallery, which they still need, so this is null and a
+ * collection is reached at `/collection/<id>` instead.
+ *
+ * One collection per export, so the first entry wins.
+ */
+export function hostCollectionEntry(json: unknown, published: boolean): CollectionIndexEntry | null {
+  if (!published) return null
+  return readCollectionEntries(json)[0] ?? null
+}

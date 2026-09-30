@@ -134,14 +134,12 @@ export async function buildSiteZip({ stories, collection, manifest }: BuildSiteO
   const htmlRes = await fetch('index.html')
   if (!htmlRes.ok) throw new Error(`publish: could not fetch index.html (${htmlRes.status})`)
   const html = await htmlRes.text()
-  // Kiosk for a collection (→ its landing page) or a single story (→ that story);
-  // a gallery export gets none so it lands on Home. The published marker goes on
-  // every export so the hosted site is read-only.
-  const kiosk = collection
-    ? injectKiosk(html, collection.slug, 'collection')
-    : single
-      ? injectKiosk(html, ordered[0].slug)
-      : html
+  // Kiosk only for a single story. A collection export needs none: its root
+  // renders the landing page directly (Home resolves to the collection on a
+  // published site), so the reader's URL stays a clean `/`. A gallery export
+  // gets none either, so it lands on Home. The published marker goes on every
+  // export so the hosted site is read-only.
+  const kiosk = single ? injectKiosk(html, ordered[0].slug) : html
   site.file('index.html', injectPublishedMarker(kiosk))
 
   // 2. The registry: one entry per exported story, in export order (which is the

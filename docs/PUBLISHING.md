@@ -93,7 +93,11 @@ npm run publish:site -- <collection-slug>
 The two namespaces are separate folders, so one bare argument is unambiguous and no flag is needed.
 What you get differs from a single-story export in four ways:
 
-- The root opens on **`#/collection/<slug>`** — the landing page — rather than jumping into a story.
+- **The site's root page *is* the landing page.** Not a redirect to one — `/` renders the collection
+  directly, so the reader's address bar stays a clean `example.com/` with no `#/…` and no redirect
+  flash. The collection replaces the gallery as the front door: it lists every story the export
+  carries, so there is no second, flatter listing behind it. A story's back link names the
+  collection rather than saying "All stories".
 - **Every story the collection lists** is included, each with its own assets. Stories it does not
   list are left out, even if they sit in `public/stories/`.
 - `stories/index.json` is written in the collection's **own `stories:` order**, and gains an optional
@@ -103,9 +107,10 @@ What you get differs from a single-story export in four ways:
 - A story the collection lists but the repo doesn't have is **skipped with a warning** at the end of
   the run, rather than failing the export.
 
-Deep links are unaffected: `…/#/story/<slug>` still opens that story directly, because the kiosk
-redirect only fires when there is no hash at all. And an older engine opening a collection export
-ignores the `collections` key and shows the stories, so the site degrades rather than breaking.
+Deep links are unaffected: `…/#/story/<slug>` still opens that story directly, and
+`…/#/collection/<slug>` also works — it renders the same page as `/`, so links shared before an
+export was re-cut keep resolving. An older engine opening a collection export ignores the
+`collections` key and shows its gallery, so the site degrades rather than breaking.
 
 > **Not from the editor yet.** Exporting a collection needs the CLI above: the session gallery
 > can't hold a collection, so there is nothing to select. See the [roadmap](../ROADMAP.md).
@@ -221,6 +226,11 @@ exported site the same way, since it's just those same plain files.)
   `SharedArrayBuffer`, so plain static hosts work — no cross-origin isolation setup.
 - **Kiosk redirect** (single-story exports only): a tiny injected script sends the deployed root
   straight to `#/story/<slug>`. A multi-story export omits it, so the site opens on the gallery.
+- **A collection export injects no redirect at all.** Its root renders the landing page directly:
+  Home resolves to the collection when the site is published and its `stories/index.json` names one.
+  That keeps the URL a clean `/`, costs no redirect flash, and means the gallery is replaced by the
+  collection rather than hidden behind it. In the authoring app the same index key does nothing to
+  Home — authors keep their gallery, and a collection is viewed at `#/collection/<slug>`.
 
 See the [engineering notes](./ENGINEERING-NOTES.md#architecture) for the reasoning behind hash
 routing and the shared export pipeline.

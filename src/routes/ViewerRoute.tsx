@@ -8,6 +8,8 @@ import { PageView } from '../components/viewer/PageView'
 import { ImmersiveView } from '../components/viewer/ImmersiveView'
 import { resolveStoryLinks, storyNeighbours } from '../lib/storyNeighbours'
 import type { Neighbour, Neighbours } from '../lib/storyNeighbours'
+import { hostCollectionEntry } from '../lib/collectionIndex'
+import { isPublishedSite } from '../publish/published'
 
 interface IndexEntry {
   id: string
@@ -25,6 +27,12 @@ interface Bundle {
   modelBytes?: number
   /** Curated links resolved against the live index (existing targets only). */
   links: Neighbour[]
+  /**
+   * What `/` is called from here. On a published collection export Home IS the
+   * collection's landing page, so the back link names it instead of saying "All
+   * stories" — which would point at a gallery the reader never sees.
+   */
+  backLabel: string
 }
 
 /**
@@ -55,9 +63,13 @@ export function ViewerRoute() {
     async function load() {
       const idxRes = await fetch('stories/index.json')
       if (!idxRes.ok) throw new Error(`Failed to load story index (HTTP ${idxRes.status})`)
-      const idx = (await idxRes.json()).stories as IndexEntry[]
+      const json = await idxRes.json()
+      const idx = json.stories as IndexEntry[]
       const entry = idx.find((s) => s.id === id)
       if (!entry) throw new Error(`Story "${id}" is not in the index.`)
+
+      // The same helper HomeRoute uses to decide whether `/` is the collection.
+      const backLabel = hostCollectionEntry(json, isPublishedSite())?.title ?? 'All stories'
 
       const mdRes = await fetch(entry.path)
       if (!mdRes.ok) throw new Error(`Failed to load story.md (HTTP ${mdRes.status})`)
@@ -75,6 +87,7 @@ export function ViewerRoute() {
           neighbours: storyNeighbours(idx, id),
           links: resolveStoryLinks(idx, story.frontmatter.links, id),
           modelBytes: entry.modelBytes,
+          backLabel,
         })
       }
     }
@@ -134,12 +147,14 @@ export function ViewerRoute() {
               prev={displayed.neighbours.prev}
               next={displayed.neighbours.next}
               links={displayed.links}
+              backLabel={displayed.backLabel}
             />
           ) : (
             <ImmersiveView
               story={displayed.story}
               prev={displayed.neighbours.prev}
               next={displayed.neighbours.next}
+              backLabel={displayed.backLabel}
             />
           )}
         </>
