@@ -12,6 +12,7 @@ There are two ways to produce that website, for two situations:
 | --- | --- | --- |
 | Authoring in the editor (built or hosted app) | **💾 Save to gallery → Export** | No |
 | Working in the repo / running `npm run dev` | **`npm run publish:site -- <slug>`** | Yes |
+| Publishing a [collection](./AUTHORING.md#collections) as a site's front door | **`npm run publish:site -- <collection-slug>`** | Yes |
 
 ---
 
@@ -79,6 +80,35 @@ the same **`<slug>-site.zip`** (the deployable `<slug>-site/` folder + `DEPLOY.m
 project root. The story doesn't need to be registered in `index.json` first — the script reads
 its `story.md` frontmatter if there's no index entry. The zip is git-ignored (`*-site.zip`), so
 exported sites never get committed.
+
+### Publishing a collection
+
+Hand the same command a **collection** slug — a folder under `public/collections/` — and the site's
+front door becomes that collection's landing page instead of a single story:
+
+```bash
+npm run publish:site -- <collection-slug>
+```
+
+The two namespaces are separate folders, so one bare argument is unambiguous and no flag is needed.
+What you get differs from a single-story export in four ways:
+
+- The root opens on **`#/collection/<slug>`** — the landing page — rather than jumping into a story.
+- **Every story the collection lists** is included, each with its own assets. Stories it does not
+  list are left out, even if they sit in `public/stories/`.
+- `stories/index.json` is written in the collection's **own `stories:` order**, and gains an optional
+  `collections` key. That ordering is what makes previous/next *inside* a story follow the
+  collection — so if the reading order isn't what you want,
+  [reorder `stories:`](./AUTHORING.md#collections).
+- A story the collection lists but the repo doesn't have is **skipped with a warning** at the end of
+  the run, rather than failing the export.
+
+Deep links are unaffected: `…/#/story/<slug>` still opens that story directly, because the kiosk
+redirect only fires when there is no hash at all. And an older engine opening a collection export
+ignores the `collections` key and shows the stories, so the site degrades rather than breaking.
+
+> **Not from the editor yet.** Exporting a collection needs the CLI above: the session gallery
+> can't hold a collection, so there is nothing to select. See the [roadmap](../ROADMAP.md).
 
 ---
 

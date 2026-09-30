@@ -29,12 +29,15 @@ Ideas and requests are welcome as [issues](https://github.com/IntoStorymode/Spat
 - **Edit curated links in the editor.** A story's `links:` (curated links to related stories) works
   by hand-editing `story.md` and round-trips through the editor untouched, but there's no UI field to
   set them yet.
-- **Finish collections.** The `collection.md` format and its landing page have landed — a collection
-  introduces a group of stories and is authored by hand (see
-  [Authoring → Collections](./docs/AUTHORING.md#collections)). Still to come: exporting a collection
-  as the site root so it becomes the front door of a multi-story site, importing a collection `.zip`
-  back into the gallery, and a collection editor (title, cover, prose, and picking/ordering the
-  stories). Until the editor exists, collections are hand-authored, as `links:` was at first.
+- **Finish collections.** The `collection.md` format, its landing page, and CLI export have landed —
+  a collection introduces a group of stories and becomes the front door of an exported site
+  (see [Authoring → Collections](./docs/AUTHORING.md#collections) and
+  [Publishing → a collection](./docs/PUBLISHING.md#publishing-a-collection)). Still to come:
+  **importing** a collection `.zip` back into the gallery (today its stories come back and the
+  collection is silently dropped), **exporting from the editor** (the session gallery can't hold a
+  collection, so `npm run publish:site` is the only route), and a **collection editor** — title,
+  cover, prose, and picking/ordering the stories. Until that exists, collections are hand-authored,
+  as `links:` was at first.
 - **Real Markdown in prose bodies.** Body text — a story section's and a collection's alike — is
   split into paragraphs on blank lines and nothing else, so `**bold**`, `[links]()` and `##`
   headings render as literal characters. A collection's background prose is the longest continuous

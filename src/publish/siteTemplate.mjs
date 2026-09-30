@@ -12,11 +12,17 @@ export function siteDirName(slug) {
 }
 
 /**
- * The kiosk redirect: on first load (no hash yet) jump straight into the story.
- * Deep links (…/#/story/<slug>) and in-app nav are untouched.
+ * The kiosk redirect: on first load (no hash yet) jump straight into the site's
+ * entry point. Deep links (…/#/story/<slug>) and in-app nav are untouched,
+ * because the redirect only fires when there is no hash at all.
+ *
+ * `kind` selects the entry route: a single-story export opens the story, a
+ * collection export opens its landing page. It defaults to 'story' so every
+ * pre-existing call emits a byte-identical string.
  */
-export function kioskScript(slug) {
-  return `<script>if(!location.hash){history.replaceState(null,'','#/story/${slug}')}</script>`
+export function kioskScript(slug, kind = 'story') {
+  const route = kind === 'collection' ? 'collection' : 'story'
+  return `<script>if(!location.hash){history.replaceState(null,'','#/${route}/${slug}')}</script>`
 }
 
 /**
@@ -24,8 +30,8 @@ export function kioskScript(slug) {
  * module script. Byte-identical to the original inline logic so the CLI and the
  * browser produce the same index.html.
  */
-export function injectKiosk(html, slug) {
-  const kiosk = kioskScript(slug)
+export function injectKiosk(html, slug, kind = 'story') {
+  const kiosk = kioskScript(slug, kind)
   if (html.includes('<script type="module"')) {
     return html.replace('<script type="module"', `${kiosk}\n    <script type="module"`)
   }
@@ -71,9 +77,84 @@ export function indexEntry(fm, slug, modelBytes) {
 }
 
 /**
+ * The registry entry for a collection — the optional `collections` sibling key
+ * in stories/index.json. Enough to list and link a collection on Home without
+ * fetching its collection.md; the file itself stays authoritative for the prose,
+ * exactly as story.md is authoritative over a story's index entry.
+ *
+ * `coverPath` is the cover as authored (e.g. `assets/cover.jpg`); it is stored
+ * prefixed with the collection's directory so it resolves from the site root.
+ */
+export function collectionIndexEntry(collection, slug, coverPath) {
+  return {
+    id: slug,
+    title: collection.title || slug,
+    ...(collection.subtitle ? { subtitle: collection.subtitle } : {}),
+    path: `collections/${slug}/collection.md`,
+    ...(coverPath ? { cover: `collections/${slug}/${coverPath}` } : {}),
+  }
+}
+
+/**
+ * Order a collection's story ids against the ids actually available to an
+ * export, and report the mismatches.
+ *
+ * `ordered` is the author's own order, filtered to what exists and de-duplicated
+ * — this is what the exported stories/index.json is written in, which is what
+ * makes previous/next inside a story follow the collection with no extra
+ * machinery (storyNeighbours already walks index order).
+ *
+ * `missing` is ids the collection lists that the export does not carry; the
+ * caller turns those into an advisory warning. `extra` is available stories the
+ * collection does not list, which a collection export simply leaves out.
+ */
+export function orderCollectionIds(ids, availableIds) {
+  const available = new Set(availableIds)
+  const ordered = []
+  const missing = []
+  const seen = new Set()
+  for (const id of ids ?? []) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    if (available.has(id)) ordered.push(id)
+    else missing.push(id)
+  }
+  const extra = [...available].filter((id) => !seen.has(id))
+  return { ordered, missing, extra }
+}
+
+/**
+ * One advisory string per story a collection references but the export does not
+ * carry. Shared so the CLI and the browser word it identically.
+ */
+export function collectionWarnings(missing) {
+  return (missing ?? []).map(
+    (id) =>
+      `This collection lists a story "${id}" that isn't in the export, so it won't appear on the landing page. Add it, or remove it from the collection's stories: list.`,
+  )
+}
+
+/**
+ * The whole stories/index.json object. `collections` is omitted entirely when
+ * there is no collection, so a story-only export is byte-identical to what
+ * earlier engine versions wrote — and it is a top-level SIBLING of `stories`,
+ * never an element of it: every index reader in the app does `.stories ?? []`,
+ * so a sibling key is invisible to an older engine, whereas an array member
+ * would be rendered as a story, spliced into previous/next, and could be picked
+ * as the VR viewer's default.
+ */
+export function storiesIndexJson(entries, collections) {
+  return {
+    stories: entries,
+    ...(collections && collections.length ? { collections } : {}),
+  }
+}
+
+/**
  * The DEPLOY.md that ships next to the site folder in the zip.
- * `siteDir` is the site folder name (`<slug>-site` for one story, `gallery-site`
- * for several); `title` is the story title, or e.g. "3 stories" for a gallery.
+ * `siteDir` is the site folder name (`<slug>-site` for one story or a
+ * collection, `gallery-site` for several loose stories); `title` is the story or
+ * collection title, or e.g. "3 stories" for a gallery.
  */
 export function deployMd({ title, siteDir }) {
   return `# Deploy "${title}"
