@@ -14,16 +14,32 @@ interface Bundle {
 }
 
 /**
- * The collection landing page — fetches and parses a collection.md by :id and
- * renders it. No ViewerStage, so no WebGL context and no model fetch: the
- * landing page is text and a cover image only.
+ * The collection landing page — fetches and parses a collection.md and renders
+ * it. No ViewerStage, so no WebGL context and no model fetch: the landing page is
+ * text and a cover image only.
+ *
+ * Mounted two ways, which is why the id can be passed in rather than only read
+ * from the route:
+ * - at `/collection/:id`, the canonical deep link, and how the dev app views one;
+ * - at `/` on a published collection export, where Home *is* the landing page, so
+ *   the reader's URL stays a clean `/` with no redirect and no duplicate story
+ *   listing behind it (see HomeRoute).
  *
  * Discovery prefers the `collections` key in stories/index.json, falling back to
  * the conventional `collections/<id>/collection.md` path so a local, gitignored
  * collection previews without editing the tracked index.
  */
-export function CollectionRoute() {
-  const { id } = useParams<{ id: string }>()
+export function CollectionRoute({
+  id: idProp,
+  hideBack = false,
+}: {
+  /** Overrides the route param — used when Home renders the collection at `/`. */
+  id?: string
+  /** Hide the back link: at `/` there is nowhere further back to go. */
+  hideBack?: boolean
+} = {}) {
+  const { id: routeId } = useParams<{ id: string }>()
+  const id = idProp ?? routeId
   const [bundle, setBundle] = useState<Bundle | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,9 +83,7 @@ export function CollectionRoute() {
     return (
       <div className="page">
         <div className="page-topbar">
-          <Link to="/" className="back">
-            ← All stories
-          </Link>
+          {hideBack ? <span /> : <Link to="/" className="back">← All stories</Link>}
         </div>
         <p className="state">{error}</p>
       </div>
@@ -90,7 +104,7 @@ export function CollectionRoute() {
           </ul>
         </div>
       )}
-      <CollectionView collection={bundle.collection} stories={bundle.stories} />
+      <CollectionView collection={bundle.collection} stories={bundle.stories} hideBack={hideBack} />
     </>
   )
 }

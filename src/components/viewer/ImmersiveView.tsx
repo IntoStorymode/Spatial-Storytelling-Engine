@@ -26,11 +26,14 @@ export function ImmersiveView({
   hideBack,
   prev = null,
   next = null,
+  backLabel = 'All stories',
 }: {
   story: Story
   hideBack?: boolean
   prev?: Neighbour | null
   next?: Neighbour | null
+  /** What `/` is called — the collection's title on a collection export. */
+  backLabel?: string
 }) {
   const step = useStoryStore((s) => s.step)
   const setAutoTour = useStoryStore((s) => s.setAutoTour)
@@ -85,7 +88,7 @@ export function ImmersiveView({
           <span />
         ) : (
           <Link to="/" className="back">
-            ← All stories
+            ← {backLabel}
           </Link>
         )}
         <div className="topbar-toggles">

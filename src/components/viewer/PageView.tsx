@@ -21,12 +21,15 @@ export function PageView({
   prev = null,
   next = null,
   links = [],
+  backLabel = 'All stories',
 }: {
   story: Story
   hideBack?: boolean
   prev?: Neighbour | null
   next?: Neighbour | null
   links?: Neighbour[]
+  /** What `/` is called — the collection's title on a collection export. */
+  backLabel?: string
 }) {
   const { frontmatter: fm, sections, basePath } = story
   const { id } = useParams<{ id: string }>()
@@ -65,7 +68,7 @@ export function PageView({
           <span />
         ) : (
           <Link to="/" className="back">
-            ← All stories
+            ← {backLabel}
           </Link>
         )}
         <div className="page-topbar-actions">

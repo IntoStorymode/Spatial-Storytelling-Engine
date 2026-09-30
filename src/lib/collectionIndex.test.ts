@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readCollectionEntries, collectionPathFor } from './collectionIndex'
+import { readCollectionEntries, collectionPathFor, hostCollectionEntry } from './collectionIndex'
 
 describe('readCollectionEntries', () => {
   it('reads well-formed entries', () => {
@@ -86,5 +86,33 @@ describe('readCollectionEntries', () => {
 describe('collectionPathFor', () => {
   it('builds the conventional path', () => {
     expect(collectionPathFor('high-street')).toBe('collections/high-street/collection.md')
+  })
+})
+
+describe('hostCollectionEntry', () => {
+  const withCollection = {
+    stories: [{ id: 'a' }],
+    collections: [{ id: 'c', title: 'C', path: 'collections/c/collection.md' }],
+  }
+
+  it('names the collection a published export is hosted as', () => {
+    expect(hostCollectionEntry(withCollection, true)?.id).toBe('c')
+  })
+
+  it('is null in the authoring app, where Home is the author’s own gallery', () => {
+    expect(hostCollectionEntry(withCollection, false)).toBeNull()
+  })
+
+  it('is null for a published story-only export', () => {
+    expect(hostCollectionEntry({ stories: [{ id: 'a' }] }, true)).toBeNull()
+  })
+
+  it('takes the first entry — one collection per export', () => {
+    const two = { collections: [{ id: 'first', path: 'p1' }, { id: 'second', path: 'p2' }] }
+    expect(hostCollectionEntry(two, true)?.id).toBe('first')
+  })
+
+  it.each([null, undefined, {}, 'nonsense'])('is null for a junk index (%s)', (json) => {
+    expect(hostCollectionEntry(json, true)).toBeNull()
   })
 })

@@ -9,7 +9,12 @@ import { isPublishedSite } from '../publish/published'
 import { importSite, type Bundle } from '../publish/importSite'
 import { toSavedStory } from '../publish/importSnapshot'
 import { ImportDialog } from '../components/ImportDialog'
-import { readCollectionEntries, type CollectionIndexEntry } from '../lib/collectionIndex'
+import {
+  hostCollectionEntry,
+  readCollectionEntries,
+  type CollectionIndexEntry,
+} from '../lib/collectionIndex'
+import { CollectionRoute } from './CollectionRoute'
 
 interface StoryIndexEntry {
   id: string
@@ -165,6 +170,21 @@ export function HomeRoute() {
     : manifest === null
       ? 'Export needs the built app — run npm run preview, or use the hosted editor'
       : 'Select at least one story to export'
+
+  // On a published collection export, Home IS the landing page: the collection is
+  // the site's front door, so the reader's URL stays a clean `/` with no redirect
+  // and no second, flatter listing of the same stories behind it. The collection
+  // lists every story the export carries, so nothing is orphaned by this.
+  //
+  // Only on a published site — in the authoring app Home is the author's gallery,
+  // which they need. There the collection lives at /collection/<id> instead.
+  //
+  // The index decides which of the two this is, and it arrives asynchronously, so
+  // hold a neutral state until it lands rather than flashing the gallery first and
+  // swapping — that flash is the thing dropping the kiosk redirect was meant to fix.
+  if (published && stories === null && !error) return <p className="state">Loading…</p>
+  const hosted = hostCollectionEntry({ collections }, published)
+  if (hosted) return <CollectionRoute id={hosted.id} hideBack />
 
   return (
     <main className="home">

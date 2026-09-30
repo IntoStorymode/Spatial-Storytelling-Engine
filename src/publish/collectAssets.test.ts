@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { collectAssets } from './collectAssets'
+import { collectAssets, collectCollectionAssets } from './collectAssets'
 import type { Frontmatter, Section } from '../parser/types'
 
 const fm = (model: string): Frontmatter => ({ title: 't', author: '', location: '', date: '', model })
@@ -20,5 +20,20 @@ describe('collectAssets', () => {
 
   it('omits the model when it is not an upload (builtin/typed path)', () => {
     expect(collectAssets(fm('builtin:room'), [], null, {})).toEqual([])
+  })
+})
+
+describe('collectCollectionAssets', () => {
+  it('includes an uploaded cover at its authored path', () => {
+    const out = collectCollectionAssets({ cover: 'assets/cover.jpg' }, { file: file('cover.jpg') })
+    expect(out.map((a) => a.path)).toEqual(['assets/cover.jpg'])
+  })
+
+  it('omits a typed-path cover, which the browser was never handed', () => {
+    expect(collectCollectionAssets({ cover: 'assets/typed.jpg' }, null)).toEqual([])
+  })
+
+  it('returns nothing when the collection has no cover', () => {
+    expect(collectCollectionAssets({}, { file: file('stray.jpg') })).toEqual([])
   })
 })

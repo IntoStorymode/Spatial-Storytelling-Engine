@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { injectPublishedMarker, injectKiosk } from './siteTemplate.mjs'
+import {
+  collectionIndexEntry,
+  collectionWarnings,
+  indexEntry,
+  injectPublishedMarker,
+  injectKiosk,
+  kioskScript,
+  orderCollectionIds,
+  storiesIndexJson,
+} from './siteTemplate.mjs'
 
 const MARKER = `<script>window.__SSP_PUBLISHED__=true</script>`
 
@@ -23,5 +32,121 @@ describe('injectPublishedMarker', () => {
     const out = injectPublishedMarker(injectKiosk(html, 'my-story'))
     expect(out).toContain(MARKER)
     expect(out).toContain(`#/story/my-story`)
+  })
+})
+
+describe('kioskScript', () => {
+  // Pinned literally: a single-story export's index.html must stay byte-identical.
+  // There is deliberately NO collection variant — a collection export injects no
+  // redirect at all, because its root renders the landing page directly, keeping
+  // the reader's URL a clean `/`.
+  it('emits the story redirect', () => {
+    expect(kioskScript('my-story')).toBe(
+      `<script>if(!location.hash){history.replaceState(null,'','#/story/my-story')}</script>`,
+    )
+  })
+
+  it('only fires when there is no hash, so deep links survive', () => {
+    expect(kioskScript('x')).toContain('if(!location.hash)')
+  })
+})
+
+
+describe('orderCollectionIds', () => {
+  it('keeps the author’s order, filtered to what exists', () => {
+    const out = orderCollectionIds(['c', 'a', 'b'], ['a', 'b', 'c'])
+    expect(out.ordered).toEqual(['c', 'a', 'b'])
+    expect(out.missing).toEqual([])
+    expect(out.extra).toEqual([])
+  })
+
+  it('reports ids the export does not carry, without dropping the rest', () => {
+    const out = orderCollectionIds(['a', 'ghost', 'b'], ['a', 'b'])
+    expect(out.ordered).toEqual(['a', 'b'])
+    expect(out.missing).toEqual(['ghost'])
+  })
+
+  it('reports available stories the collection does not list', () => {
+    expect(orderCollectionIds(['a'], ['a', 'spare']).extra).toEqual(['spare'])
+  })
+
+  it('de-duplicates, keeping the first mention', () => {
+    expect(orderCollectionIds(['a', 'b', 'a'], ['a', 'b']).ordered).toEqual(['a', 'b'])
+  })
+
+  it('counts a duplicate of a missing id only once', () => {
+    expect(orderCollectionIds(['ghost', 'ghost'], []).missing).toEqual(['ghost'])
+  })
+
+  it.each([undefined, []])('handles an empty or absent list (%s)', (ids) => {
+    const out = orderCollectionIds(ids, ['a'])
+    expect(out.ordered).toEqual([])
+    expect(out.extra).toEqual(['a'])
+  })
+})
+
+describe('collectionWarnings', () => {
+  it('names each missing story and how to fix it', () => {
+    const [w] = collectionWarnings(['ghost'])
+    expect(w).toContain('ghost')
+    expect(w).toContain('stories:')
+  })
+
+  it.each([undefined, []])('says nothing when nothing is missing (%s)', (missing) => {
+    expect(collectionWarnings(missing)).toEqual([])
+  })
+})
+
+describe('collectionIndexEntry', () => {
+  it('builds the entry, prefixing the cover with the collection directory', () => {
+    const out = collectionIndexEntry(
+      { title: 'The High Street', subtitle: 'Somewhere' },
+      'high-street',
+      'assets/cover.jpg',
+    )
+    expect(out).toEqual({
+      id: 'high-street',
+      title: 'The High Street',
+      subtitle: 'Somewhere',
+      path: 'collections/high-street/collection.md',
+      cover: 'collections/high-street/assets/cover.jpg',
+    })
+  })
+
+  it('omits subtitle and cover when absent, rather than emitting empty strings', () => {
+    expect(collectionIndexEntry({ title: 'T' }, 'c')).toEqual({
+      id: 'c',
+      title: 'T',
+      path: 'collections/c/collection.md',
+    })
+  })
+
+  it('falls back to the slug when there is no title', () => {
+    expect(collectionIndexEntry({ title: '' }, 'c').title).toBe('c')
+  })
+})
+
+describe('storiesIndexJson', () => {
+  const entries = [indexEntry({ title: 'A' }, 'a')]
+
+  it('omits the collections key entirely for a story-only export', () => {
+    const out = storiesIndexJson(entries)
+    expect('collections' in out).toBe(false)
+    // Backward compatibility: byte-identical to what earlier versions wrote.
+    expect(JSON.stringify(out)).toBe(JSON.stringify({ stories: entries }))
+  })
+
+  it.each([undefined, []])('also omits it for an empty collections value (%s)', (c) => {
+    expect('collections' in storiesIndexJson(entries, c)).toBe(false)
+  })
+
+  it('adds collections as a sibling of stories, never inside it', () => {
+    const c = [collectionIndexEntry({ title: 'C' }, 'c')]
+    const out = storiesIndexJson(entries, c)
+    expect(out.stories).toEqual(entries)
+    expect(out.collections).toEqual(c)
+    // The compatibility guarantee: an older reader does `.stories ?? []` and so
+    // never sees the collection — it must not be spliced into the array.
+    expect(out.stories.map((s) => s.id)).not.toContain('c')
   })
 })
