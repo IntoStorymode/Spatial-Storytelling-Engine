@@ -1174,6 +1174,67 @@ button.cta {
   border-top: 1px solid var(--line);
 }
 
+/* ── Collection editor ─────────────────────────────────────────────────────── */
+/* The right-hand pane is a live landing page rather than a 3D canvas, so it
+   scrolls like the real reading view instead of filling a fixed stage. */
+.editor-stage.coll-preview {
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+/* The ordered story list — the order is the artefact, so it is numbered. */
+.coll-picked {
+  list-style: none;
+  margin: 8px 0 16px;
+  padding: 0;
+  counter-reset: none;
+}
+.coll-picked-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-2);
+  margin-bottom: 6px;
+}
+/* A referenced story that isn't available — it would be dropped from an export. */
+.coll-picked-row.is-missing {
+  border-color: var(--danger);
+}
+.coll-picked-n {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 14px;
+}
+.coll-picked-title {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.coll-picked-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.coll-add-list {
+  list-style: none;
+  margin: 6px 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.coll-add-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ── Editor ───────────────────────────────────────────────────────────────── */
 .editor {
   display: flex;

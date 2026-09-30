@@ -6,11 +6,14 @@ import { CollectionView } from '../components/collection/CollectionView'
 import { resolveStoryLinks } from '../lib/storyNeighbours'
 import type { Neighbour } from '../lib/storyNeighbours'
 import { readCollectionEntries, collectionPathFor } from '../lib/collectionIndex'
+import { resolveUrl } from '../lib/resolveUrl'
+import { useGalleryStore } from '../store/useGalleryStore'
 
-/** A collection plus its resolved story list. */
+/** A collection plus its resolved story list and a loadable cover URL. */
 interface Bundle {
   collection: Collection
   stories: Neighbour[]
+  coverUrl: string | null
 }
 
 /**
@@ -43,10 +46,43 @@ export function CollectionRoute({
   const [bundle, setBundle] = useState<Bundle | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // A collection held in the session gallery (authored or imported) has no file to
+  // fetch — its cover is a blob URL and its prose is already in memory. Checking
+  // here is what makes "Open" work on a gallery card as well as a deployed one.
+  const saved = useGalleryStore((s) => s.collections.find((c) => c.slug === id))
+  const savedStories = useGalleryStore((s) => s.stories)
+
   useEffect(() => {
     let cancelled = false
     setError(null)
     setBundle(null)
+
+    // Session collection: resolve its stories against the gallery, then the index.
+    if (saved) {
+      const galleryIdx = savedStories.map((s) => ({ id: s.slug, title: s.fm.title || s.slug }))
+      void (async () => {
+        let idx = galleryIdx
+        try {
+          const res = await fetch('stories/index.json')
+          if (res.ok) {
+            const fromIndex = ((await res.json()).stories ?? []) as Neighbour[]
+            const seen = new Set(galleryIdx.map((s) => s.id))
+            idx = [...galleryIdx, ...fromIndex.filter((s) => !seen.has(s.id))]
+          }
+        } catch {
+          /* gallery-only is fine — a session collection may reference only drafts */
+        }
+        if (cancelled) return
+        setBundle({
+          collection: saved.collection,
+          stories: resolveStoryLinks(idx, saved.collection.stories, undefined),
+          coverUrl: saved.cover?.url ?? null,
+        })
+      })()
+      return () => {
+        cancelled = true
+      }
+    }
 
     async function load() {
       const idxRes = await fetch('stories/index.json')
@@ -69,7 +105,11 @@ export function CollectionRoute({
         // just the ids present in this deployment (so a story left out of an export
         // never renders a dead link), drops duplicates, and preserves that order;
         // `undefined` for currentId because a collection has no self to exclude.
-        setBundle({ collection, stories: resolveStoryLinks(idx, collection.stories, undefined) })
+        setBundle({
+          collection,
+          stories: resolveStoryLinks(idx, collection.stories, undefined),
+          coverUrl: collection.cover ? resolveUrl(collection.cover, basePath) : null,
+        })
       }
     }
 
@@ -77,7 +117,7 @@ export function CollectionRoute({
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, saved, savedStories])
 
   if (error) {
     return (
@@ -104,7 +144,12 @@ export function CollectionRoute({
           </ul>
         </div>
       )}
-      <CollectionView collection={bundle.collection} stories={bundle.stories} hideBack={hideBack} />
+      <CollectionView
+        collection={bundle.collection}
+        stories={bundle.stories}
+        coverUrl={bundle.coverUrl}
+        hideBack={hideBack}
+      />
     </>
   )
 }

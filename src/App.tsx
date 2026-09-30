@@ -3,6 +3,7 @@ import { HomeRoute } from './routes/HomeRoute'
 import { ViewerRoute } from './routes/ViewerRoute'
 import { CollectionRoute } from './routes/CollectionRoute'
 import { EditorRoute } from './routes/EditorRoute'
+import { CollectionEditorRoute } from './routes/CollectionEditorRoute'
 import { PreviewRoute } from './routes/PreviewRoute'
 import { isPublishedSite } from './publish/published'
 
@@ -25,6 +26,8 @@ export default function App() {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/story/:id" element={<ViewerRoute />} />
       <Route path="/collection/:id" element={<CollectionRoute />} />
+      <Route path="/edit/collection/new" element={published ? home : <CollectionEditorRoute />} />
+      <Route path="/edit/collection/:id" element={published ? home : <CollectionEditorRoute />} />
       <Route path="/edit/new" element={published ? home : <EditorRoute />} />
       <Route path="/edit/:id" element={published ? home : <EditorRoute />} />
       <Route path="/preview" element={published ? home : <PreviewRoute />} />

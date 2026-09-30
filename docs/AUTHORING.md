@@ -254,8 +254,28 @@ A collection `.zip` can be brought back with **⬆ Import** on the Home page —
 every story in the bundle return intact. See
 [Publishing → importing a collection](./PUBLISHING.md#importing-a-collection).
 
-There is no collection editor yet — collections are hand-authored, exactly as a story's `links:`
-was when it first shipped. It is on the [roadmap](../ROADMAP.md).
+### The collection editor
+
+You don't have to write `collection.md` by hand. From Home click **+ New collection**:
+
+1. **About** — title, the optional subtitle, the background text, and a cover image (**Upload
+   file…**). Blank lines separate paragraphs; Markdown isn't interpreted.
+2. **Stories** — add the stories this collection introduces and order them with ↑/↓. **The order is
+   the artefact**, not a display preference: it sets the landing page's list *and* the order the
+   export writes, which is what makes previous/next inside a story follow the collection. Removing a
+   story here never touches the story itself.
+3. **Publish** — the export name (its folder name), taken from the title unless you set it.
+
+The right-hand pane is a **live preview** of the landing page as readers will meet it, updating as
+you type. There's no separate preview mode: a collection has no 3D scene, so there's nothing to
+switch between.
+
+**💾 Save to gallery** puts it on Home, where you can **Open** it, **Edit** it again, or **⬇ Export**
+it as a website. The readiness pill blocks saving until the collection has a title, an export name,
+some background text, and at least one story that's actually in your gallery.
+
+Stories can be drawn from your session gallery or from the deployment's bundled examples — but only
+gallery stories ship with an export, since those are the ones the app holds the files for.
 
 ---
 

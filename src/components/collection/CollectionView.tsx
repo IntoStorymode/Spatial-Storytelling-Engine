@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import type { Collection } from '../../parser/types'
 import type { Neighbour } from '../../lib/storyNeighbours'
 import { Prose } from '../content/TextBlock'
-import { resolveUrl } from '../../lib/resolveUrl'
 
 /**
  * A collection's landing page — the front door of a multi-story site.
@@ -20,14 +19,28 @@ import { resolveUrl } from '../../lib/resolveUrl'
 export function CollectionView({
   collection,
   stories,
+  coverUrl = null,
   hideBack = false,
+  storyLinks = true,
 }: {
   collection: Collection
   /** The collection's stories, already resolved against the index and in author order. */
   stories: Neighbour[]
+  /**
+   * The cover, already resolved to something an <img> can load. Passed in rather
+   * than derived, because the two callers resolve it differently: a deployed
+   * collection resolves `cover` against its basePath, while one held in the
+   * gallery has only a blob URL for an uploaded File. Null renders no cover.
+   */
+  coverUrl?: string | null
   hideBack?: boolean
+  /**
+   * Render the story list as links. False in the editor preview, where the
+   * stories may exist only in the session gallery and have nowhere to navigate to.
+   */
+  storyLinks?: boolean
 }) {
-  const cover = collection.cover ? resolveUrl(collection.cover, collection.basePath) : null
+  const cover = coverUrl
 
   return (
     <div className="page">
@@ -67,9 +80,13 @@ export function CollectionView({
                   <span className="story-nav-related-arrow" aria-hidden="true">
                     →
                   </span>
-                  <Link to={`/story/${s.id}`} className="story-nav-related-link">
-                    {s.title}
-                  </Link>
+                  {storyLinks ? (
+                    <Link to={`/story/${s.id}`} className="story-nav-related-link">
+                      {s.title}
+                    </Link>
+                  ) : (
+                    <span className="story-nav-related-link">{s.title}</span>
+                  )}
                 </li>
               ))}
             </ul>
