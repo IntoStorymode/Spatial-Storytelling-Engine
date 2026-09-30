@@ -9,6 +9,7 @@ import { isPublishedSite } from '../publish/published'
 import { importSite, type Bundle } from '../publish/importSite'
 import { toSavedStory } from '../publish/importSnapshot'
 import { ImportDialog } from '../components/ImportDialog'
+import { readCollectionEntries, type CollectionIndexEntry } from '../lib/collectionIndex'
 
 interface StoryIndexEntry {
   id: string
@@ -27,12 +28,16 @@ interface ImportReport {
 
 /**
  * Home (screen 1) — the gallery. Lists the stories you've saved this session
- * (with select + export to a deployable website) plus the repo's example
- * stories. No backend: the example registry is a static JSON file.
+ * (with select + export to a deployable website), any collections the deployment
+ * registers, plus the repo's example stories. No backend: the registry is a
+ * static JSON file.
  */
 export function HomeRoute() {
   const navigate = useNavigate()
   const [stories, setStories] = useState<StoryIndexEntry[] | null>(null)
+  // Collections come from an optional `collections` key in the same index file.
+  // Absent on every index written before collections existed, hence [] not null.
+  const [collections, setCollections] = useState<CollectionIndexEntry[]>([])
   const [error, setError] = useState<string | null>(null)
 
   // On a published (exported/hosted) site the app is read-only: no editor, no
@@ -65,7 +70,10 @@ export function HomeRoute() {
         if (!r.ok) throw new Error(`Failed to load story index (HTTP ${r.status})`)
         return r.json()
       })
-      .then((data) => setStories(data.stories ?? []))
+      .then((data) => {
+        setStories(data.stories ?? [])
+        setCollections(readCollectionEntries(data))
+      })
       .catch((e) => setError(String(e)))
     fetchManifest().then(setManifest)
   }, [])
@@ -310,7 +318,34 @@ export function HomeRoute() {
         </section>
       )}
 
-      {saved.length > 0 && <h2 className="home-h2 home-examples-h">Example stories</h2>}
+      {/* Collections sit above the stories they introduce — a collection is the
+          front door, the story grid is the directory behind it. */}
+      {collections.length > 0 && (
+        <section className="gallery-collections">
+          <h2 className="home-h2">
+            {collections.length === 1 ? 'Collection' : 'Collections'}
+          </h2>
+          <div className="story-grid">
+            {collections.map((c) => (
+              <Link key={c.id} to={`/collection/${c.id}`} className="story-card collection-card">
+                {c.cover && (
+                  <span className="collection-card-cover">
+                    <img src={c.cover} alt="" />
+                  </span>
+                )}
+                <p className="eyebrow">Collection</p>
+                <h2>{c.title}</h2>
+                {c.subtitle && <div className="meta">{c.subtitle}</div>}
+                <span className="cta">Open →</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(saved.length > 0 || collections.length > 0) && (
+        <h2 className="home-h2 home-examples-h">Example stories</h2>
+      )}
 
       {error && <p className="state">{error}</p>}
       {!error && !stories && <p className="state">Loading stories…</p>}

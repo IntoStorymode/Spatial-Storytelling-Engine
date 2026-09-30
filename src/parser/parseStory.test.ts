@@ -314,4 +314,18 @@ describe('story parser — model orientation override', () => {
     expect(story.frontmatter.links).toBeUndefined()
     expect(story.warnings.some((w) => w.includes('links'))).toBe(true)
   })
+
+  it('says so when handed a collection rather than a story', () => {
+    // Otherwise this parses as a story with no sections and warns once per
+    // paragraph, none of which names the actual mistake.
+    const md = '---\ntype: collection\ntitle: "x"\nstories:\n  - "a"\n---\n\nProse.\n'
+    const story = parseStory(md, BASE)
+    expect(story.warnings.some((w) => w.includes('collection'))).toBe(true)
+  })
+
+  it('does not mistake a section type for a collection', () => {
+    // `type:` is a section meta key too — a normal story must stay silent.
+    const md = '---\ntitle: "x"\n---\n\n## [a] A\n\ntype: text\n\nBody\n'
+    expect(parseStory(md, BASE).warnings).toEqual([])
+  })
 })

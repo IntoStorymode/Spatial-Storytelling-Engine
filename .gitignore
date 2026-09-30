@@ -37,6 +37,12 @@ dist-ssr/
 !/public/stories/demo/
 !/public/stories/splat-example/
 
+# Collection content — same whitelist discipline as stories above: only the
+# canonical example collection is tracked, so an author's local collections and
+# cover images stay off the remote.
+/public/collections/*
+!/public/collections/example-site/
+
 # Local-only dev tooling. Registers whatever stories exist in dist/ into
 # dist/stories/index.json so gitignored author scans are testable in
 # `vite preview` without dirtying the tracked public/stories/index.json.

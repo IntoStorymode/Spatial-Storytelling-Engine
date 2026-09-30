@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img"
+     aria-label="Example Site — a placeholder collection cover">
+  <!-- Hand-written placeholder so the tracked example needs no binary in git.
+       Palette matches src/styles/theme.css. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#25221e"/>
+      <stop offset="1" stop-color="#171614"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="675" fill="url(#sky)"/>
+
+  <!-- A rough street elevation: the kind of thing a collection of place stories covers. -->
+  <g fill="#1f1d1a" stroke="#2e2b27" stroke-width="2">
+    <rect x="70" y="330" width="180" height="270"/>
+    <rect x="260" y="270" width="150" height="330"/>
+    <rect x="420" y="360" width="200" height="240"/>
+    <rect x="630" y="240" width="160" height="360"/>
+    <rect x="800" y="320" width="140" height="280"/>
+    <rect x="950" y="290" width="180" height="310"/>
+  </g>
+
+  <!-- Lit windows, in the accent copper. -->
+  <g fill="#c17a3a" opacity="0.85">
+    <rect x="100" y="370" width="26" height="34"/>
+    <rect x="152" y="370" width="26" height="34"/>
+    <rect x="100" y="440" width="26" height="34"/>
+    <rect x="290" y="310" width="26" height="34"/>
+    <rect x="342" y="382" width="26" height="34"/>
+    <rect x="462" y="400" width="26" height="34"/>
+    <rect x="540" y="400" width="26" height="34"/>
+    <rect x="662" y="284" width="26" height="34"/>
+    <rect x="714" y="356" width="26" height="34"/>
+    <rect x="830" y="362" width="26" height="34"/>
+    <rect x="982" y="330" width="26" height="34"/>
+    <rect x="1050" y="402" width="26" height="34"/>
+  </g>
+
+  <rect x="0" y="598" width="1200" height="77" fill="#171614"/>
+  <line x1="0" y1="598" x2="1200" y2="598" stroke="#2e2b27" stroke-width="2"/>
+
+  <text x="70" y="140" fill="#ede8df" font-family="Georgia, 'Times New Roman', serif"
+        font-size="64">Example Site</text>
+  <text x="70" y="190" fill="#9a9289" font-family="system-ui, sans-serif"
+        font-size="26" letter-spacing="2">A PLACEHOLDER COLLECTION COVER</text>
+</svg>

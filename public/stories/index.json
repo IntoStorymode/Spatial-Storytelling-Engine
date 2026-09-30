@@ -16,5 +16,14 @@
       "date": "2026-06-13",
       "path": "stories/splat-example/story.md"
     }
+  ],
+  "collections": [
+    {
+      "id": "example-site",
+      "title": "Example Site",
+      "subtitle": "Two demo stories, one front door",
+      "path": "collections/example-site/collection.md",
+      "cover": "collections/example-site/assets/cover.svg"
+    }
   ]
 }
